@@ -22,9 +22,10 @@ export function AppLayout({ children }: { children?: ReactNode }) {
   return (
     <div className="flex h-dvh overflow-hidden bg-grund">
       <Seitenleiste />
+      <Kopfzeile />
       <main
         className={cn(
-          "relative min-w-0 flex-1 pb-14 md:pb-0",
+          "relative min-w-0 flex-1 pt-14 pb-14 md:pt-0 md:pb-0",
           randlos ? "overflow-hidden" : "overflow-y-auto",
         )}
       >
@@ -44,9 +45,9 @@ function Seitenleiste() {
         <img
           src={`${import.meta.env.BASE_URL}logo/revest-wortmarke-schwarz.png`}
           alt="REVEST"
-          className="h-[18px] w-auto"
-          width={110}
-          height={18}
+          className="h-[26px] w-auto"
+          width={160}
+          height={26}
         />
       </div>
 
@@ -123,11 +124,79 @@ function Bestandsblock() {
   );
 }
 
-/** Auf dem Telefon wandert die Navigation nach unten. */
+/**
+ * Mobiler Kopf: Wortmarke mittig, rechts das Konto mit Abmelden-Menü.
+ * Einstellungen leben hier statt in der Unterleiste — die bleibt den
+ * drei Arbeitsflächen vorbehalten.
+ */
+function Kopfzeile() {
+  const { nutzer, abmelden } = useAuth();
+  const [offen, setOffen] = useState(false);
+
+  return (
+    <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-linie bg-flaeche px-3 pt-[env(safe-area-inset-top)] md:hidden">
+      {/* Linker Platzhalter in Knopfbreite, damit die Marke exakt mittig steht. */}
+      <div className="size-9" aria-hidden />
+      <img
+        src={`${import.meta.env.BASE_URL}logo/revest-wortmarke-schwarz.png`}
+        alt="REVEST"
+        className="h-[24px] w-auto"
+        width={148}
+        height={24}
+      />
+      <div className="relative">
+        {nutzer ? (
+          <button
+            type="button"
+            onClick={() => setOffen((v) => !v)}
+            aria-label="Konto"
+            aria-expanded={offen}
+            className="druckbar flex size-9 items-center justify-center rounded-full border border-linie-stark text-[0.65rem] font-semibold tracking-wider text-tinte"
+          >
+            {nutzer.initialen}
+          </button>
+        ) : (
+          <div className="size-9" aria-hidden />
+        )}
+        {offen && (
+          <>
+            <div className="fixed inset-0 z-40" aria-hidden onClick={() => setOffen(false)} />
+            <div className="eintritt absolute top-11 right-0 z-50 w-52 rounded-xl border border-linie bg-flaeche p-1.5 shadow-schwebe">
+              {nutzer && (
+                <div className="border-b border-linie px-3 pt-2 pb-2.5">
+                  <div className="truncate text-[0.8rem] font-medium text-tinte">{nutzer.name}</div>
+                  <div className="truncate text-[0.65rem] text-grau">{nutzer.rolle}</div>
+                </div>
+              )}
+              <Link
+                to="/einstellungen"
+                onClick={() => setOffen(false)}
+                className="druckbar mt-1 flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[0.8rem] text-tinte"
+              >
+                <Settings size={14} strokeWidth={1.75} />
+                Einstellungen
+              </Link>
+              <button
+                type="button"
+                onClick={abmelden}
+                className="druckbar flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-[0.8rem] text-grau-stark"
+              >
+                <LogOut size={14} strokeWidth={1.75} />
+                Abmelden
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </header>
+  );
+}
+
+/** Auf dem Telefon wandert die Navigation nach unten — ohne Einstellungen. */
 function Unterleiste() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 flex h-14 border-t border-linie bg-flaeche pb-[env(safe-area-inset-bottom)] md:hidden">
-      {NAVIGATION.map(({ zu, titel, icon: Icon }) => (
+      {NAVIGATION.filter(({ zu }) => zu !== "/einstellungen").map(({ zu, titel, icon: Icon }) => (
         <Link
           key={zu}
           to={zu}
