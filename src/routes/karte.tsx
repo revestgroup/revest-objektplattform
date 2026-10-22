@@ -3,11 +3,13 @@
  *
  * Die Karte liegt randlos darunter, alles andere schwebt darüber.
  *
- * Desktop: alles schwebt am Rand — Bilanz unten links, Ansicht, Filter und
- * „Objekt anlegen" oben rechts. Der Filter ist ein Icon mit Ausklapp-Feld,
- * kein Dauerpanel: die Karte gehört den Objekten. Am Telefon wird daraus
- * eine schmale Leiste oben, eine waagerecht scrollbare Chipreihe und ein
- * Aktionsknopf unten rechts über der Navigationsleiste.
+ * Desktop: alles schwebt am Rand — Bilanz unten links, Ansicht und Filter
+ * oben rechts. Der Filter ist ein Icon mit Ausklapp-Feld, kein Dauerpanel:
+ * die Karte gehört den Objekten. Am Telefon wird daraus eine schmale Leiste
+ * oben und eine waagerecht scrollbare Chipreihe.
+ *
+ * Angelegt wird hier nichts. Ein neues Objekt entsteht im Ankauf — die Karte
+ * zeigt den Bestand und öffnet ihn, sie ist kein zweiter Eingang.
  *
  * Standardansicht ist das Luftbild — Timo denkt in Dächern und Grundstücken,
  * der Plan ist die Ausnahme zum Nachschlagen von Straßennamen.
@@ -18,7 +20,6 @@ import {
   Layers,
   Map as MapIcon,
   Maximize2,
-  Plus,
   SlidersHorizontal,
   Type,
 } from "lucide-react";
@@ -59,8 +60,7 @@ type Modus =
   /** Nur am Telefon: Vorschaublatt über der Karte, bevor es ganzseitig wird. */
   | { art: "vorschau"; id: string }
   | { art: "detail"; id: string }
-  | { art: "bearbeiten"; id: string }
-  | { art: "anlegen" };
+  | { art: "bearbeiten"; id: string };
 
 /** Schwebender Knopf über der Karte. Gleiche Form überall, damit es ruhig wirkt. */
 const KNOPF =
@@ -84,7 +84,7 @@ function useTelefon(): boolean {
 }
 
 function KarteSeite() {
-  const { objekte, bereit, anlegen, aendern, dokumenteAnhaengen } = useObjekte();
+  const { objekte, bereit, aendern, dokumenteAnhaengen } = useObjekte();
 
   const [stufen, setStufen] = useState<Set<Ankaufsstufe>>(new Set());
   // Standardmäßig aus: die Ankaufsarbeit dreht sich um Objekte, nicht um
@@ -173,16 +173,12 @@ function KarteSeite() {
     if (grenzen) steuerung.current?.aufAusschnitt(grenzen, 56);
   }
 
+  /** Die Karte legt nicht an — angelegt wird nur im Ankauf. Hier wird bearbeitet. */
   function speichern(entwurf: ObjektEntwurf, dokumente: NeuesDokument[]) {
-    if (modus.art === "bearbeiten") {
-      aendern(modus.id, entwurf, "Objektdaten bearbeitet");
-      if (dokumente.length > 0) dokumenteAnhaengen(modus.id, dokumente);
-      setModus({ art: "detail", id: modus.id });
-      return;
-    }
-    const neu = anlegen(entwurf);
-    if (dokumente.length > 0) dokumenteAnhaengen(neu.id, dokumente);
-    setModus({ art: "detail", id: neu.id });
+    if (modus.art !== "bearbeiten") return;
+    aendern(modus.id, entwurf, "Objektdaten bearbeitet");
+    if (dokumente.length > 0) dokumenteAnhaengen(modus.id, dokumente);
+    setModus({ art: "detail", id: modus.id });
   }
 
   /* ---------------- Ableitungen ---------------- */
@@ -332,26 +328,7 @@ function KarteSeite() {
         )}
       </div>
 
-      {/* Telefon: Objekt anlegen als Aktionsknopf über der Navigationsleiste. */}
-      <button
-        type="button"
-        onClick={() => setModus({ art: "anlegen" })}
-        className={cn(
-          KNOPF,
-          // bottom misst ab der Main-Kante — die fixe Unterleiste (h-14 + safe
-          // area) liegt davor, also darüber hinweg heben.
-          "absolute right-3 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+1rem)] z-20 h-13 border-tinte bg-tinte px-5 text-[0.7rem] font-semibold tracking-[0.12em] uppercase text-grund md:hidden",
-          // Weicht dem Vorschaublatt: ein halb verdeckter Knopf ist schlimmer
-          // als keiner.
-          "transition-opacity duration-200 ease-out",
-          vorschau && "pointer-events-none opacity-0",
-        )}
-      >
-        <Plus size={16} strokeWidth={2} />
-        Objekt anlegen
-      </button>
-
-      {/* ================= Desktop: Ansicht, Filter, Anlegen oben rechts ================= */}
+      {/* ================= Desktop: Ansicht und Filter oben rechts ================= */}
       <div className="absolute top-5 right-5 z-20 hidden md:block">
         <div className="flex gap-2">
           {/* Ein Segment, kein Umschalter — man sieht sofort beide Möglichkeiten. */}
@@ -409,18 +386,6 @@ function KarteSeite() {
                 {stufen.size}
               </span>
             )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setModus({ art: "anlegen" })}
-            className={cn(
-              KNOPF,
-              "border-tinte bg-tinte px-4 py-2 text-[0.66rem] font-semibold tracking-[0.1em] uppercase text-grund",
-            )}
-          >
-            <Plus size={13} strokeWidth={2.25} />
-            Objekt anlegen
           </button>
         </div>
 
@@ -493,19 +458,9 @@ function KarteSeite() {
         offen={modus.art !== "zu" && modus.art !== "vorschau"}
         schliessen={() => setModus({ art: "zu" })}
         titel={
-          modus.art === "anlegen"
-            ? "Objekt anlegen"
-            : modus.art === "bearbeiten"
-              ? "Objekt bearbeiten"
-              : (gewaehlt?.strasse ?? "Objekt")
+          modus.art === "bearbeiten" ? "Objekt bearbeiten" : (gewaehlt?.strasse ?? "Objekt")
         }
       >
-        {modus.art === "anlegen" && (
-          <ObjektFormular
-            onSpeichern={speichern}
-            onAbbrechen={() => setModus({ art: "zu" })}
-          />
-        )}
         {modus.art === "bearbeiten" && gewaehlt && (
           <ObjektFormular
             bestehend={gewaehlt}

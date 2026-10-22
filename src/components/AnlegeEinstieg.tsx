@@ -1,25 +1,54 @@
 /**
- * Erster Schritt beim Anlegen: Was wird es?
+ * Der Einstieg beim Anlegen — zwei Fragen, in dieser Reihenfolge.
  *
- * Zwei Wege von Hand (Wohnung oder Mehrfamilienhaus) und ein dritter mit KI:
- * Exposé hochladen, bei einem MFH zusätzlich die Mietliste als Excel oder
- * Google Sheet. Der KI-Weg ist in Phase 1 reine Oberfläche — die Dropzonen
- * nehmen Dateien an und zeigen sie, ausgelesen wird erst mit dem Backend.
+ *  1. Was wird es? Wohnung, Mehrfamilienhaus oder Wohn- & Geschäftshaus.
+ *  2. Wie legst du an? Von Hand oder mit KI aus Exposé und Mietliste.
  *
- * Die Schublade ist schmal — alles ist für eine Spalte gebaut, ohne `md:`.
+ * Die Reihenfolge ist nicht beliebig: die Objektart entscheidet, was im
+ * zweiten Schritt überhaupt zur Wahl steht. Eine Eigentumswohnung hat keine
+ * Mietliste — sie ist eine Einheit. Erst nach der Art kann der KI-Block
+ * ehrlich sagen, welche Dateien er brauchen würde.
+ *
+ * Der KI-Weg ist in Phase 1 reine Oberfläche: die Ablagefelder nehmen
+ * Dateien an und zeigen sie, ausgelesen wird erst mit dem Backend.
  */
 import {
   ArrowRight,
   Building2,
+  ChevronLeft,
   FileSpreadsheet,
   FileText,
   Home,
+  PencilLine,
   Sparkles,
+  Store,
 } from "lucide-react";
 import { useState } from "react";
 
-import type { Objektart } from "../lib/objekte";
+import { OBJEKTARTEN, type Objektart } from "../lib/objekte";
 import { cn } from "../lib/utils";
+
+/**
+ * Die drei Arten, die Revest ankauft. Grundstücke fehlen bewusst: sie laufen
+ * über einen anderen Vorgang und hätten in dieser Maske nur leere Felder.
+ */
+const ARTEN: { art: Objektart; beschreibung: string; Zeichen: typeof Home }[] = [
+  {
+    art: "etw",
+    beschreibung: "Einzelne Eigentumswohnung — eine Einheit, kurze Maske.",
+    Zeichen: Home,
+  },
+  {
+    art: "mfh",
+    beschreibung: "Ganzes Haus mit mehreren Einheiten, aufteilbar.",
+    Zeichen: Building2,
+  },
+  {
+    art: "whg_geschaeftshaus",
+    beschreibung: "Wohnen und Gewerbe unter einem Dach — zwei Mietmärkte.",
+    Zeichen: Store,
+  },
+];
 
 export function AnlegeEinstieg({
   onWahl,
@@ -29,40 +58,15 @@ export function AnlegeEinstieg({
   onWahl: (art: Objektart) => void;
   onAbbrechen: () => void;
 }) {
+  const [art, setArt] = useState<Objektart | null>(null);
+
   return (
     <div className="mx-auto flex min-h-full w-full max-w-[560px] flex-col px-6 py-7">
-      <p className="mini-label eintritt">Neues Objekt</p>
-      <h2 className="eintritt mt-2 text-[1.05rem] leading-snug font-semibold text-tinte" style={{ animationDelay: "24ms" }}>
-        Womit fängst du an?
-      </h2>
-
-      <div className="mt-5 flex flex-col gap-2.5">
-        <WahlKachel
-          titel="Wohnung"
-          beschreibung="Einzelne Eigentumswohnung — eine Einheit, kurze Maske."
-          Zeichen={Home}
-          verzoegerung={48}
-          onClick={() => onWahl("etw")}
-        />
-        <WahlKachel
-          titel="Mehrfamilienhaus"
-          beschreibung="Ganzes Haus mit mehreren Einheiten, aufteilbar."
-          Zeichen={Building2}
-          verzoegerung={72}
-          onClick={() => onWahl("mfh")}
-        />
-      </div>
-
-      {/* „oder" als echte Weggabelung, nicht als dritte Kachel gleicher Art. */}
-      <div className="eintritt mt-6 mb-4 flex items-center gap-3" style={{ animationDelay: "96ms" }}>
-        <span className="h-px flex-1 bg-linie" />
-        <span className="text-[0.62rem] font-semibold tracking-[0.18em] uppercase text-grau">
-          oder mit KI
-        </span>
-        <span className="h-px flex-1 bg-linie" />
-      </div>
-
-      <KiEinstieg verzoegerung={120} />
+      {art === null ? (
+        <Artwahl onWaehlen={setArt} />
+      ) : (
+        <Wegwahl art={art} onManuell={() => onWahl(art)} onZurueck={() => setArt(null)} />
+      )}
 
       <div className="mt-auto flex justify-end pt-7">
         <button
@@ -74,6 +78,98 @@ export function AnlegeEinstieg({
         </button>
       </div>
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Schritt 1 — was wird es?                                             */
+/* ------------------------------------------------------------------ */
+
+function Artwahl({ onWaehlen }: { onWaehlen: (art: Objektart) => void }) {
+  return (
+    <>
+      <p className="mini-label eintritt">Neues Objekt · Schritt 1 von 2</p>
+      <h2
+        className="eintritt mt-2 text-[1.05rem] leading-snug font-semibold text-tinte"
+        style={{ animationDelay: "24ms" }}
+      >
+        Womit fängst du an?
+      </h2>
+
+      <div className="mt-5 flex flex-col gap-2.5">
+        {ARTEN.map(({ art, beschreibung, Zeichen }, i) => (
+          <WahlKachel
+            key={art}
+            titel={OBJEKTARTEN[art]}
+            beschreibung={beschreibung}
+            Zeichen={Zeichen}
+            verzoegerung={48 + i * 24}
+            onClick={() => onWaehlen(art)}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Schritt 2 — wie legst du an?                                         */
+/* ------------------------------------------------------------------ */
+
+function Wegwahl({
+  art,
+  onManuell,
+  onZurueck,
+}: {
+  art: Objektart;
+  onManuell: () => void;
+  onZurueck: () => void;
+}) {
+  // Eine Wohnung ist eine Einheit — eine Mietliste gäbe es dafür nicht.
+  const mitMietliste = art !== "etw";
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onZurueck}
+        className="druckbar eintritt -ml-2 flex w-fit items-center gap-1.5 rounded-full py-1.5 pr-3 pl-2 text-[0.7rem] text-grau-stark"
+      >
+        <ChevronLeft size={14} strokeWidth={2} />
+        {OBJEKTARTEN[art]}
+      </button>
+
+      <p className="mini-label eintritt mt-4" style={{ animationDelay: "24ms" }}>
+        Neues Objekt · Schritt 2 von 2
+      </p>
+      <h2
+        className="eintritt mt-2 text-[1.05rem] leading-snug font-semibold text-tinte"
+        style={{ animationDelay: "48ms" }}
+      >
+        Wie legst du an?
+      </h2>
+
+      <div className="mt-5">
+        <WahlKachel
+          titel="Manuell anlegen"
+          beschreibung="Die Maske von Hand füllen. Lage, Preis und Miete rechnen sofort mit."
+          Zeichen={PencilLine}
+          verzoegerung={72}
+          onClick={onManuell}
+        />
+      </div>
+
+      {/* „oder" als echte Weggabelung, nicht als zweite Kachel gleicher Art. */}
+      <div className="eintritt mt-6 mb-4 flex items-center gap-3" style={{ animationDelay: "96ms" }}>
+        <span className="h-px flex-1 bg-linie" />
+        <span className="text-[0.62rem] font-semibold tracking-[0.18em] uppercase text-grau">
+          oder mit KI
+        </span>
+        <span className="h-px flex-1 bg-linie" />
+      </div>
+
+      <KiEinstieg mitMietliste={mitMietliste} verzoegerung={120} />
+    </>
   );
 }
 
@@ -119,7 +215,13 @@ function WahlKachel({
 /* KI-Weg — in Phase 1 nur Oberfläche                                   */
 /* ------------------------------------------------------------------ */
 
-function KiEinstieg({ verzoegerung }: { verzoegerung: number }) {
+function KiEinstieg({
+  mitMietliste,
+  verzoegerung,
+}: {
+  mitMietliste: boolean;
+  verzoegerung: number;
+}) {
   const [expose, setExpose] = useState<string | null>(null);
   const [mietliste, setMietliste] = useState<string | null>(null);
   const [hinweis, setHinweis] = useState(false);
@@ -152,13 +254,15 @@ function KiEinstieg({ verzoegerung }: { verzoegerung: number }) {
           datei={expose}
           setDatei={setExpose}
         />
-        <Ablagefeld
-          titel="Mietliste"
-          detail="Excel oder Google Sheet · bei MFH"
-          Zeichen={FileSpreadsheet}
-          datei={mietliste}
-          setDatei={setMietliste}
-        />
+        {mitMietliste && (
+          <Ablagefeld
+            titel="Mietliste"
+            detail="Excel oder Google Sheet — legt die Einheiten gleich mit an"
+            Zeichen={FileSpreadsheet}
+            datei={mietliste}
+            setDatei={setMietliste}
+          />
+        )}
       </div>
 
       <button
@@ -226,8 +330,8 @@ function Ablagefeld({
         ) : (
           <span className="block text-[0.74rem] font-medium text-grund/85">{titel}</span>
         )}
-        {/* Kein `truncate`: die Zeile darf umbrechen. „bei MFH" ist genau die
-            Hälfte, die beim Abschneiden verschwindet. */}
+        {/* Kein `truncate`: die Zeile darf umbrechen. Die zweite Hälfte ist
+            genau die, die beim Abschneiden verschwindet. */}
         <span className="mt-0.5 block text-[0.62rem] leading-snug text-grund/50">
           {datei ? "Zum Austauschen antippen" : detail}
         </span>
