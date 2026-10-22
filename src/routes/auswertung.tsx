@@ -45,7 +45,7 @@ function AuswertungSeite() {
           {/* Stand früher am Fuß der Seitenleiste. Dort war es eine Zahl, die
               auf jeder Seite mitlief, ohne dass man sie je gebraucht hätte —
               hier steht sie da, wo man Zahlen sucht. */}
-          <section className="flex flex-wrap gap-x-12 gap-y-5 px-6 py-6 md:px-10">
+          <section className="flex flex-wrap gap-x-8 gap-y-5 px-6 py-6 md:gap-x-12 md:px-10">
             {[
               { titel: "In Prüfung", wert: d.aktiv },
               { titel: "Angekauft", wert: d.angekauft.length },
