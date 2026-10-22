@@ -16,12 +16,14 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import {
+  ArrowRight,
   ChevronDown,
   Layers,
   Map as MapIcon,
   Maximize2,
   SlidersHorizontal,
   Type,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -66,23 +68,6 @@ type Modus =
 const KNOPF =
   "druckbar flex items-center justify-center gap-2 rounded-full border bg-flaeche/95 shadow-karte backdrop-blur-sm";
 
-/**
- * Telefonformat. Entscheidet, ob ein Tippen auf einen Punkt zuerst das
- * Vorschaublatt zeigt oder direkt ganzseitig öffnet. Auf dem Telefon wäre der
- * Direktsprung unverzeihlich: ein Fehlgriff verdeckt die ganze Karte.
- */
-function useTelefon(): boolean {
-  const [klein, setKlein] = useState(false);
-  useEffect(() => {
-    const m = window.matchMedia("(max-width: 767px)");
-    const melden = () => setKlein(m.matches);
-    melden();
-    m.addEventListener("change", melden);
-    return () => m.removeEventListener("change", melden);
-  }, []);
-  return klein;
-}
-
 function KarteSeite() {
   const { objekte, bereit, aendern, dokumenteAnhaengen } = useObjekte();
 
@@ -97,7 +82,6 @@ function KarteSeite() {
   const [modus, setModus] = useState<Modus>({ art: "zu" });
 
   const steuerung = useRef<KartenSteuerung | null>(null);
-  const telefon = useTelefon();
 
   // Die Einstellungen liegen im Browserspeicher und sind erst nach dem ersten
   // Bild da. Sie setzen deshalb den Startzustand nach, statt ihn vorzugeben —
@@ -245,10 +229,12 @@ function KarteSeite() {
           gewaehltesObjekt={gewaehlt?.id ?? null}
           onObjektWaehlen={(id) => {
             if (!id) return setModus({ art: "zu" });
-            if (!telefon || !einstellungen.vorschaublatt) return setModus({ art: "detail", id });
+            if (!einstellungen.vorschaublatt) return setModus({ art: "detail", id });
             setModus({ art: "vorschau", id });
             const o = objekte.find((x) => x.id === id);
-            // Der Punkt muss über das Blatt wandern, sonst tippt man ins Blinde.
+            // Erst heranfahren, dann die Vorschau — der Klick beantwortet „wo
+            // liegt das?" und „was ist das?" in einer Bewegung. Am Telefon muss
+            // der Punkt dabei über das Blatt wandern, sonst tippt man ins Blinde.
             if (o) steuerung.current?.aufObjekt(o);
           }}
           onLeerKlick={() => setModus({ art: "zu" })}
@@ -434,17 +420,26 @@ function KarteSeite() {
       {/* ----- unten links: Stadtteilbilanz ----- */}
       <Bilanzfeld bilanz={bilanz} betont={betont} waehlen={stadtteilWaehlen} />
 
-      {/* ----- Schwebekarte (nur Zeigergeräte) ----- */}
+      {/* ----- Schwebekarte (nur Zeigergeräte) -----
+          Verschwindet, sobald eine Vorschau angeheftet ist: zwei Karten
+          übereinander sind eine Karte zu viel. */}
       <div
         ref={kartenKarteRef}
         aria-hidden
         className={cn(
           "pointer-events-none absolute top-0 left-0 z-30 hidden transition-opacity duration-150 ease-out md:block",
-          schwebe ? "opacity-100" : "opacity-0",
+          schwebe && !vorschau ? "opacity-100" : "opacity-0",
         )}
       >
         {schwebe && <ObjektSchwebekarte objekt={schwebe} />}
       </div>
+
+      {/* ----- Desktop: angeheftete Vorschau ----- */}
+      <Auswahlkarte
+        objekt={vorschau}
+        schliessen={() => setModus({ art: "zu" })}
+        oeffnen={() => vorschau && setModus({ art: "detail", id: vorschau.id })}
+      />
 
       {/* ----- Telefon: Vorschaublatt ----- */}
       <Vorschaublatt
@@ -476,6 +471,56 @@ function KarteSeite() {
           />
         )}
       </Schublade>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Desktop: angeheftete Vorschau                                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Was nach dem Klick auf einen Punkt stehen bleibt.
+ *
+ * Sie sitzt oben links und nicht am Punkt. Das ist Absicht: der Klick zieht
+ * die Karte auf das Objekt, der gewählte Punkt steht danach in der Mitte und
+ * ist der einzige hervorgehobene — eine Karte, die am Punkt klebt, müsste bei
+ * jedem Schieben mitwandern und wäre beim Lesen nie an derselben Stelle.
+ * Oben links ist der einzige freie Rand: rechts liegen Ansicht und Filter,
+ * unten links die Stadtteilbilanz.
+ *
+ * Der Inhalt bleibt beim Hinausfahren stehen, sonst blinkt die Karte leer,
+ * während sie noch sichtbar ist.
+ */
+function Auswahlkarte({
+  objekt,
+  schliessen,
+  oeffnen,
+}: {
+  objekt: Objekt | null;
+  schliessen: () => void;
+  oeffnen: () => void;
+}) {
+  const letztes = useRef<Objekt | null>(null);
+  if (objekt) letztes.current = objekt;
+  const o = objekt ?? letztes.current;
+
+  return (
+    <div
+      aria-hidden={!objekt}
+      className={cn(
+        "absolute top-5 left-5 z-30 hidden transition-all duration-250 ease-out-stark md:block",
+        objekt ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-2 opacity-0",
+      )}
+    >
+      {o && (
+        <ObjektSchwebekarte
+          objekt={o}
+          umfang="voll"
+          onOeffnen={oeffnen}
+          onSchliessen={schliessen}
+        />
+      )}
     </div>
   );
 }
@@ -554,6 +599,14 @@ function Vorschaublatt({
                   {o.plz} {o.stadt} · {o.stadtteil} · {OBJEKTARTEN[o.objektart]}
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={schliessen}
+                aria-label="Vorschau schließen"
+                className="druckbar -mt-1 -mr-1 flex size-8 shrink-0 items-center justify-center rounded-full border border-linie text-grau"
+              >
+                <X size={14} strokeWidth={2.25} />
+              </button>
             </div>
 
             <dl className="mt-3.5 grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-linie bg-linie">
@@ -571,22 +624,14 @@ function Vorschaublatt({
               </div>
             )}
 
-            <div className="mt-3.5 flex gap-2">
-              <button
-                type="button"
-                onClick={oeffnen}
-                className="druckbar h-11 flex-1 rounded-full bg-tinte text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-grund shadow-karte"
-              >
-                Objekt öffnen
-              </button>
-              <button
-                type="button"
-                onClick={schliessen}
-                className="druckbar h-11 rounded-full border border-linie-stark px-5 text-[0.68rem] font-medium tracking-[0.14em] uppercase text-grau-stark"
-              >
-                Schließen
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={oeffnen}
+              className="druckbar mt-3.5 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-tinte text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-grund shadow-karte"
+            >
+              Objekt öffnen
+              <ArrowRight size={14} strokeWidth={2.25} />
+            </button>
           </div>
         </div>
       )}

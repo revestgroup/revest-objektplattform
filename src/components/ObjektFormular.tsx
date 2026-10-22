@@ -328,7 +328,6 @@ export function ObjektFormular({
 
         <Bereich
           titel="Lage"
-          hinweis="Die Stadt bestimmt das Bundesland und damit die Grunderwerbsteuer. Der Stadtteil verknüpft das Objekt mit der Karte."
         >
           <Textfeld
             id="strasse"
@@ -398,14 +397,13 @@ export function ObjektFormular({
           />
         </Bereich>
 
-        <Bereich titel="Objekt" hinweis="Objektart und Zustand entsprechen dem Ankaufsprofil.">
+        <Bereich titel="Objekt">
           <Segmente
             label="Ankaufsstufe"
             wert={v.stufe}
             setWert={(x) => setze("stufe", x)}
             optionen={STUFEN_REIHENFOLGE.map((st) => ({ wert: st, titel: STUFEN[st].titel }))}
             breit
-            hinweis="Bestimmt die Farbe auf der Karte."
           />
           <Auswahlfeld
             id="objektart"
@@ -465,7 +463,6 @@ export function ObjektFormular({
                   { wert: "wg", titel: "WG-Vermietung" },
                 ]}
                 breit={v.vertriebsweg !== "wg"}
-                hinweis="Entscheidung nach der Prüfung — lässt sich jederzeit ändern."
               />
               {v.vertriebsweg === "wg" && (
                 <Zahlfeld
@@ -474,7 +471,6 @@ export function ObjektFormular({
                   wert={v.wgZimmer}
                   setWert={(x) => setze("wgZimmer", x)}
                   platzhalter="4"
-                  hinweis="Wie viele Zimmer einzeln vermietet werden."
                 />
               )}
             </>
@@ -487,7 +483,6 @@ export function ObjektFormular({
             wäre geraten und würde später als Wahrheit gelesen. */}
         <Bereich
           titel="Preis und Miete"
-          hinweis="Was gefordert wird, was wir höchstens zahlen, was heute an Miete reinkommt."
         >
           <Zahlfeld
             id="kaufpreis"
@@ -504,7 +499,6 @@ export function ObjektFormular({
             setWert={(x) => setze("ankaufslimit", x)}
             einheit="€"
             platzhalter="1425000"
-            hinweis="Unser Höchstpreis. Liegt die Forderung darüber, gilt das Objekt als zu teuer."
           />
           <Zahlfeld
             id="jahresNettokaltmiete"
@@ -513,7 +507,6 @@ export function ObjektFormular({
             setWert={(x) => setze("jahresNettokaltmiete", x)}
             einheit="€"
             platzhalter="68400"
-            hinweis="Ist-Stand aus dem Exposé. Wunschmieten und Verkaufspreise kommen später in die Verkaufsplanung."
           />
           <Zahlfeld
             id="maklerprovision"
@@ -523,7 +516,6 @@ export function ObjektFormular({
             einheit="%"
             schritt="0.01"
             platzhalter="3.57"
-            hinweis="0 bei Direktakquise."
           />
         </Bereich>
 
@@ -539,7 +531,6 @@ export function ObjektFormular({
         */}
         <Bereich
           titel="Herkunft"
-          hinweis="Woher der Vorgang kommt. Die Beteiligten trägst du nach dem Anlegen im Reiter „Kontakt“ ein."
         >
           <Auswahlfeld
             id="quelle"
@@ -567,7 +558,6 @@ export function ObjektFormular({
           />
           <Schalter
             label="48-Stunden-Prüffrist starten"
-            hinweis="Revest verspricht eine verbindliche Prüfung binnen zwei Tagen. Die Uhr läuft dann in Liste und Karte sichtbar mit."
             an={v.fristStarten}
             setAn={(x) => setze("fristStarten", x)}
           />
@@ -581,7 +571,6 @@ export function ObjektFormular({
         */}
         <Klappbereich
           titel="Weitere Flächen und Gebäude"
-          hinweis="Gewerbe, Grundstück, Sanierungsstand, Rechte"
           gefuellt={zaehle(v.gewerbeflaeche, v.grundstuecksflaeche, v.letzteSanierung)}
         >
           <Zahlfeld
@@ -625,13 +614,11 @@ export function ObjektFormular({
           />
           <Schalter
             label="Denkmalschutz"
-            hinweis="Erhöhte Abschreibung nach §7i EStG möglich"
             an={v.denkmalschutz}
             setAn={(x) => setze("denkmalschutz", x)}
           />
           <Schalter
             label="Erbbaurecht"
-            hinweis="Erbbauzins drückt die Rendite und erschwert die Aufteilung"
             an={v.erbbaurecht}
             setAn={(x) => setze("erbbaurecht", x)}
           />
@@ -645,7 +632,6 @@ export function ObjektFormular({
         {bestehend && (
           <Klappbereich
             titel="Laufende Kosten und Potenzial"
-            hinweis="Potenzialmiete, nicht umlagefähige Kosten, Rücklage"
             gefuellt={zaehle(v.potenzialMiete, v.nichtUmlagefaehig, v.instandhaltungsruecklage)}
           >
             <Zahlfeld
@@ -655,7 +641,6 @@ export function ObjektFormular({
               setWert={(x) => setze("potenzialMiete", x)}
               einheit="€"
               platzhalter="101000"
-              hinweis="Nach Sanierung und Neuvermietung."
             />
             <Zahlfeld
               id="nichtUmlagefaehig"
@@ -664,7 +649,6 @@ export function ObjektFormular({
               setWert={(x) => setze("nichtUmlagefaehig", x)}
               einheit="€"
               platzhalter="7200"
-              hinweis="Verwaltung, Instandhaltung, Mietausfallwagnis."
             />
             <Zahlfeld
               id="instandhaltungsruecklage"
@@ -679,7 +663,6 @@ export function ObjektFormular({
 
         <Klappbereich
           titel="Unterlagen"
-          hinweis="Zehn feste Ordner — später genauso im Google Drive. Hausverwaltungsunterlagen in Ordner 06."
           gefuellt={dokumente.length}
           spalten={1}
         >

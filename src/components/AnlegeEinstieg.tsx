@@ -32,22 +32,10 @@ import { cn } from "../lib/utils";
  * Die drei Arten, die Revest ankauft. Grundstücke fehlen bewusst: sie laufen
  * über einen anderen Vorgang und hätten in dieser Maske nur leere Felder.
  */
-const ARTEN: { art: Objektart; beschreibung: string; Zeichen: typeof Home }[] = [
-  {
-    art: "etw",
-    beschreibung: "Einzelne Eigentumswohnung — eine Einheit, kurze Maske.",
-    Zeichen: Home,
-  },
-  {
-    art: "mfh",
-    beschreibung: "Ganzes Haus mit mehreren Einheiten, aufteilbar.",
-    Zeichen: Building2,
-  },
-  {
-    art: "whg_geschaeftshaus",
-    beschreibung: "Wohnen und Gewerbe unter einem Dach — zwei Mietmärkte.",
-    Zeichen: Store,
-  },
+const ARTEN: { art: Objektart; Zeichen: typeof Home }[] = [
+  { art: "etw", Zeichen: Home },
+  { art: "mfh", Zeichen: Building2 },
+  { art: "whg_geschaeftshaus", Zeichen: Store },
 ];
 
 export function AnlegeEinstieg({
@@ -97,11 +85,10 @@ function Artwahl({ onWaehlen }: { onWaehlen: (art: Objektart) => void }) {
       </h2>
 
       <div className="mt-5 flex flex-col gap-2.5">
-        {ARTEN.map(({ art, beschreibung, Zeichen }, i) => (
+        {ARTEN.map(({ art, Zeichen }, i) => (
           <WahlKachel
             key={art}
             titel={OBJEKTARTEN[art]}
-            beschreibung={beschreibung}
             Zeichen={Zeichen}
             verzoegerung={48 + i * 24}
             onClick={() => onWaehlen(art)}
@@ -152,7 +139,6 @@ function Wegwahl({
       <div className="mt-5">
         <WahlKachel
           titel="Manuell anlegen"
-          beschreibung="Die Maske von Hand füllen. Lage, Preis und Miete rechnen sofort mit."
           Zeichen={PencilLine}
           verzoegerung={72}
           onClick={onManuell}
@@ -175,13 +161,11 @@ function Wegwahl({
 
 function WahlKachel({
   titel,
-  beschreibung,
   Zeichen,
   verzoegerung,
   onClick,
 }: {
   titel: string;
-  beschreibung: string;
   Zeichen: typeof Home;
   verzoegerung: number;
   onClick: () => void;
@@ -198,9 +182,6 @@ function WahlKachel({
       </span>
       <span className="min-w-0 flex-1">
         <span className="block text-[0.9rem] font-semibold text-tinte">{titel}</span>
-        <span className="mt-0.5 block text-[0.72rem] leading-relaxed text-grau">
-          {beschreibung}
-        </span>
       </span>
       <ArrowRight
         size={16}
@@ -237,9 +218,6 @@ function KiEinstieg({
         </span>
         <div className="min-w-0 flex-1">
           <div className="text-[0.88rem] font-semibold">Aus Exposé anlegen</div>
-          <div className="mt-0.5 text-[0.7rem] leading-relaxed text-grund/60">
-            Die KI liest Lage, Flächen, Mieten, Baujahr und den Ansprechpartner aus und füllt die Maske vor.
-          </div>
         </div>
         <span className="shrink-0 rounded-full border border-grund/25 px-2.5 py-1 text-[0.56rem] font-semibold tracking-[0.16em] uppercase text-grund/70">
           Phase 2
@@ -257,7 +235,7 @@ function KiEinstieg({
         {mitMietliste && (
           <Ablagefeld
             titel="Mietliste"
-            detail="Excel oder Google Sheet — legt die Einheiten gleich mit an"
+            detail="Excel oder Google Sheet"
             Zeichen={FileSpreadsheet}
             datei={mietliste}
             setDatei={setMietliste}

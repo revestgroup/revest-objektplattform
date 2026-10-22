@@ -30,22 +30,10 @@ import { Dokumentenablage } from "./Dokumente";
  * Plattform nicht wissen — sie kann nur daran erinnern, dass es fehlt.
  */
 const UNTERLAGEN = [
-  {
-    titel: "Aufteilungsplan",
-    hinweis: "Vom Architekten, mit fortlaufender Nummerierung aller Räume je Einheit.",
-  },
-  {
-    titel: "Abgeschlossenheitsbescheinigung",
-    hinweis: "Von der Baurechtsbehörde. Dauert in Ulm regelmäßig sechs bis zehn Wochen.",
-  },
-  {
-    titel: "Teilungserklärung mit Gemeinschaftsordnung",
-    hinweis: "Vom Notar. Regelt Sondereigentum, Stimmrechte und Kostenverteilung.",
-  },
-  {
-    titel: "Eintragungsnachricht des Grundbuchamts",
-    hinweis: "Erst damit existieren die Wohnungsgrundbücher — und erst dann ist einzeln verkäuflich.",
-  },
+  { titel: "Aufteilungsplan" },
+  { titel: "Abgeschlossenheitsbescheinigung" },
+  { titel: "Teilungserklärung mit Gemeinschaftsordnung" },
+  { titel: "Eintragungsnachricht des Grundbuchamts" },
 ];
 
 /** Die beiden Ordner, in denen Teilungsunterlagen liegen. */
@@ -92,9 +80,6 @@ function Teilungsblatt({ objekt, t }: { objekt: Objekt; t: Teilungserklaerung })
       {/* ----- Wo es steht ----- */}
       <div className="px-6 py-8 md:px-9">
         <div className="mini-label">Stand</div>
-        <p className="mt-2.5 max-w-prose text-[0.84rem] leading-relaxed text-grau-stark">
-          {TEILUNGSSTATUS[t.status].hinweis}
-        </p>
 
         {/* Der Weg als Kette. Vier Stationen passen auf dem Telefon nicht
             nebeneinander, also untereinander — so bleibt jede lesbar und
@@ -228,7 +213,6 @@ function Teilungsblatt({ objekt, t }: { objekt: Objekt; t: Teilungserklaerung })
               className="rounded-2xl border border-linie bg-flaeche px-4 py-3.5 shadow-karte"
             >
               <div className="text-[0.8rem] font-medium text-tinte">{u.titel}</div>
-              <p className="mt-1 text-[0.72rem] leading-relaxed text-grau">{u.hinweis}</p>
             </li>
           ))}
         </ul>
@@ -237,11 +221,6 @@ function Teilungsblatt({ objekt, t }: { objekt: Objekt; t: Teilungserklaerung })
       {/* ----- Ablage ----- */}
       <div className="px-6 py-8 md:px-9">
         <div className="mini-label">Ablage</div>
-        <p className="mt-2 max-w-prose text-[0.74rem] leading-relaxed text-grau">
-          Dieselben Ordner wie unter „Dokumente", hier nur auf die zwei
-          reduziert, in denen Teilungsunterlagen liegen. Eine Datei liegt also
-          nie zweimal.
-        </p>
         <div className="mt-4">
           <Dokumentenablage
             dokumente={objekt.dokumente}
@@ -261,10 +240,6 @@ function Teilungsblatt({ objekt, t }: { objekt: Objekt; t: Teilungserklaerung })
         >
           Teilung zurückziehen
         </button>
-        <p className="mt-2.5 max-w-prose text-[0.7rem] leading-relaxed text-grau">
-          Setzt den Reiter zurück. Die Unterlagen bleiben in der Ablage des
-          Objekts — gelöscht wird nur der Vorgang, nicht die Arbeit.
-        </p>
       </div>
     </div>
   );
@@ -297,8 +272,7 @@ function Gesperrt() {
     <div className="px-6 py-16 text-center md:px-9">
       <Scale size={22} strokeWidth={1.5} className="mx-auto text-grau" />
       <p className="mx-auto mt-4 max-w-sm text-[0.82rem] leading-relaxed text-grau">
-        Für dieses Objekt läuft keine Teilungserklärung. Angestoßen wird sie
-        beim Deal — oder hier, sobald sie gebraucht wird.
+        Keine Teilungserklärung hinterlegt.
       </p>
     </div>
   );

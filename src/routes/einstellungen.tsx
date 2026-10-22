@@ -55,7 +55,6 @@ function EinstellungenSeite() {
       <Seitenkopf
         label="Konto und Plattform"
         titel="Einstellungen"
-        beschreibung="Diese Vorschau läuft vollständig im Browser. Nichts wird an einen Server gesendet."
       />
 
       {/* Trennlinien nur zwischen den Großabschnitten — innerhalb reicht der
@@ -85,9 +84,6 @@ function EinstellungenSeite() {
         {GRUPPEN.map((gruppe) => (
           <section key={gruppe.titel} className="px-6 py-11 md:px-10 md:py-14">
             <h2 className="mini-label">{gruppe.titel}</h2>
-            <p className="mt-2.5 max-w-xl text-[0.72rem] leading-relaxed text-grau">
-              {gruppe.beschreibung}
-            </p>
             {/* Weder Kästen noch Striche: die Zeilen gehören zusammen, und der
                 Schalter rechts markiert den Rand jeder Zeile schon selbst. */}
             <div className="mt-6 -ml-2 flex max-w-3xl flex-col gap-1">
@@ -95,7 +91,6 @@ function EinstellungenSeite() {
                 <Regler
                   key={e.schluessel}
                   titel={e.titel}
-                  hinweis={e.hinweis}
                   vermerk={e.wirkt ? undefined : "Phase 2"}
                   an={einstellungen[e.schluessel]}
                   umschalten={() => umschalten(e.schluessel)}
@@ -108,10 +103,6 @@ function EinstellungenSeite() {
         {/* ----- Region ----- */}
         <section className="px-6 py-11 md:px-10 md:py-14">
           <h2 className="mini-label">Region</h2>
-          <p className="mt-2.5 max-w-xl text-[0.72rem] leading-relaxed text-grau">
-            Die Stadtteilgrenzen kommen aus OpenStreetMap und liegen als Datei im Projekt — die
-            Karte braucht dafür keine Verbindung.
-          </p>
           <dl className="mt-7 grid gap-x-10 gap-y-6 sm:grid-cols-3 lg:max-w-2xl">
             {[
               ["Ulm", `${ulm} Stadtteile`, `Grunderwerbsteuer ${f.prozent(GRUNDERWERBSTEUER.BW)}`],
@@ -140,10 +131,6 @@ function EinstellungenSeite() {
         {/* ----- Ordner ----- */}
         <section className="px-6 py-11 md:px-10 md:py-14">
           <h2 className="mini-label">Ordnerstruktur</h2>
-          <p className="mt-2.5 max-w-xl text-[0.72rem] leading-relaxed text-grau">
-            Diese zehn Ordner stehen fest. Sie werden in Phase 2 eins zu eins im Google Drive
-            angelegt, damit beide Seiten dieselbe Struktur haben.
-          </p>
           {/* Zehn umrandete Kästchen waren zwanzig Linien für eine Liste, die
               nur gelesen wird. Jetzt trägt die Nummer die Ordnung. */}
           <ol className="mt-7 grid gap-x-10 gap-y-3 sm:grid-cols-2 lg:max-w-2xl">
@@ -183,12 +170,6 @@ function EinstellungenSeite() {
         {/* ----- Daten ----- */}
         <section className="px-6 py-11 md:px-10 md:py-14">
           <h2 className="mini-label">Vorschaudaten</h2>
-          <p className="mt-2.5 max-w-xl text-[0.72rem] leading-relaxed text-grau">
-            Änderungen liegen im Speicher dieses Browsers. Zurücksetzen stellt Objekte, Garantien,
-            Leads und alle Schalter auf den Auslieferungsstand zurück — eigene Eingaben gehen dabei
-            verloren.
-          </p>
-
           <dl className="mt-7 flex flex-wrap gap-x-10 gap-y-5">
             {[
               ["Objekte", objekte.length],

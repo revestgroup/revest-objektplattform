@@ -69,11 +69,6 @@ function MietverwaltungSeite() {
       <Seitenkopf
         label="Garantie und Vermietung"
         titel="Mietverwaltung"
-        beschreibung={
-          reiter === "garantien"
-            ? "Jede verkaufte Einheit läuft mit Mietgarantie weiter. Hier steht, was garantiert ist, was tatsächlich hereinkommt — und was die Differenz kostet."
-            : "Anfragen von Mietinteressenten. Jeder belegte Platz senkt die Garantie, die Revest aus eigener Tasche zahlt."
-        }
         aktion={
           <button
             type="button"
@@ -783,7 +778,6 @@ function GarantieFormular({
     <form onSubmit={absenden} className="pb-20">
       <Bereich
         titel="Einheit"
-        hinweis="Entweder ein Objekt aus dem Bestand wählen oder die Adresse frei eintragen — für Einheiten aus abgeschlossenen Projekten."
       >
         <Auswahlfeld
           id="objekt"
@@ -882,7 +876,6 @@ function GarantieFormular({
           einheit="€"
           pflicht
           fehler={fehler.garantiemiete}
-          hinweis="Kaltmiete, die dem Käufer zugesichert wird."
         />
         {art === "wg" && (
           <Zahlfeld
@@ -890,13 +883,12 @@ function GarantieFormular({
             label="Anzahl Zimmer"
             wert={anzahlZimmer}
             setWert={setAnzahlZimmer}
-            hinweis="Die Garantiesumme wird gleichmäßig verteilt und kann danach je Zimmer angepasst werden."
           />
         )}
       </Bereich>
 
       {art === "wohnung" && (
-        <Bereich titel="Aktuelles Mietverhältnis" hinweis="Leer lassen, wenn die Wohnung leer steht.">
+        <Bereich titel="Aktuelles Mietverhältnis">
           <Textfeld id="mieter" label="Mieter" wert={mieter} setWert={setMieter} />
           <Zahlfeld
             id="istmiete"

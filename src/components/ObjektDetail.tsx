@@ -7,6 +7,7 @@
  * aber unbenutzbar.
  */
 import {
+  ArrowRight,
   ArrowUpRight,
   Crosshair,
   Hammer,
@@ -16,6 +17,7 @@ import {
   Plus,
   Send,
   Trash2,
+  X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -645,8 +647,7 @@ function Sanierung({
       <div className="px-6 py-16 text-center md:px-9">
         <Hammer size={22} strokeWidth={1.5} className="mx-auto text-grau" />
         <p className="mx-auto mt-4 max-w-sm text-[0.82rem] leading-relaxed text-grau">
-          Noch keine Gewerke kalkuliert. Das Budget steht in der Kalkulation als
-          Summe — hier wird es auf die einzelnen Firmen verteilt.
+          Noch keine Gewerke kalkuliert.
         </p>
       </div>
     );
@@ -859,13 +860,11 @@ function Einheiten({ objekt }: { objekt: Objekt }) {
     return (
       <div className="px-6 py-16 text-center md:px-9">
         <div className="mini-label">Noch keine Aufteilung</div>
-        <p className="mx-auto mt-3 max-w-sm text-[0.8rem] leading-relaxed text-grau">
-          Einheiten entstehen nach dem Ankauf — mit der Teilungserklärung. Bis dahin wird das
-          Gebäude als Ganzes geführt.
-          {objekt.anzahlEinheiten
-            ? ` Laut Exposé sind es ${objekt.anzahlEinheiten} Einheiten.`
-            : ""}
-        </p>
+        {objekt.anzahlEinheiten ? (
+          <p className="mx-auto mt-3 max-w-sm text-[0.8rem] leading-relaxed text-grau">
+            Laut Exposé sind es {objekt.anzahlEinheiten} Einheiten.
+          </p>
+        ) : null}
         <button
           type="button"
           onClick={hinzufuegen}
@@ -971,18 +970,11 @@ function Dokumente({ objekt }: { objekt: Objekt }) {
 
   return (
     <div>
-      <p className="px-5 py-5 text-[0.74rem] leading-relaxed text-grau md:px-7">
-        Zehn feste Ordner. Sie werden später genauso im Google Drive angelegt und gespiegelt —
-        deshalb lässt sich hier nichts umbenennen.
-      </p>
       <Dokumentenablage
         dokumente={objekt.dokumente}
         onHochladen={(neue) => dokumenteAnhaengen(objekt.id, neue)}
         onLoeschen={(id) => dokumentLoeschen(objekt.id, id)}
       />
-      <p className="px-5 py-5 text-[0.66rem] leading-relaxed text-grau md:px-7">
-        In dieser Vorschau werden Dateien nicht gespeichert — nur Name, Ordner und Größe.
-      </p>
     </div>
   );
 }
@@ -1092,12 +1084,29 @@ function Verlauf({ objekt }: { objekt: Objekt }) {
 /* ------------------------------------------------------------------ */
 
 /**
- * Kompaktkarte beim Überfahren eines Punktes. Ein Foto, die Lage, die drei
- * Kennzahlen — und, wenn es sie gibt, die Preisgeschichte. Letztere ist der
- * Grund, warum die Karte überhaupt existiert: Timo muss beim zweiten Kontakt
- * mit einem Objekt sofort sehen, was schon verlangt und geboten wurde.
+ * Die Kompaktkarte zu einem Punkt — in zwei Stärken.
+ *
+ * `kurz` schwebt beim Überfahren mit der Maus mit und beantwortet eine
+ * einzige Frage: Was ist das, und lohnt ein Klick? Foto, Lage, Stufe, Preis,
+ * drei Kennzahlen. Mehr wäre im Vorbeifahren nicht lesbar.
+ *
+ * `voll` bleibt nach dem Klick stehen und darf deshalb mehr erzählen: dazu
+ * kommt die Preisgeschichte. Sie ist der eigentliche Grund für die Karte —
+ * beim zweiten Kontakt mit einem Objekt muss sofort sichtbar sein, was schon
+ * verlangt und geboten wurde. Mit `onOeffnen` bekommt sie außerdem einen Fuß
+ * und ein Schließkreuz; ohne bleibt sie ein reines Schaufenster.
  */
-export function ObjektSchwebekarte({ objekt }: { objekt: Objekt }) {
+export function ObjektSchwebekarte({
+  objekt,
+  umfang = "kurz",
+  onOeffnen,
+  onSchliessen,
+}: {
+  objekt: Objekt;
+  umfang?: "kurz" | "voll";
+  onOeffnen?: () => void;
+  onSchliessen?: () => void;
+}) {
   const k = berechneKennzahlen(objekt);
   // Nur echte Fotos — Platzhalter-Einträge aus den Mockdaten bleiben draußen.
   const erstes = objekt.bilder[0];
@@ -1112,7 +1121,7 @@ export function ObjektSchwebekarte({ objekt }: { objekt: Objekt }) {
   ].filter((e) => e !== null);
 
   return (
-    <div className="w-[272px] overflow-hidden rounded-2xl border border-linie bg-flaeche/97 shadow-schwebe backdrop-blur-sm">
+    <div className="relative w-[272px] overflow-hidden rounded-2xl border border-linie bg-flaeche/97 shadow-schwebe backdrop-blur-sm">
       {/* Das Foto nur, wenn es eines gibt — der Streifen-Platzhalter hat auf
           dem Luftbild nichts verloren. */}
       {bild && (
@@ -1126,8 +1135,33 @@ export function ObjektSchwebekarte({ objekt }: { objekt: Objekt }) {
         </div>
       )}
 
+      {/* Das Kreuz liegt über dem Foto, wenn es eines gibt — sonst nimmt es
+          dem Titel eine Zeile weg. */}
+      {onSchliessen && (
+        <button
+          type="button"
+          onClick={onSchliessen}
+          aria-label="Vorschau schließen"
+          className={cn(
+            "druckbar absolute top-2.5 right-2.5 z-10 flex size-7 items-center justify-center rounded-full",
+            bild
+              ? "bg-tinte/70 text-white backdrop-blur-[2px]"
+              : "border border-linie bg-flaeche text-grau",
+          )}
+        >
+          <X size={13} strokeWidth={2.25} />
+        </button>
+      )}
+
       <div className="px-3.5 py-3">
-        <div className="flex items-start justify-between gap-2">
+        {/* Ohne Foto sitzt das Kreuz auf derselben Höhe wie die Stufe und
+            würde sie überdecken — also Platz freihalten. */}
+        <div
+          className={cn(
+            "flex items-start justify-between gap-2",
+            onSchliessen && !bild && "pr-7",
+          )}
+        >
           <div className="min-w-0">
             <div className="truncate text-[0.84rem] font-medium text-tinte">
               {objekt.strasse}
@@ -1157,7 +1191,9 @@ export function ObjektSchwebekarte({ objekt }: { objekt: Objekt }) {
           </dl>
         )}
 
-        {(k.letzteForderung || k.letztesGebot) && (
+        {/* Die Preisgeschichte ist das, was die angeheftete Karte vor der
+            Schwebekarte voraus hat — im Vorbeifahren liest sie ohnehin keiner. */}
+        {umfang === "voll" && (k.letzteForderung || k.letztesGebot) && (
           <dl className="mt-2.5 grid grid-cols-2 gap-2 border-t border-linie pt-2.5">
             <Mini titel="Gefordert" wert={f.eur(k.letzteForderung?.preis)} />
             <Mini titel="Geboten" wert={f.eur(k.letztesGebot?.preis)} />
@@ -1168,6 +1204,17 @@ export function ObjektSchwebekarte({ objekt }: { objekt: Objekt }) {
           <div className="zahl mt-2.5 rounded-lg bg-[#FBE2E2] px-2.5 py-1.5 text-[0.64rem] font-medium text-[#9A2727]">
             {f.eur(k.preisAbstand)} über Ankaufslimit
           </div>
+        )}
+
+        {onOeffnen && (
+          <button
+            type="button"
+            onClick={onOeffnen}
+            className="druckbar mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-full bg-tinte text-[0.66rem] font-semibold tracking-[0.14em] uppercase text-grund shadow-karte"
+          >
+            Objekt öffnen
+            <ArrowRight size={13} strokeWidth={2.25} />
+          </button>
         )}
       </div>
     </div>

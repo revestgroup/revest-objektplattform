@@ -266,18 +266,12 @@ function DealDialog({ objekt, schliessen }: { objekt: Objekt; schliessen: () => 
           setWert={setNotar}
           platzhalter="Notariat Dr. Bäuerle, Ulm"
           breit
-          hinweis="Landet als Quelle in der Preisgeschichte."
         />
       </div>
 
       {/* ----- Verwertung ----- */}
       <div className="mt-7 border-t border-linie pt-6">
         <div className="mini-label">Verwertung</div>
-        <p className="mt-1.5 max-w-prose text-[0.72rem] leading-relaxed text-grau">
-          {wohnung
-            ? "Geht die Wohnung in den Vertrieb oder bleibt sie als WG im Bestand? Davon hängt ab, ob sie eine Mietgarantie bekommt."
-            : "Wie viele Einheiten verkaufen wir, wie viele halten wir als WG? Die Zahlen dürfen später wachsen — gefragt wird jetzt, weil ab hier Geld daran hängt."}
-        </p>
 
         <div className="mt-4 grid gap-6 sm:grid-cols-2">
           {wohnung ? (
@@ -299,7 +293,6 @@ function DealDialog({ objekt, schliessen }: { objekt: Objekt; schliessen: () => 
                   wert={zimmer}
                   setWert={setZimmer}
                   einheit="Zi."
-                  hinweis="Jedes Zimmer wird später ein Platz in der Mietgarantie."
                 />
               )}
             </>
@@ -337,11 +330,6 @@ function DealDialog({ objekt, schliessen }: { objekt: Objekt; schliessen: () => 
       {/* ----- Teilungserklärung ----- */}
       <div className="mt-7 border-t border-linie pt-6">
         <div className="mini-label">Teilungserklärung</div>
-        <p className="mt-1.5 max-w-prose text-[0.72rem] leading-relaxed text-grau">
-          Nur mit Haken wird der Reiter im Objekt nutzbar. Ohne Aufteilung gibt
-          es dort nichts abzulegen — und ein leerer Reiter ist schlimmer als
-          keiner.
-        </p>
         <div className="mt-3.5">
           <Schalter
             label="Teilungserklärung jetzt anstoßen"
@@ -425,7 +413,6 @@ function AbsageDialog({ objekt, schliessen }: { objekt: Objekt; schliessen: () =
           platzhalter="Was genau nicht gepasst hat"
           zeilen={3}
           breit
-          hinweis="Steht später im Verlauf. Beim zweiten Anlauf ist das die erste Frage."
         />
       </div>
 

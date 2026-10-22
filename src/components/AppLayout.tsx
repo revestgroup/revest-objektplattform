@@ -254,12 +254,10 @@ function Unterleiste() {
 export function Seitenkopf({
   label,
   titel,
-  beschreibung,
   aktion,
 }: {
   label: string;
   titel: string;
-  beschreibung?: string;
   aktion?: ReactNode;
 }) {
   return (
@@ -268,11 +266,6 @@ export function Seitenkopf({
         <div className="min-w-0">
           <div className="mini-label">{label}</div>
           <h1 className="headline mt-2.5 text-[2rem] md:text-[2.6rem]">{titel}</h1>
-          {beschreibung && (
-            <p className="mt-3 max-w-xl text-[0.82rem] leading-relaxed text-grau">
-              {beschreibung}
-            </p>
-          )}
         </div>
         {aktion}
       </div>

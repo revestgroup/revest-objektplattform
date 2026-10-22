@@ -38,7 +38,6 @@ function AuswertungSeite() {
       <Seitenkopf
         label="Zahlen zum Bestand"
         titel="Auswertung"
-        beschreibung="Alles aus den hinterlegten Objekten gerechnet. Grunderwerbsteuer je Bundesland, Notar pauschal 1,5 %."
       />
 
       {!bereit ? (
@@ -89,7 +88,6 @@ function AuswertungSeite() {
           <Abschnitt
             nummer="01"
             titel="Pipeline"
-            hinweis="Die Balkenfarbe ist dieselbe Ampel wie auf der Karte: grün angekauft, gelb in Prüfung, rot abgesagt."
           >
             <div className="flex flex-col gap-3">
               {STUFEN_REIHENFOLGE.map((s) => {
@@ -113,7 +111,6 @@ function AuswertungSeite() {
           <Abschnitt
             nummer="02"
             titel="Verteilung nach Stadtteil"
-            hinweis="Nur Stadtteile mit mindestens einem Objekt."
           >
             <div className="flex flex-col gap-3">
               {d.stadtteile.map((b) => (
@@ -179,7 +176,6 @@ function AuswertungSeite() {
           <Abschnitt
             nummer="05"
             titel="Nicht zustande gekommen"
-            hinweis="Die wichtigste Liste der Plattform: warum ein Deal geplatzt ist, bleibt erhalten."
           >
             {d.abgesagt.length === 0 ? (
               <p className="text-[0.78rem] text-grau">Keine Absagen hinterlegt.</p>

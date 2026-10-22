@@ -593,7 +593,6 @@ function LeadFormular({
     <form onSubmit={absenden} className="pb-20">
       <Bereich
         titel="Kontakt"
-        hinweis="Für Leads aus Telefonaten, Empfehlungen oder Portalen. Anfragen über die Leadseite landen später von selbst hier."
       >
         <Textfeld
           id="name"

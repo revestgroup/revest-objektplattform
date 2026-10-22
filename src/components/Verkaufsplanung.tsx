@@ -347,10 +347,6 @@ export function Verkaufsplanung({ objekt }: { objekt: Objekt }) {
       {/* ----- Rahmen der Rechnung ----- */}
       <section className="mt-12 px-6 md:px-9">
         <h3 className="mini-label">Rahmen</h3>
-        <p className="mt-2 max-w-md text-[0.72rem] leading-relaxed text-grau">
-          Was zwischen Ankauf und Verkauf abgeht. Sobald die Gewerkeliste unter „Kosten“ gepflegt
-          ist, zählt sie statt der Schätzung.
-        </p>
         <div className="mt-6 grid max-w-xl gap-x-6 gap-y-6 sm:grid-cols-2">
           <Zelle
             label="Sanierung geschätzt €"
@@ -423,9 +419,7 @@ function Leerstand({
     <div className="px-6 py-16 text-center md:px-9">
       <div className="mini-label">Noch keine Planung</div>
       <p className="mx-auto mt-4 max-w-md text-[0.82rem] leading-relaxed text-grau">
-        Hier wird durchgespielt, wie sich das Objekt weitergeben lässt: welche Wohnung zu welchem
-        Preis, welche Miete sie trägt. Die Zahlen sind Wunsch, nicht Bestand — sie fließen in keine
-        andere Auswertung.
+        Noch kein Verkaufsplan angelegt.
       </p>
 
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">

@@ -98,7 +98,6 @@ function AufgabenSeite() {
       <Seitenkopf
         label="Was als Nächstes dran ist"
         titel="Aufgaben"
-        beschreibung="Jede Aufgabe hängt an einem Objekt, damit beim Anruf der Zusammenhang schon da ist. Überfälliges steht oben — nicht das Wichtigste, sondern das, was blockiert."
         aktion={
           <button
             type="button"
@@ -492,7 +491,6 @@ function AufgabenFormular({
     <form onSubmit={absenden} className="pb-20">
       <Bereich
         titel="Aufgabe"
-        hinweis="Ein Satz, der sagt, was zu tun ist. „Verwalter anrufen“ ist besser als „Traminerweg“."
       >
         <Textfeld
           id="titel"
@@ -524,7 +522,6 @@ function AufgabenFormular({
           leerText="Ohne Objektbezug"
           optionen={objekte.map((o) => ({ wert: o.id, titel: `${o.strasse}, ${o.stadt}` }))}
           breit
-          hinweis="Hängt die Aufgabe an einem Objekt, kommt man von hier aus direkt hinein."
         />
         <Auswahlfeld
           id="art"
@@ -557,7 +554,6 @@ function AufgabenFormular({
             titel: DRINGLICHKEITEN[x].titel,
           }))}
           breit
-          hinweis="Entscheidet nur die Reihenfolge innerhalb eines Tages — die Frist zählt zuerst."
         />
       </Bereich>
 

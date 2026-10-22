@@ -102,8 +102,7 @@ export function Kontaktblatt({ objekt }: { objekt: Objekt }) {
         <div className="flex items-start gap-3 border-b border-linie px-6 py-5 md:px-9">
           <AlertCircle size={15} strokeWidth={2} className="mt-px shrink-0 text-tinte" />
           <p className="max-w-lg text-[0.76rem] leading-relaxed text-tinte">
-            Dieses Objekt ist abgesagt, aber kein Eigentümer hinterlegt. Damit ist der Vorgang
-            nichts mehr wert — der Kontakt war das Ergebnis, nicht der Kauf.
+            Abgesagt, aber kein Eigentümer hinterlegt.
           </p>
         </div>
       )}
@@ -111,7 +110,7 @@ export function Kontaktblatt({ objekt }: { objekt: Objekt }) {
       {liste.length === 0 ? (
         <div className="flex flex-col items-center gap-5 px-6 py-20 text-center md:px-9">
           <p className="max-w-sm text-[0.82rem] leading-relaxed text-grau">
-            Noch kein Kontakt hinterlegt. Wer besitzt das Objekt, und wer vermittelt es?
+            Noch kein Kontakt hinterlegt.
           </p>
           <div className="flex flex-wrap justify-center gap-2">
             {(["eigentuemer", "makler"] as const).map((r) => (
@@ -169,9 +168,6 @@ export function Kontaktblatt({ objekt }: { objekt: Objekt }) {
       {weitere.length > 0 && (
         <section className="border-t border-linie px-6 py-9 md:px-9">
           <h2 className="mini-label">Weitere Objekte dieses Eigentümers</h2>
-          <p className="mt-2.5 max-w-lg text-[0.72rem] leading-relaxed text-grau">
-            Gefunden über den Namen. Wer schon einmal verkauft hat, verkauft eher wieder.
-          </p>
           <ul className="mt-5 flex flex-col gap-1">
             {weitere.map((o) => (
               <li key={o.id} className="flex items-baseline gap-3 py-1 text-left">

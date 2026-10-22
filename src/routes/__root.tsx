@@ -128,9 +128,6 @@ function NichtGefunden() {
     <div className="flex min-h-[70vh] flex-col items-center justify-center px-6 text-center">
       <div className="headline text-[7rem] text-linie-stark">404</div>
       <div className="mt-2 text-base font-medium text-tinte">Diese Seite gibt es nicht.</div>
-      <p className="mt-2 max-w-xs text-sm text-grau">
-        Entweder ein Tippfehler in der Adresse oder ein Link, der ins Leere führt.
-      </p>
       <Link
         to="/karte"
         className="druckbar mt-8 rounded-full border border-linie-stark px-6 py-2.5 text-xs font-medium tracking-[0.18em] uppercase text-tinte"

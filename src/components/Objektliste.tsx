@@ -49,7 +49,6 @@ type Sortierung = keyof typeof SORTIERUNGEN;
 interface Bereichsangaben {
   label: string;
   titel: string;
-  beschreibung: string;
   /** Welche Stufen gehören hierher. */
   stufen: Ankaufsstufe[];
   sortierungen: Sortierung[];
@@ -65,8 +64,6 @@ const BEREICHE: Record<Bereich, Bereichsangaben> = {
   ankauf: {
     label: "Prüfen und entscheiden",
     titel: "Ankauf",
-    beschreibung:
-      "Jedes Objekt, über das wir nachdenken — von der ersten Beobachtung bis zur Absage. Auch abgesagte bleiben hier, denn der Eigentümer bleibt ein Kontakt.",
     stufen: VOR_DEM_KAUF,
     sortierungen: ["neu", "stufe", "preis", "faktor", "rendite"],
     standardSortierung: "neu",
@@ -76,8 +73,6 @@ const BEREICHE: Record<Bereich, Bereichsangaben> = {
   projekte: {
     label: "Gekauft und in Arbeit",
     titel: "Projekte",
-    beschreibung:
-      "Was uns gehört. Hier liegen Einheiten, Sanierung und Verkaufsplanung — die Arbeit beginnt erst nach dem Notartermin.",
     stufen: ["angekauft"],
     sortierungen: ["neu", "preis", "einheiten", "rendite"],
     standardSortierung: "neu",
@@ -185,7 +180,6 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
       <Seitenkopf
         label={b.label}
         titel={b.titel}
-        beschreibung={b.beschreibung}
         aktion={
           // Angelegt wird im Ankauf. Ein Objekt entsteht nicht als Projekt —
           // es wird eines, wenn der Kauf durch ist.
@@ -390,12 +384,12 @@ function Kopfzahlen({ bereich, bestand }: { bereich: Bereich; bestand: Objekt[] 
       const einheiten = bestand.reduce((s, o) => s + o.einheiten.length, 0);
       const sanierung = bestand.reduce((s, o) => s + berechneKennzahlen(o).sanierungGeplant, 0);
       return [
-        { titel: "Projekte", wert: String(bestand.length), unten: "im Bestand" },
+        { titel: "Projekte", wert: String(bestand.length) },
         // Gekürzt: ausgeschrieben läuft ein zweistelliger Millionenbetrag auf
         // dem Telefon über den Kachelrand hinaus.
-        { titel: "Investiert", wert: f.eurKurz(investiert), unten: "inkl. Nebenkosten" },
-        { titel: "Einheiten", wert: String(einheiten), unten: "angelegt" },
-        { titel: "Sanierung", wert: f.eurKurz(sanierung), unten: "geplant" },
+        { titel: "Investiert", wert: f.eurKurz(investiert) },
+        { titel: "Einheiten", wert: String(einheiten) },
+        { titel: "Sanierung", wert: f.eurKurz(sanierung) },
       ];
     }
 
@@ -408,10 +402,10 @@ function Kopfzahlen({ bereich, bestand }: { bereich: Bereich; bestand: Objekt[] 
       (o) => o.kaufpreis !== null && o.ankaufslimit !== null && o.kaufpreis > o.ankaufslimit,
     ).length;
     return [
-      { titel: "In Prüfung", wert: String(aktiv.length), unten: "aktive Vorgänge" },
-      { titel: "Pipeline", wert: f.eurKurz(pipeline), unten: "geforderte Kaufpreise" },
-      { titel: "Über Limit", wert: String(ueberLimit), unten: "Forderung zu hoch" },
-      { titel: "Archiv", wert: String(archiv.length), unten: "abgesagt, Kontakt bleibt" },
+      { titel: "In Prüfung", wert: String(aktiv.length) },
+      { titel: "Pipeline", wert: f.eurKurz(pipeline) },
+      { titel: "Über Limit", wert: String(ueberLimit) },
+      { titel: "Archiv", wert: String(archiv.length) },
     ];
   }, [bereich, bestand]);
 
@@ -427,7 +421,6 @@ function Kopfzahlen({ bereich, bestand }: { bereich: Bereich; bestand: Objekt[] 
           <dd className="zahl mt-2 text-[1.4rem] leading-none font-semibold text-tinte md:text-[1.75rem]">
             {k.wert}
           </dd>
-          <div className="mt-1.5 text-[0.65rem] text-grau">{k.unten}</div>
         </div>
       ))}
     </dl>

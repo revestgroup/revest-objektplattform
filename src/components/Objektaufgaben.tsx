@@ -106,8 +106,8 @@ export function Objektaufgaben({ objekt }: { objekt: Objekt }) {
           <ListChecks size={18} strokeWidth={1.5} className="text-linie-stark" />
           <p className="max-w-xs text-[0.82rem] leading-relaxed text-grau">
             {erledigt.length > 0
-              ? "Nichts offen. Alles, was an diesem Objekt zu tun war, ist abgehakt."
-              : "Noch keine Aufgabe. Was muss als Nächstes passieren, damit dieses Objekt eine Stufe weiterkommt?"}
+              ? "Nichts offen."
+              : "Noch keine Aufgabe."}
           </p>
         </div>
       ) : (
