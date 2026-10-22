@@ -68,7 +68,6 @@ function MietverwaltungSeite() {
   return (
     <>
       <Seitenkopf
-        label="Garantie und Vermietung"
         titel="Mietverwaltung"
         aktion={
           reiter === "auswertung" ? undefined : (

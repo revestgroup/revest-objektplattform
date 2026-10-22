@@ -50,10 +50,7 @@ function EinstellungenSeite() {
 
   return (
     <>
-      <Seitenkopf
-        label="Konto und Plattform"
-        titel="Einstellungen"
-      />
+      <Seitenkopf titel="Einstellungen" />
 
       {/* Trennlinien nur zwischen den Großabschnitten — innerhalb reicht der
           Abstand. Jede Zeile ihre eigene Linie ergäbe ein Gitter aus Strichen. */}

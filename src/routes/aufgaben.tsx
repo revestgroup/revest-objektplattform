@@ -96,7 +96,6 @@ function AufgabenSeite() {
   return (
     <>
       <Seitenkopf
-        label="Was als Nächstes dran ist"
         titel="Aufgaben"
         aktion={
           <button

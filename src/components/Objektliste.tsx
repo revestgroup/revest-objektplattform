@@ -58,7 +58,6 @@ type Sortierung = keyof typeof SORTIERUNGEN;
 type Ansicht = "liste" | "pipeline";
 
 interface Bereichsangaben {
-  label: string;
   titel: string;
   /** Welche Stufen gehören hierher. */
   stufen: Ankaufsstufe[];
@@ -75,7 +74,6 @@ const VOR_DEM_KAUF = STUFEN_REIHENFOLGE.filter((s) => s !== "angekauft");
 
 const BEREICHE: Record<Bereich, Bereichsangaben> = {
   ankauf: {
-    label: "Prüfen und entscheiden",
     titel: "Ankauf",
     stufen: VOR_DEM_KAUF,
     sortierungen: ["neu", "stufe", "preis", "faktor", "rendite"],
@@ -85,7 +83,6 @@ const BEREICHE: Record<Bereich, Bereichsangaben> = {
     leer: "Noch kein Objekt in Prüfung.",
   },
   projekte: {
-    label: "Gekauft und in Arbeit",
     titel: "Projekte",
     stufen: ["angekauft"],
     sortierungen: ["neu", "preis", "einheiten", "rendite"],
@@ -207,7 +204,6 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
   return (
     <>
       <Seitenkopf
-        label={b.label}
         titel={b.titel}
         aktion={
           // Angelegt wird im Ankauf. Ein Objekt entsteht nicht als Projekt —

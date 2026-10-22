@@ -14,9 +14,9 @@ function Anmeldung() {
   const [kennwort, setKennwort] = useState("");
   const [fehler, setFehler] = useState<string | null>(null);
 
-  // Wer schon angemeldet ist, landet direkt auf der Karte.
+  // Wer schon angemeldet ist, landet direkt in der Übersicht.
   useEffect(() => {
-    if (bereit && nutzer) navigate({ to: "/karte", replace: true });
+    if (bereit && nutzer) navigate({ to: "/dashboard", replace: true });
   }, [bereit, nutzer, navigate]);
 
   function absenden(e: React.FormEvent) {
@@ -27,7 +27,7 @@ function Anmeldung() {
       return;
     }
     setFehler(null);
-    navigate({ to: "/karte", replace: true });
+    navigate({ to: "/dashboard", replace: true });
   }
 
   return (

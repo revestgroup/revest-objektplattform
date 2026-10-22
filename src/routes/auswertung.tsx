@@ -35,7 +35,7 @@ function AuswertungSeite() {
 
   return (
     <>
-      <Seitenkopf label="Zahlen zum Bestand" titel="Auswertung" />
+      <Seitenkopf titel="Auswertung" />
 
       {!bereit ? (
         <div className="h-64" />
@@ -105,7 +105,7 @@ function AuswertungSeite() {
           </section>
 
           {/* ----- Pipeline ----- */}
-          <Abschnitt nummer="01" titel="Pipeline">
+          <Abschnitt titel="Pipeline">
             <div className="flex flex-col gap-3">
               {STUFEN_REIHENFOLGE.map((s) => {
                 const gruppe = objekte.filter((o) => o.stufe === s);
@@ -125,7 +125,7 @@ function AuswertungSeite() {
           </Abschnitt>
 
           {/* ----- Stadtteile ----- */}
-          <Abschnitt nummer="02" titel="Verteilung nach Stadtteil">
+          <Abschnitt titel="Verteilung nach Stadtteil">
             <div className="flex flex-col gap-3">
               {d.stadtteile.map((b) => (
                 <Balken
@@ -142,7 +142,7 @@ function AuswertungSeite() {
 
           {/* ----- Objektarten und Einheiten ----- */}
           <div className="grid lg:grid-cols-2 lg:divide-x lg:divide-linie">
-            <Abschnitt nummer="03" titel="Objektarten">
+            <Abschnitt titel="Objektarten">
               <div className="flex flex-col gap-3">
                 {(Object.keys(OBJEKTARTEN) as Objektart[]).map((a) => {
                   const anzahl = objekte.filter((o) => o.objektart === a).length;
@@ -158,7 +158,7 @@ function AuswertungSeite() {
               </div>
             </Abschnitt>
 
-            <Abschnitt nummer="04" titel="Einheiten im Bestand">
+            <Abschnitt titel="Einheiten im Bestand">
               {d.einheitenGesamt === 0 ? (
                 <p className="text-[0.78rem] text-grau">
                   Noch keine Einheiten erfasst — sie entstehen mit der Teilungserklärung.
@@ -183,7 +183,7 @@ function AuswertungSeite() {
           </div>
 
           {/* ----- Absagen ----- */}
-          <Abschnitt nummer="05" titel="Nicht zustande gekommen">
+          <Abschnitt titel="Nicht zustande gekommen">
             {d.abgesagt.length === 0 ? (
               <p className="text-[0.78rem] text-grau">Keine Absagen hinterlegt.</p>
             ) : (
@@ -291,24 +291,13 @@ function auswerten(objekte: Objekt[]) {
 /* Bausteine                                                            */
 /* ------------------------------------------------------------------ */
 
-function Abschnitt({
-  nummer,
-  titel,
-  children,
-}: {
-  nummer: string;
-  titel: string;
-  children: React.ReactNode;
-}) {
+function Abschnitt({ titel, children }: { titel: string; children: React.ReactNode }) {
   return (
-    <section className="px-6 py-8 md:px-10 md:py-10">
-      <div className="flex items-baseline gap-3">
-        <span className="zahl text-[0.62rem] tracking-wider text-grau">{nummer}</span>
-        <h2 className="text-[0.72rem] font-semibold tracking-[0.18em] uppercase text-tinte">
-          {titel}
-        </h2>
-      </div>
-      <div className="mt-6">{children}</div>
+    <section className="px-4 py-7 sm:px-6 md:px-10 md:py-9">
+      <h2 className="text-[0.72rem] font-semibold tracking-[0.18em] uppercase text-tinte">
+        {titel}
+      </h2>
+      <div className="mt-5">{children}</div>
     </section>
   );
 }

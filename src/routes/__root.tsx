@@ -126,10 +126,10 @@ function NichtGefunden() {
       <div className="headline text-[7rem] text-linie-stark">404</div>
       <div className="mt-2 text-base font-medium text-tinte">Diese Seite gibt es nicht.</div>
       <Link
-        to="/karte"
+        to="/dashboard"
         className="druckbar mt-8 rounded-full border border-linie-stark px-6 py-2.5 text-xs font-medium tracking-[0.18em] uppercase text-tinte"
       >
-        Zur Karte
+        Zur Übersicht
       </Link>
     </div>
   );

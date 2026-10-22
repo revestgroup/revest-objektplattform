@@ -76,7 +76,7 @@ export function Vermietungsauswertung() {
       </section>
 
       {/* ----- Auslaufplan ----- */}
-      <Abschnitt nummer="01" titel="Auslaufplan">
+      <Abschnitt titel="Auslaufplan">
         {d.nachEnde.length === 0 ? (
           <Leer text="Keine laufende Garantie." />
         ) : (
@@ -135,7 +135,7 @@ export function Vermietungsauswertung() {
       </Abschnitt>
 
       {/* ----- Belegung ----- */}
-      <Abschnitt nummer="02" titel="Belegung">
+      <Abschnitt titel="Belegung">
         <div className="flex flex-wrap gap-x-8 gap-y-5">
           {[
             { titel: "Plätze gesamt", wert: String(d.plaetze) },
@@ -173,7 +173,7 @@ export function Vermietungsauswertung() {
       </Abschnitt>
 
       {/* ----- Mieter ----- */}
-      <Abschnitt nummer="03" titel="Mieterstruktur">
+      <Abschnitt titel="Mieterstruktur">
         <div className="flex flex-wrap gap-x-8 gap-y-5">
           {[
             { titel: "Ø Kaltmiete", wert: d.schnittMiete === null ? "—" : f.eur(d.schnittMiete) },
@@ -222,7 +222,7 @@ export function Vermietungsauswertung() {
       </Abschnitt>
 
       {/* ----- Geld ----- */}
-      <Abschnitt nummer="04" titel="Monatlich">
+      <Abschnitt titel="Monatlich">
         <div className="flex flex-wrap gap-x-8 gap-y-5">
           {[
             { titel: "Garantiert", wert: f.eur(d.garantiert) },
@@ -254,24 +254,13 @@ export function Vermietungsauswertung() {
   );
 }
 
-function Abschnitt({
-  nummer,
-  titel,
-  children,
-}: {
-  nummer: string;
-  titel: string;
-  children: React.ReactNode;
-}) {
+function Abschnitt({ titel, children }: { titel: string; children: React.ReactNode }) {
   return (
-    <section className="px-4 py-8 sm:px-6 md:px-10 md:py-10">
-      <div className="flex items-baseline gap-3">
-        <span className="zahl text-[0.62rem] tracking-wider text-grau">{nummer}</span>
-        <h2 className="text-[0.72rem] font-semibold tracking-[0.18em] uppercase text-tinte">
-          {titel}
-        </h2>
-      </div>
-      <div className="mt-6">{children}</div>
+    <section className="px-4 py-7 sm:px-6 md:px-10 md:py-9">
+      <h2 className="text-[0.72rem] font-semibold tracking-[0.18em] uppercase text-tinte">
+        {titel}
+      </h2>
+      <div className="mt-5">{children}</div>
     </section>
   );
 }

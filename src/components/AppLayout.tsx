@@ -4,6 +4,7 @@ import {
   Building2,
   ChevronLeft,
   KeyRound,
+  LayoutDashboard,
   ListChecks,
   LogOut,
   Map,
@@ -17,20 +18,23 @@ import { useAuth } from "../lib/auth";
 import { cn } from "../lib/utils";
 
 /**
- * Die Reihenfolge ist der Arbeitsweg: auf der Karte sehen, im Ankauf prüfen,
- * als Projekt bauen. Aufgaben liegen daneben, weil sie zu jeder Stufe gehören.
+ * Die Reihenfolge ist der Arbeitsweg: in der Übersicht sehen, was ansteht, im
+ * Ankauf prüfen, als Projekt bauen. Aufgaben liegen daneben, weil sie zu jeder
+ * Stufe gehören.
  *
  * `kurz` ist die Beschriftung in der Unterleiste — dort zählt jeder Buchstabe.
  * `unten` entscheidet, ob der Punkt auf dem Telefon in die Leiste kommt: fünf
  * sind das Maximum, bei dem ein Ziel auf 375px noch breiter als ein Daumen
- * ist. Alles Lesende wandert ins Kontomenü.
+ * ist. Die Karte ist nicht dabei, weil sie als Kachel in der Übersicht liegt —
+ * sie beantwortet nur „wo?“, und das ist selten die erste Frage des Tages.
  */
 const NAVIGATION = [
-  { zu: "/karte", titel: "Karte", kurz: "Karte", icon: Map, unten: true },
+  { zu: "/dashboard", titel: "Übersicht", kurz: "Start", icon: LayoutDashboard, unten: true },
   { zu: "/ankauf", titel: "Ankauf", kurz: "Ankauf", icon: Search, unten: true },
   { zu: "/projekte", titel: "Projekte", kurz: "Projekte", icon: Building2, unten: true },
   { zu: "/aufgaben", titel: "Aufgaben", kurz: "Aufgaben", icon: ListChecks, unten: true },
   { zu: "/mietverwaltung", titel: "Mietverwaltung", kurz: "Miete", icon: KeyRound, unten: true },
+  { zu: "/karte", titel: "Karte", kurz: "Karte", icon: Map, unten: false },
   { zu: "/auswertung", titel: "Auswertung", kurz: "Zahlen", icon: BarChart3, unten: false },
   { zu: "/einstellungen", titel: "Einstellungen", kurz: "Konto", icon: Settings, unten: false },
 ] as const;
@@ -216,22 +220,11 @@ function Unterleiste() {
 /* Seitenkopf — von allen Unterseiten genutzt                           */
 /* ------------------------------------------------------------------ */
 
-export function Seitenkopf({
-  label,
-  titel,
-  aktion,
-}: {
-  label: string;
-  titel: string;
-  aktion?: ReactNode;
-}) {
+export function Seitenkopf({ titel, aktion }: { titel: string; aktion?: ReactNode }) {
   return (
-    <header className="border-b border-linie px-6 py-7 md:px-10 md:py-9">
-      <div className="flex flex-wrap items-end justify-between gap-5">
-        <div className="min-w-0">
-          <div className="mini-label">{label}</div>
-          <h1 className="headline mt-2.5 text-[2rem] md:text-[2.6rem]">{titel}</h1>
-        </div>
+    <header className="border-b border-linie px-4 py-5 sm:px-6 md:px-10 md:py-7">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="headline min-w-0 text-[1.6rem] md:text-[2.1rem]">{titel}</h1>
         {aktion}
       </div>
     </header>
