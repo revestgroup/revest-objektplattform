@@ -391,6 +391,27 @@ export const MOCK_OBJEKTE: Objekt[] = [
       dok("Mietaufstellung_WG_Zimmer.xlsx", "05_miete", 64, 14),
     ],
     einheiten: [],
+    // Eine Wohnung, zwei Varianten im Kopf — hier steht die, die wir rechnen:
+    // WG weiterlaufen lassen. Die Sanierungsschätzung bleibt leer, weil die
+    // Gewerkeliste oben schon 34.000 € führt und die bessere Zahl ist.
+    verkaufsplan: {
+      posten: [
+        {
+          id: "vp-011-1",
+          bezeichnung: "Wohnung komplett, 5 Zimmer als WG",
+          flaeche: 132,
+          zimmer: 5,
+          wunschpreis: 598_000,
+          monatsmiete: 2_250,
+          alsWg: true,
+        },
+      ],
+      sanierungsschaetzung: null,
+      verkaufsprovision: 2.38,
+      notiz:
+        "Die WG-Miete trägt den Preis: 2.250 € kalt sind je Zimmer 450 €, am Eselsberg marktüblich. Als normale Familienwohnung wären rund 1.500 € realistisch — dann hält der Wunschpreis nicht.",
+      stand: tage(-3),
+    },
     angebote: ang("obj-011", [
       [21, "forderung", 445_000, "Hausverwaltung Dietrich", "offen", "Preisvorstellung im Erstgespräch genannt."],
     ]),

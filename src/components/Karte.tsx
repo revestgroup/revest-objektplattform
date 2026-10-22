@@ -35,6 +35,31 @@ const LUFTBILD_KACHELN = [
 
 export type Kartenansicht = "karte" | "luftbild";
 
+/**
+ * Kachelgröße des Luftbilds.
+ *
+ * Esri liefert 256 Pixel große Kacheln. Auf einem Telefon mit zwei- oder
+ * dreifacher Pixeldichte wird daraus ein weichgezeichnetes Foto — genau dann,
+ * wenn man heranzoomt, um ein Dach zu beurteilen. Gibt man MapLibre eine
+ * kleinere Kachelgröße an, holt es eine Zoomstufe tiefer: vier Kacheln statt
+ * einer, dafür echte Schärfe auf dem dichten Bildschirm.
+ *
+ * Das kostet Daten, deshalb nur, wenn die Verbindung es hergibt. Im
+ * Datensparmodus oder im langsamen Netz wäre Schärfe die falsche Rechnung.
+ */
+function luftbildKachel(): 128 | 256 {
+  if (typeof window === "undefined") return 256;
+  if (window.devicePixelRatio < 2) return 256;
+  const netz = (
+    navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    }
+  ).connection;
+  if (netz?.saveData) return 256;
+  if (netz?.effectiveType && netz.effectiveType !== "4g") return 256;
+  return 128;
+}
+
 /** Touchgerät? Entscheidet über Trefferbereich und Schwebeverhalten. */
 function grobZeiger(): boolean {
   if (typeof window === "undefined") return false;
@@ -71,6 +96,8 @@ interface Props {
   stadtteileZeigen: boolean;
   /** Plan oder Luftbild. */
   ansicht: Kartenansicht;
+  /** Straße und Kaufpreis am Punkt. Aus heißt: nur Farbe und Position. */
+  beschriftung: boolean;
   gewaehltesObjekt: string | null;
   onObjektWaehlen: (id: string | null) => void;
   /** Klick auf freie Fläche schließt die Auswahl. */
@@ -169,6 +196,7 @@ export function Karte({
   stufen,
   stadtteileZeigen,
   ansicht,
+  beschriftung,
   gewaehltesObjekt,
   onObjektWaehlen,
   onLeerKlick,
@@ -207,6 +235,19 @@ export function Karte({
       pitchWithRotate: false,
       dragRotate: false,
       touchZoomRotate: true,
+
+      /* ----- Tempo auf dem Telefon ----- */
+      // Kacheln sollen auftauchen, nicht auffahren. 300 ms Überblendung sind
+      // beim Zoomen mit dem Finger genau die Zeit, in der es unscharf wirkt.
+      fadeDuration: 120,
+      // Zurückzoomen soll nichts nachladen, was eben noch da war.
+      maxTileCacheSize: 240,
+      // Luftbilder ändern sich nicht im Minutentakt — jede Revalidierung wäre
+      // eine Anfrage, die das Bild nur später scharf macht.
+      refreshExpiredTiles: false,
+      // Kantenglättung kostet auf mobilen Grafikeinheiten spürbar Bilder pro
+      // Sekunde und bringt bei Kreisen und Linien kaum etwas.
+      canvasContextAttributes: { antialias: false, powerPreference: "high-performance" },
     });
     karteRef.current = karte;
 
@@ -252,7 +293,10 @@ export function Karte({
       karte.addSource("luftbild", {
         type: "raster",
         tiles: LUFTBILD_KACHELN,
-        tileSize: 256,
+        tileSize: luftbildKachel(),
+        // Unter Zoom 10 ist das Foto nur noch Landschaft — die Plattform
+        // arbeitet in zwei Städten, so weit draußen wird nichts gebraucht.
+        minzoom: 9,
         maxzoom: 19,
         attribution: "Luftbild: Esri, Maxar, Earthstar Geographics",
       });
@@ -269,6 +313,9 @@ export function Karte({
             "raster-brightness-max": 0.92,
             "raster-opacity": 0,
             "raster-opacity-transition": { duration: 280, delay: 0 },
+            // Beim Zoomschritt die scharfe Kachel sofort zeigen statt erst
+            // eine Viertelsekunde die hochskalierte darüberzublenden.
+            "raster-fade-duration": 100,
           },
         },
         schriftAbHier[0]?.id,
@@ -440,17 +487,31 @@ export function Karte({
 
     /**
      * Trefferbereich. Der Finger ist ungenauer als die Maus — am Touchgerät
-     * braucht ein 7-Pixel-Punkt rund 22 Pixel Toleranz, sonst trifft man nie.
+     * braucht ein 7-Pixel-Punkt rund 26 Pixel Toleranz, sonst trifft man nie.
+     *
+     * Innerhalb des Suchfensters gewinnt der nächstgelegene Punkt. Ohne diese
+     * Sortierung liefert MapLibre den erstbesten Treffer der Zeichenreihenfolge
+     * — bei zwei Objekten im selben Haus öffnet sich dann regelmäßig das
+     * falsche, und zwar immer dasselbe falsche.
      */
     const treffenBei = (punkt: maplibregl.Point) => {
-      const t = grobZeiger() ? 22 : 8;
-      return karte.queryRenderedFeatures(
+      const t = grobZeiger() ? 26 : 8;
+      const treffer = karte.queryRenderedFeatures(
         [
           [punkt.x - t, punkt.y - t],
           [punkt.x + t, punkt.y + t],
         ],
         { layers: ["objekt-punkt"] },
       );
+      if (treffer.length < 2) return treffer;
+
+      const abstand = (feature: maplibregl.MapGeoJSONFeature) => {
+        if (feature.geometry.type !== "Point") return Number.POSITIVE_INFINITY;
+        const [lng, lat] = feature.geometry.coordinates as [number, number];
+        const bild = karte.project([lng, lat]);
+        return (bild.x - punkt.x) ** 2 + (bild.y - punkt.y) ** 2;
+      };
+      return [...treffer].sort((a, b) => abstand(a) - abstand(b));
     };
 
     const beiMausBewegung = (e: maplibregl.MapMouseEvent) => {
@@ -555,6 +616,15 @@ export function Karte({
       karte.setLayoutProperty(id, "visibility", stadtteileZeigen ? "visible" : "none");
     }
   }, [stadtteileZeigen, bereit]);
+
+  /* ---------------------------------------------------------------- */
+  /* Punkte beschriften                                                */
+  /* ---------------------------------------------------------------- */
+  useEffect(() => {
+    const karte = karteRef.current;
+    if (!karte || !bereit) return;
+    karte.setLayoutProperty("objekt-text", "visibility", beschriftung ? "visible" : "none");
+  }, [beschriftung, bereit]);
 
   /* ---------------------------------------------------------------- */
   /* Auswahl                                                           */

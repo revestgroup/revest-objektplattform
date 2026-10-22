@@ -282,6 +282,129 @@ export interface Sanierungsposten {
   notiz: string | null;
 }
 
+/* ------------------------------------------------------------------ */
+/* Verkaufsplanung                                                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Die Wunschrechnung, bevor verkauft wird.
+ *
+ * Bewusst getrennt von `Einheit`: eine Einheit entsteht erst mit der
+ * Teilungserklärung und hat einen Käufer. Ein Verkaufsposten ist eine
+ * Überlegung — „die beiden Zweizimmer im Erdgeschoss könnte man als WG
+ * laufen lassen“ — und darf falsch sein, ohne den Bestand zu verfälschen.
+ *
+ * Deshalb steht die Planung auch nicht in der Anlagemaske. Beim Anlegen weiß
+ * niemand, wie die Aufteilung aussieht; wer da nach Wunschpreisen fragt,
+ * bekommt geratene Zahlen, die später als Wahrheit gelesen werden.
+ */
+export interface Verkaufsposten {
+  id: string;
+  /** „1. OG links“ oder „WG Souterrain“ — frei, weil die Aufteilung frei ist. */
+  bezeichnung: string;
+  flaeche: number | null;
+  zimmer: number | null;
+  /** Was wir dafür haben wollen. */
+  wunschpreis: number | null;
+  /** Erwartete Kaltmiete im Monat, nach Sanierung. */
+  monatsmiete: number | null;
+  /** Einzelzimmer statt ganzer Wohnung — bringt mehr Miete, mehr Aufwand. */
+  alsWg: boolean;
+}
+
+export interface Verkaufsplan {
+  posten: Verkaufsposten[];
+  /**
+   * Grobe Sanierungssumme für diese Rechnung. Die Gewerkeliste unter „Kosten“
+   * ist genauer, existiert aber erst nach dem Ankauf — solange sie leer ist,
+   * trägt dieser Wert die Kalkulation.
+   */
+  sanierungsschaetzung: number | null;
+  /** Provision, die beim Weiterverkauf abgeht. */
+  verkaufsprovision: number | null;
+  notiz: string | null;
+  /** Wann die Planung zuletzt gespeichert wurde — eine alte Rechnung lügt leise. */
+  stand: string | null;
+}
+
+export function leererVerkaufsplan(): Verkaufsplan {
+  return {
+    posten: [],
+    sanierungsschaetzung: null,
+    verkaufsprovision: null,
+    notiz: null,
+    stand: null,
+  };
+}
+
+export interface Verkaufsrechnung {
+  anzahl: number;
+  flaeche: number;
+  erloes: number;
+  jahresmiete: number;
+  /** Verkaufspreis je Quadratmeter — die Zahl, die der Markt vergleicht. */
+  preisJeQm: number | null;
+  /** Monatsmiete je Quadratmeter. */
+  mieteJeQm: number | null;
+  /** Was der Käufer an Bruttorendite bekommt. Entscheidet, ob es verkäuflich ist. */
+  kaeuferrendite: number | null;
+  kaeuferfaktor: number | null;
+  provisionEuro: number;
+  /** Ankauf inklusive Nebenkosten plus Sanierung. */
+  gesamtkosten: number | null;
+  rohgewinn: number | null;
+  margeProzent: number | null;
+  /** Nur Posten mit Preis zählen in den Erlös — der Rest ist noch nicht gedacht. */
+  ohnePreis: number;
+}
+
+/**
+ * Rechnet die Planung durch. Eigene Funktion statt Teil von
+ * `berechneKennzahlen`, weil hier Wunschwerte stehen: die beiden Rechnungen
+ * dürfen sich nie vermischen.
+ */
+export function berechneVerkaufsplan(o: Objekt, k: Kennzahlen): Verkaufsrechnung {
+  const plan = o.verkaufsplan ?? leererVerkaufsplan();
+  const posten = plan.posten;
+
+  const erloes = posten.reduce((s, p) => s + (p.wunschpreis ?? 0), 0);
+  const flaeche = posten.reduce((s, p) => s + (p.flaeche ?? 0), 0);
+  const monatsmiete = posten.reduce((s, p) => s + (p.monatsmiete ?? 0), 0);
+  const jahresmiete = monatsmiete * 12;
+
+  const provisionEuro = plan.verkaufsprovision ? (erloes * plan.verkaufsprovision) / 100 : 0;
+
+  // Die gepflegte Gewerkeliste schlägt die Schätzung — sobald sie existiert,
+  // ist sie die bessere Zahl.
+  const sanierung =
+    k.sanierungGeplant > 0 ? k.sanierungGeplant : (plan.sanierungsschaetzung ?? 0);
+
+  const gesamtkosten =
+    k.gesamtinvestition !== null ? k.gesamtinvestition + sanierung : null;
+
+  const rohgewinn =
+    gesamtkosten !== null && erloes > 0 ? erloes - gesamtkosten - provisionEuro : null;
+
+  return {
+    anzahl: posten.length,
+    flaeche,
+    erloes,
+    jahresmiete,
+    preisJeQm: flaeche > 0 && erloes > 0 ? erloes / flaeche : null,
+    mieteJeQm: flaeche > 0 && monatsmiete > 0 ? monatsmiete / flaeche : null,
+    kaeuferrendite: erloes > 0 && jahresmiete > 0 ? (jahresmiete / erloes) * 100 : null,
+    kaeuferfaktor: jahresmiete > 0 && erloes > 0 ? erloes / jahresmiete : null,
+    provisionEuro,
+    gesamtkosten,
+    rohgewinn,
+    margeProzent:
+      rohgewinn !== null && gesamtkosten !== null && gesamtkosten > 0
+        ? (rohgewinn / gesamtkosten) * 100
+        : null,
+    ohnePreis: posten.filter((p) => p.wunschpreis === null).length,
+  };
+}
+
 export interface Dokument {
   id: string;
   name: string;
@@ -358,6 +481,12 @@ export interface Objekt {
   bilder: string[];
   dokumente: Dokument[];
   einheiten: Einheit[];
+  /**
+   * Wunschrechnung für den Weiterverkauf. Optional, damit gespeicherte
+   * Bestände ohne das Feld gültig bleiben — und weil ein frisch angelegtes
+   * Objekt noch keine Planung hat.
+   */
+  verkaufsplan?: Verkaufsplan | null;
   angebote: Angebot[];
   sanierung: Sanierungsposten[];
   verlauf: Verlaufseintrag[];

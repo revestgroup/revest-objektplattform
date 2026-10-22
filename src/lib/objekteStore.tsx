@@ -13,7 +13,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
-import type { Dokument, Einheit, Objekt, Verlaufseintrag } from "./objekte";
+import type { Dokument, Einheit, Objekt, Verkaufsplan, Verlaufseintrag } from "./objekte";
 import { MOCK_OBJEKTE } from "./mockDaten";
 
 /**
@@ -50,6 +50,7 @@ interface StoreWert {
   dokumenteAnhaengen: (id: string, dokumente: Omit<Dokument, "id" | "hochgeladenAm">[]) => void;
   dokumentLoeschen: (id: string, dokumentId: string) => void;
   einheitenSetzen: (id: string, einheiten: Einheit[]) => void;
+  verkaufsplanSetzen: (id: string, plan: Verkaufsplan) => void;
   zuruecksetzen: () => void;
 }
 
@@ -163,6 +164,23 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
         })),
 
       einheitenSetzen: (id, einheiten) => mutieren(id, (o) => ({ ...o, einheiten })),
+
+      // Nur das ausdrückliche Speichern schreibt in den Verlauf — beim Tippen
+      // in der Planung wäre das eine Flut aus bedeutungslosen Einträgen.
+      verkaufsplanSetzen: (id, plan) =>
+        mutieren(id, (o) => ({
+          ...o,
+          verkaufsplan: { ...plan, stand: new Date().toISOString() },
+          verlauf: [
+            ...o.verlauf,
+            eintrag(
+              "notiz",
+              plan.posten.length === 1
+                ? "Verkaufsplanung gespeichert: 1 Posten"
+                : `Verkaufsplanung gespeichert: ${plan.posten.length} Posten`,
+            ),
+          ],
+        })),
 
       zuruecksetzen: () => setObjekte(MOCK_OBJEKTE),
     }),

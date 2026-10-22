@@ -44,12 +44,21 @@ import { cn } from "../lib/utils";
 import { Bildergalerie, Bildflaeche, istQuelle } from "./Bilder";
 import { Dokumentenablage } from "./Dokumente";
 import { Fristzeichen, Stufenzeichen } from "./Stufe";
+import { Verkaufsplanung } from "./Verkaufsplanung";
 
-const REITER = ["uebersicht", "kosten", "einheiten", "dokumente", "verlauf"] as const;
+const REITER = [
+  "uebersicht",
+  "verkauf",
+  "kosten",
+  "einheiten",
+  "dokumente",
+  "verlauf",
+] as const;
 type Reiter = (typeof REITER)[number];
 
 const REITER_TITEL: Record<Reiter, string> = {
   uebersicht: "Übersicht",
+  verkauf: "Verkaufsplanung",
   kosten: "Kosten",
   einheiten: "Einheiten",
   dokumente: "Dokumente",
@@ -72,7 +81,7 @@ export function ObjektDetail({
   return (
     <div className="flex min-h-full flex-col">
       {/* ----- Kopf ----- */}
-      <div className="border-b border-linie px-5 py-5 md:px-7">
+      <div className="border-b border-linie px-6 py-7 md:px-9">
         <div className="flex flex-wrap items-center gap-2">
           <Stufenzeichen stufe={objekt.stufe} gross />
           <Fristzeichen objekt={objekt} />
@@ -128,7 +137,7 @@ export function ObjektDetail({
       {/* ----- Reiter ----- */}
       {/* Fünf Reiter passen auf dem Telefon nicht nebeneinander — also wischen
           statt umbrechen, sonst wandert der Inhalt nach unten. */}
-      <div className="scroll-reihe sticky top-0 z-10 flex shrink-0 gap-1 overflow-x-auto border-b border-linie bg-grund/95 px-5 backdrop-blur-sm md:px-7">
+      <div className="scroll-reihe sticky top-0 z-10 flex shrink-0 gap-1 overflow-x-auto border-b border-linie bg-grund/95 px-6 backdrop-blur-sm md:px-9">
         {REITER.map((r) => {
           const aktiv = r === reiter;
           const anzahl =
@@ -140,7 +149,9 @@ export function ObjektDetail({
                   ? objekt.verlauf.length
                   : r === "kosten"
                     ? objekt.sanierung.length
-                    : null;
+                    : r === "verkauf"
+                      ? (objekt.verkaufsplan?.posten.length ?? 0)
+                      : null;
           return (
             <button
               key={r}
@@ -171,6 +182,7 @@ export function ObjektDetail({
 
       <div className="flex-1">
         {reiter === "uebersicht" && <Uebersicht objekt={objekt} kennzahlen={k} />}
+        {reiter === "verkauf" && <Verkaufsplanung objekt={objekt} />}
         {reiter === "kosten" && <Kosten objekt={objekt} kennzahlen={k} />}
         {reiter === "einheiten" && <Einheiten objekt={objekt} />}
         {reiter === "dokumente" && <Dokumente objekt={objekt} />}
@@ -209,13 +221,13 @@ function Uebersicht({
   return (
     <div className="divide-y divide-linie">
       {objekt.bilder.length > 0 && (
-        <div className="px-5 py-5 md:px-7">
+        <div className="px-6 py-7 md:px-9">
           <Bildergalerie bilder={objekt.bilder} />
         </div>
       )}
 
       {/* Die drei Zahlen, nach denen jede Ankaufsentscheidung fällt. */}
-      <div className="grid grid-cols-3 gap-2 px-5 py-5 md:px-7">
+      <div className="grid grid-cols-3 gap-x-6 px-6 py-8 md:px-9">
         <GrossZahl titel="Kaufpreis" wert={f.eurKurz(objekt.kaufpreis)} />
         <GrossZahl titel="Faktor" wert={f.faktor(k.faktor)} />
         <GrossZahl titel="Rendite" wert={f.prozent(k.bruttoMietrendite)} />
@@ -268,7 +280,7 @@ function Uebersicht({
       </Block>
 
       {objekt.notiz && (
-        <div className="px-5 py-6 md:px-7">
+        <div className="px-6 py-9 md:px-9">
           <div className="mini-label">Notiz</div>
           <p className="mt-3 text-[0.82rem] leading-relaxed whitespace-pre-line text-grau-stark">
             {objekt.notiz}
@@ -277,7 +289,7 @@ function Uebersicht({
       )}
 
       {/* Stufenwechsel am Ende: erst lesen, dann entscheiden. */}
-      <div className="px-5 py-6 md:px-7">
+      <div className="px-6 py-9 md:px-9">
         <div className="mini-label">Stufe wechseln</div>
         <div className="mt-3 flex flex-wrap gap-2">
           {STUFEN_REIHENFOLGE.map((st) => {
@@ -310,24 +322,35 @@ function Uebersicht({
   );
 }
 
+/**
+ * Kennzahl ohne Rahmen. Drei umrandete Kästen neben drei weiteren Blöcken mit
+ * Rahmen ergeben ein Gitter, in dem nichts mehr hervorsticht — die Zahl trägt
+ * sich durch ihre Größe, nicht durch eine Linie.
+ *
+ * Auf dem Telefon sind drei Spalten knapp 110 px breit; Schriftgrad und
+ * Abstand müssen dort mitgeben, sonst steht „2,45 Mi…".
+ */
 function GrossZahl({ titel, wert }: { titel: string; wert: string }) {
   return (
-    // Auf dem Telefon sind drei Kacheln nebeneinander knapp 110 px breit —
-    // dort muss Schrift und Polsterung mitgeben, sonst steht „2,45 Mi…".
-    <div className="rounded-xl border border-linie bg-flaeche px-3 py-3.5 sm:px-3.5 sm:py-4">
+    <div className="min-w-0">
       <div className="mini-label truncate !text-[0.5rem] sm:!text-[0.55rem]">{titel}</div>
-      <div className="zahl mt-1.5 truncate text-[0.92rem] font-semibold text-tinte sm:text-[1.05rem]">
+      <div className="zahl mt-2 truncate text-[1.05rem] font-semibold text-tinte sm:text-[1.25rem]">
         {wert}
       </div>
     </div>
   );
 }
 
+/**
+ * Datenblock. Die Zeilen hatten einmal je eine Trennlinie — bei vier Blöcken
+ * mit sieben Zeilen sind das knapp dreißig Striche auf einem Schirm. Jetzt
+ * trennt der Abstand, und die Linie bleibt dem Blockwechsel vorbehalten.
+ */
 function Block({ titel, children }: { titel: string; children: React.ReactNode }) {
   return (
-    <section className="px-5 py-6 md:px-7">
+    <section className="px-6 py-9 md:px-9">
       <div className="mini-label">{titel}</div>
-      <dl className="mt-3.5 divide-y divide-linie">{children}</dl>
+      <dl className="mt-5">{children}</dl>
     </section>
   );
 }
@@ -347,7 +370,7 @@ function Reihe({
   ton?: "gut" | "warnung";
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 py-2.5">
+    <div className="flex items-baseline justify-between gap-4 py-2">
       <dt className="min-w-0 text-[0.76rem] text-grau">
         {titel}
         {unter && <span className="mt-0.5 block text-[0.64rem] text-linie-stark">{unter}</span>}
@@ -402,7 +425,7 @@ function Kosten({
   return (
     <div className="divide-y divide-linie">
       {/* ----- Projektrechnung auf einen Blick ----- */}
-      <div className="grid grid-cols-3 gap-2 px-5 py-5 md:px-7">
+      <div className="grid grid-cols-3 gap-x-6 px-6 py-8 md:px-9">
         <GrossZahl titel="Kosten Plan" wert={f.eurKurz(k.gesamtkostenPlan)} />
         <GrossZahl titel="Kosten Ist" wert={f.eurKurz(k.gesamtkostenIst)} />
         <GrossZahl titel="Marge" wert={f.prozent(k.margeProzent)} />
@@ -446,7 +469,7 @@ function Kosten({
       </Block>
 
       {/* ----- Sanierung je Gewerk ----- */}
-      <section className="px-5 py-6 md:px-7">
+      <section className="px-6 py-9 md:px-9">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div className="mini-label">Sanierung je Gewerk</div>
           {k.sanierungFortschritt !== null && (
@@ -600,7 +623,7 @@ function Angebotsverlauf({ angebote }: { angebote: Angebot[] }) {
   const sortiert = [...angebote].sort((a, b) => b.datum.localeCompare(a.datum));
 
   return (
-    <section className="px-5 py-6 md:px-7">
+    <section className="px-6 py-9 md:px-9">
       <div className="mini-label">Angebote und Gebote</div>
       <ul className="mt-3.5 flex flex-col gap-1.5">
         {sortiert.map((a) => (
@@ -687,7 +710,7 @@ function Einheiten({ objekt }: { objekt: Objekt }) {
 
   if (objekt.einheiten.length === 0) {
     return (
-      <div className="px-5 py-12 text-center md:px-7">
+      <div className="px-6 py-16 text-center md:px-9">
         <div className="mini-label">Noch keine Aufteilung</div>
         <p className="mx-auto mt-3 max-w-sm text-[0.8rem] leading-relaxed text-grau">
           Einheiten entstehen nach dem Ankauf — mit der Teilungserklärung. Bis dahin wird das
@@ -710,7 +733,7 @@ function Einheiten({ objekt }: { objekt: Objekt }) {
 
   return (
     <div>
-      <div className="grid grid-cols-2 gap-px bg-linie sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-x-6 gap-y-7 border-b border-linie px-6 py-8 sm:grid-cols-4 md:px-9">
         <GrossZahl titel="Einheiten" wert={String(objekt.einheiten.length)} />
         <GrossZahl titel="Fläche gesamt" wert={f.qm(summe.flaeche)} />
         <GrossZahl titel="Ist-Miete / Monat" wert={f.eur(summe.miete)} />
@@ -724,7 +747,7 @@ function Einheiten({ objekt }: { objekt: Objekt }) {
         {objekt.einheiten.map((e, i) => (
           <li
             key={e.id}
-            className="eintritt px-5 py-4 md:px-7"
+            className="eintritt px-6 py-5 md:px-9"
             style={{ animationDelay: `${Math.min(i, 8) * 28}ms` }}
           >
             <div className="flex items-start justify-between gap-4">
@@ -772,7 +795,7 @@ function Einheiten({ objekt }: { objekt: Objekt }) {
         ))}
       </ul>
 
-      <div className="flex flex-wrap items-center gap-3 px-5 py-5 md:px-7">
+      <div className="flex flex-wrap items-center gap-3 px-6 py-7 md:px-9">
         <button
           type="button"
           onClick={hinzufuegen}
@@ -850,7 +873,7 @@ function Verlauf({ objekt }: { objekt: Objekt }) {
 
   return (
     <div>
-      <form onSubmit={senden} className="border-b border-linie px-5 py-5 md:px-7">
+      <form onSubmit={senden} className="border-b border-linie px-6 py-7 md:px-9">
         <label htmlFor="neue-notiz" className="mini-label block">
           Notiz hinzufügen
         </label>
@@ -872,7 +895,7 @@ function Verlauf({ objekt }: { objekt: Objekt }) {
         </button>
       </form>
 
-      <ol className="px-5 py-5 md:px-7">
+      <ol className="px-6 py-7 md:px-9">
         {eintraege.map((e, i) => (
           <li
             key={e.id}

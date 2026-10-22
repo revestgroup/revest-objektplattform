@@ -22,7 +22,7 @@ import {
   SlidersHorizontal,
   Type,
 } from "lucide-react";
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { Schublade } from "../components/AppLayout";
 import type { NeuesDokument } from "../components/Dokumente";
@@ -34,7 +34,16 @@ import {
 } from "../components/Karte";
 import { ObjektDetail, ObjektSchwebekarte } from "../components/ObjektDetail";
 import { ObjektFormular } from "../components/ObjektFormular";
-import { STUFEN, STUFEN_REIHENFOLGE, f, type Ankaufsstufe, type Objekt } from "../lib/objekte";
+import { useEinstellungen } from "../lib/einstellungenStore";
+import {
+  OBJEKTARTEN,
+  STUFEN,
+  STUFEN_REIHENFOLGE,
+  berechneKennzahlen,
+  f,
+  type Ankaufsstufe,
+  type Objekt,
+} from "../lib/objekte";
 import { useObjekte, type ObjektEntwurf } from "../lib/objekteStore";
 import {
   ausschnittVon,
@@ -47,6 +56,8 @@ export const Route = createFileRoute("/karte")({ component: KarteSeite });
 
 type Modus =
   | { art: "zu" }
+  /** Nur am Telefon: Vorschaublatt über der Karte, bevor es ganzseitig wird. */
+  | { art: "vorschau"; id: string }
   | { art: "detail"; id: string }
   | { art: "bearbeiten"; id: string }
   | { art: "anlegen" };
@@ -54,6 +65,23 @@ type Modus =
 /** Schwebender Knopf über der Karte. Gleiche Form überall, damit es ruhig wirkt. */
 const KNOPF =
   "druckbar flex items-center justify-center gap-2 rounded-full border bg-flaeche/95 shadow-karte backdrop-blur-sm";
+
+/**
+ * Telefonformat. Entscheidet, ob ein Tippen auf einen Punkt zuerst das
+ * Vorschaublatt zeigt oder direkt ganzseitig öffnet. Auf dem Telefon wäre der
+ * Direktsprung unverzeihlich: ein Fehlgriff verdeckt die ganze Karte.
+ */
+function useTelefon(): boolean {
+  const [klein, setKlein] = useState(false);
+  useEffect(() => {
+    const m = window.matchMedia("(max-width: 767px)");
+    const melden = () => setKlein(m.matches);
+    melden();
+    m.addEventListener("change", melden);
+    return () => m.removeEventListener("change", melden);
+  }, []);
+  return klein;
+}
 
 function KarteSeite() {
   const { objekte, bereit, anlegen, aendern, dokumenteAnhaengen } = useObjekte();
@@ -69,11 +97,25 @@ function KarteSeite() {
   const [modus, setModus] = useState<Modus>({ art: "zu" });
 
   const steuerung = useRef<KartenSteuerung | null>(null);
+  const telefon = useTelefon();
+
+  // Die Einstellungen liegen im Browserspeicher und sind erst nach dem ersten
+  // Bild da. Sie setzen deshalb den Startzustand nach, statt ihn vorzugeben —
+  // wer danach auf der Karte umschaltet, behält seine Wahl für die Sitzung.
+  const { einstellungen, bereit: einstellungenBereit } = useEinstellungen();
+  const uebernommen = useRef(false);
+  useEffect(() => {
+    if (!einstellungenBereit || uebernommen.current) return;
+    uebernommen.current = true;
+    setAnsicht(einstellungen.karteLuftbild ? "luftbild" : "karte");
+    setStadtteileZeigen(einstellungen.teilorteZeigen);
+  }, [einstellungenBereit, einstellungen.karteLuftbild, einstellungen.teilorteZeigen]);
 
   const gewaehlt =
-    modus.art === "detail" || modus.art === "bearbeiten"
+    modus.art === "detail" || modus.art === "bearbeiten" || modus.art === "vorschau"
       ? (objekte.find((o) => o.id === modus.id) ?? null)
       : null;
+  const vorschau = modus.art === "vorschau" ? gewaehlt : null;
 
   /* ---------------- Schwebekarte ---------------- */
   // Ein Render je Hover-Wechsel, nicht je Mausbewegung: das Objekt steht im
@@ -203,8 +245,16 @@ function KarteSeite() {
           stufen={stufen}
           stadtteileZeigen={stadtteileZeigen}
           ansicht={ansicht}
+          beschriftung={einstellungen.punktBeschriftung}
           gewaehltesObjekt={gewaehlt?.id ?? null}
-          onObjektWaehlen={(id) => setModus(id ? { art: "detail", id } : { art: "zu" })}
+          onObjektWaehlen={(id) => {
+            if (!id) return setModus({ art: "zu" });
+            if (!telefon || !einstellungen.vorschaublatt) return setModus({ art: "detail", id });
+            setModus({ art: "vorschau", id });
+            const o = objekte.find((x) => x.id === id);
+            // Der Punkt muss über das Blatt wandern, sonst tippt man ins Blinde.
+            if (o) steuerung.current?.aufObjekt(o);
+          }}
           onLeerKlick={() => setModus({ art: "zu" })}
           onSchweben={beiSchweben}
           steuerungRef={steuerung}
@@ -291,6 +341,10 @@ function KarteSeite() {
           // bottom misst ab der Main-Kante — die fixe Unterleiste (h-14 + safe
           // area) liegt davor, also darüber hinweg heben.
           "absolute right-3 bottom-[calc(3.5rem+env(safe-area-inset-bottom)+1rem)] z-20 h-13 border-tinte bg-tinte px-5 text-[0.7rem] font-semibold tracking-[0.12em] uppercase text-grund md:hidden",
+          // Weicht dem Vorschaublatt: ein halb verdeckter Knopf ist schlimmer
+          // als keiner.
+          "transition-opacity duration-200 ease-out",
+          vorschau && "pointer-events-none opacity-0",
         )}
       >
         <Plus size={16} strokeWidth={2} />
@@ -427,11 +481,17 @@ function KarteSeite() {
         {schwebe && <ObjektSchwebekarte objekt={schwebe} />}
       </div>
 
+      {/* ----- Telefon: Vorschaublatt ----- */}
+      <Vorschaublatt
+        objekt={vorschau}
+        schliessen={() => setModus({ art: "zu" })}
+        oeffnen={() => vorschau && setModus({ art: "detail", id: vorschau.id })}
+      />
+
       {/* ----- Schublade ----- */}
       <Schublade
-        offen={modus.art !== "zu"}
+        offen={modus.art !== "zu" && modus.art !== "vorschau"}
         schliessen={() => setModus({ art: "zu" })}
-        voll={modus.art === "anlegen" || modus.art === "bearbeiten"}
         titel={
           modus.art === "anlegen"
             ? "Objekt anlegen"
@@ -461,6 +521,120 @@ function KarteSeite() {
           />
         )}
       </Schublade>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Telefon: Vorschaublatt                                               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Was nach dem Tippen auf einen Punkt erscheint.
+ *
+ * Das Blatt bleibt immer im Baum und fährt per translateY — nur so ist das
+ * Schließen genauso weich wie das Öffnen. Es deckt bewusst nur die untere
+ * Hälfte ab: Wer danebengetippt hat, sieht den Fehler sofort und tippt den
+ * richtigen Punkt an, ohne erst etwas schließen zu müssen.
+ */
+function Vorschaublatt({
+  objekt,
+  schliessen,
+  oeffnen,
+}: {
+  objekt: Objekt | null;
+  schliessen: () => void;
+  oeffnen: () => void;
+}) {
+  // Letzten Inhalt behalten, damit beim Hinausfahren nichts leer blinkt.
+  const letztes = useRef<Objekt | null>(null);
+  if (objekt) letztes.current = objekt;
+  const o = objekt ?? letztes.current;
+
+  const k = o ? berechneKennzahlen(o) : null;
+  const zahlen = o
+    ? [
+        { t: "Kaufpreis", v: f.eurKurz(o.kaufpreis) },
+        { t: "Faktor", v: f.faktor(k?.faktor) },
+        { t: "Rendite", v: f.prozent(k?.bruttoMietrendite) },
+      ]
+    : [];
+
+  return (
+    <div
+      aria-hidden={!objekt}
+      className={cn(
+        "absolute inset-x-0 z-30 px-3 md:hidden",
+        // Über der festen Unterleiste und dem Aktionsknopf stehen bleiben.
+        "bottom-[calc(3.5rem+env(safe-area-inset-bottom)+0.75rem)]",
+        "transition-transform duration-300 ease-drawer",
+        objekt ? "translate-y-0" : "translate-y-[150%]",
+      )}
+    >
+      {o && (
+        <div className="overflow-hidden rounded-2xl border border-linie bg-flaeche/97 shadow-schwebe backdrop-blur-sm">
+          {/* Griffleiste: zeigt, dass das Blatt zur Karte gehört und nicht
+              die Seite ersetzt. */}
+          <button
+            type="button"
+            onClick={schliessen}
+            aria-label="Vorschau schließen"
+            className="druckbar flex w-full justify-center py-2.5"
+          >
+            <span aria-hidden className="h-1 w-9 rounded-full bg-linie-stark" />
+          </button>
+
+          <div className="px-4 pb-4">
+            <div className="flex items-start gap-3">
+              <span
+                aria-hidden
+                className="mt-[0.3rem] size-2.5 shrink-0 rounded-full"
+                style={{ background: STUFEN[o.stufe].farbe }}
+              />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[0.95rem] leading-tight font-semibold text-tinte">
+                  {o.strasse}
+                </div>
+                <div className="mt-1 truncate text-[0.7rem] text-grau">
+                  {o.plz} {o.stadt} · {o.stadtteil} · {OBJEKTARTEN[o.objektart]}
+                </div>
+              </div>
+            </div>
+
+            <dl className="mt-3.5 grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-linie bg-linie">
+              {zahlen.map((z) => (
+                <div key={z.t} className="bg-flaeche px-3 py-2.5">
+                  <dt className="mini-label text-[0.52rem]">{z.t}</dt>
+                  <dd className="zahl mt-1 text-[0.82rem] font-semibold text-tinte">{z.v}</dd>
+                </div>
+              ))}
+            </dl>
+
+            {k?.zuTeuer && (
+              <div className="zahl mt-2.5 rounded-lg bg-[#FBE2E2] px-3 py-2 text-[0.64rem] font-medium text-[#9A2727]">
+                {f.eur(k.preisAbstand)} über Ankaufslimit
+              </div>
+            )}
+
+            <div className="mt-3.5 flex gap-2">
+              <button
+                type="button"
+                onClick={oeffnen}
+                className="druckbar h-11 flex-1 rounded-full bg-tinte text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-grund shadow-karte"
+              >
+                Objekt öffnen
+              </button>
+              <button
+                type="button"
+                onClick={schliessen}
+                className="druckbar h-11 rounded-full border border-linie-stark px-5 text-[0.68rem] font-medium tracking-[0.14em] uppercase text-grau-stark"
+              >
+                Schließen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,20 +1,28 @@
 /**
  * Einstellungen.
  *
- * Phase 1 hat nichts zu konfigurieren — deshalb steht hier stattdessen,
- * was die Plattform heute kann und was Phase 2 bringt. Das ist für Timo
- * nützlicher als leere Schalter.
+ * Aufgebaut nach dem, was man einstellen kann, nicht nach dem, was im Code
+ * zusammenliegt: erst die Schalter, dann die festen Angaben zu Region und
+ * Ablage, zuletzt die Vorschaudaten.
+ *
+ * Ein Schalter, der heute nichts bewirkt, trägt sichtbar „Phase 2“. Lieber
+ * ein ehrlicher Vermerk als die Täuschung, man hätte gerade etwas umgestellt.
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { Check, Minus, RotateCcw } from "lucide-react";
 import { useState } from "react";
 
 import { Seitenkopf } from "../components/AppLayout";
+import { Regler } from "../components/Felder";
 import { useAuth } from "../lib/auth";
+import { GRUPPEN } from "../lib/einstellungen";
+import { useEinstellungen } from "../lib/einstellungenStore";
+import { useLeads } from "../lib/leadStore";
 import { DOKUMENT_ORDNER, BUNDESLAND_NAMEN, GRUNDERWERBSTEUER, f } from "../lib/objekte";
 import { useObjekte } from "../lib/objekteStore";
 import { STADTTEIL_NAMEN } from "../lib/stadtteile";
 import { cn } from "../lib/utils";
+import { useVermietung } from "../lib/vermietungStore";
 
 export const Route = createFileRoute("/einstellungen")({ component: EinstellungenSeite });
 
@@ -29,11 +37,18 @@ const PHASE_2 = [
 
 function EinstellungenSeite() {
   const { nutzer } = useAuth();
-  const { objekte, zuruecksetzen } = useObjekte();
+  const { objekte, zuruecksetzen: objekteZurueck } = useObjekte();
+  const { garantien, zuruecksetzen: garantienZurueck } = useVermietung();
+  const { leads, zuruecksetzen: leadsZurueck } = useLeads();
+  const { einstellungen, umschalten, zuruecksetzen: einstellungenZurueck } = useEinstellungen();
   const [frage, setFrage] = useState(false);
 
   const ulm = STADTTEIL_NAMEN.filter((s) => s.stadt === "Ulm").length;
   const neuUlm = STADTTEIL_NAMEN.filter((s) => s.stadt === "Neu-Ulm").length;
+
+  const aktiveSchalter = GRUPPEN.flatMap((g) => g.eintraege).filter(
+    (e) => einstellungen[e.schluessel],
+  ).length;
 
   return (
     <>
@@ -43,12 +58,14 @@ function EinstellungenSeite() {
         beschreibung="Diese Vorschau läuft vollständig im Browser. Nichts wird an einen Server gesendet."
       />
 
+      {/* Trennlinien nur zwischen den Großabschnitten — innerhalb reicht der
+          Abstand. Jede Zeile ihre eigene Linie ergäbe ein Gitter aus Strichen. */}
       <div className="divide-y divide-linie">
         {/* ----- Konto ----- */}
-        <section className="px-6 py-8 md:px-10">
+        <section className="px-6 py-11 md:px-10 md:py-14">
           <h2 className="mini-label">Zugang</h2>
           {nutzer && (
-            <dl className="mt-5 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:max-w-2xl">
+            <dl className="mt-7 grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:max-w-2xl">
               {[
                 ["Name", nutzer.name],
                 ["Rolle", nutzer.rolle],
@@ -64,14 +81,38 @@ function EinstellungenSeite() {
           )}
         </section>
 
+        {/* ----- Schalter ----- */}
+        {GRUPPEN.map((gruppe) => (
+          <section key={gruppe.titel} className="px-6 py-11 md:px-10 md:py-14">
+            <h2 className="mini-label">{gruppe.titel}</h2>
+            <p className="mt-2.5 max-w-xl text-[0.72rem] leading-relaxed text-grau">
+              {gruppe.beschreibung}
+            </p>
+            {/* Weder Kästen noch Striche: die Zeilen gehören zusammen, und der
+                Schalter rechts markiert den Rand jeder Zeile schon selbst. */}
+            <div className="mt-6 -ml-2 flex max-w-3xl flex-col gap-1">
+              {gruppe.eintraege.map((e) => (
+                <Regler
+                  key={e.schluessel}
+                  titel={e.titel}
+                  hinweis={e.hinweis}
+                  vermerk={e.wirkt ? undefined : "Phase 2"}
+                  an={einstellungen[e.schluessel]}
+                  umschalten={() => umschalten(e.schluessel)}
+                />
+              ))}
+            </div>
+          </section>
+        ))}
+
         {/* ----- Region ----- */}
-        <section className="px-6 py-8 md:px-10">
+        <section className="px-6 py-11 md:px-10 md:py-14">
           <h2 className="mini-label">Region</h2>
-          <p className="mt-2 max-w-xl text-[0.72rem] leading-relaxed text-grau">
+          <p className="mt-2.5 max-w-xl text-[0.72rem] leading-relaxed text-grau">
             Die Stadtteilgrenzen kommen aus OpenStreetMap und liegen als Datei im Projekt — die
             Karte braucht dafür keine Verbindung.
           </p>
-          <dl className="mt-5 grid gap-x-8 gap-y-4 sm:grid-cols-3 lg:max-w-2xl">
+          <dl className="mt-7 grid gap-x-10 gap-y-6 sm:grid-cols-3 lg:max-w-2xl">
             {[
               ["Ulm", `${ulm} Stadtteile`, `Grunderwerbsteuer ${f.prozent(GRUNDERWERBSTEUER.BW)}`],
               [
@@ -88,7 +129,7 @@ function EinstellungenSeite() {
               </div>
             ))}
           </dl>
-          <p className="mt-5 text-[0.68rem] text-grau">
+          <p className="mt-7 text-[0.68rem] text-grau">
             Steuersätze hinterlegt für{" "}
             {Object.keys(GRUNDERWERBSTEUER)
               .map((k) => `${BUNDESLAND_NAMEN[k]} ${f.prozent(GRUNDERWERBSTEUER[k])}`)
@@ -97,19 +138,21 @@ function EinstellungenSeite() {
         </section>
 
         {/* ----- Ordner ----- */}
-        <section className="px-6 py-8 md:px-10">
+        <section className="px-6 py-11 md:px-10 md:py-14">
           <h2 className="mini-label">Ordnerstruktur</h2>
-          <p className="mt-2 max-w-xl text-[0.72rem] leading-relaxed text-grau">
+          <p className="mt-2.5 max-w-xl text-[0.72rem] leading-relaxed text-grau">
             Diese zehn Ordner stehen fest. Sie werden in Phase 2 eins zu eins im Google Drive
             angelegt, damit beide Seiten dieselbe Struktur haben.
           </p>
-          <ol className="mt-5 grid gap-1.5 sm:grid-cols-2 lg:max-w-3xl">
+          {/* Zehn umrandete Kästchen waren zwanzig Linien für eine Liste, die
+              nur gelesen wird. Jetzt trägt die Nummer die Ordnung. */}
+          <ol className="mt-7 grid gap-x-10 gap-y-3 sm:grid-cols-2 lg:max-w-2xl">
             {DOKUMENT_ORDNER.map((o, i) => (
               <li
                 key={o.schluessel}
-                className="flex items-baseline gap-3 rounded-xl border border-linie bg-flaeche px-4 py-2.5 text-[0.76rem] text-grau-stark"
+                className="flex items-baseline gap-3.5 text-[0.78rem] text-grau-stark"
               >
-                <span className="zahl shrink-0 text-[0.62rem] text-grau">
+                <span className="zahl shrink-0 text-[0.62rem] text-linie-stark">
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 {o.titel}
@@ -119,9 +162,9 @@ function EinstellungenSeite() {
         </section>
 
         {/* ----- Phase 2 ----- */}
-        <section className="px-6 py-8 md:px-10">
+        <section className="px-6 py-11 md:px-10 md:py-14">
           <h2 className="mini-label">Was Phase 2 bringt</h2>
-          <ul className="mt-5 flex max-w-2xl flex-col gap-2.5">
+          <ul className="mt-7 flex max-w-2xl flex-col gap-3.5">
             <li className="flex items-start gap-3">
               <Spur fertig />
               <span className="text-[0.8rem] text-tinte">
@@ -138,14 +181,29 @@ function EinstellungenSeite() {
         </section>
 
         {/* ----- Daten ----- */}
-        <section className="px-6 py-8 md:px-10">
+        <section className="px-6 py-11 md:px-10 md:py-14">
           <h2 className="mini-label">Vorschaudaten</h2>
-          <p className="mt-2 max-w-xl text-[0.72rem] leading-relaxed text-grau">
-            Änderungen liegen im Speicher dieses Browsers. Zurücksetzen stellt die
-            Beispielobjekte wieder her — eigene Eingaben gehen dabei verloren.
+          <p className="mt-2.5 max-w-xl text-[0.72rem] leading-relaxed text-grau">
+            Änderungen liegen im Speicher dieses Browsers. Zurücksetzen stellt Objekte, Garantien,
+            Leads und alle Schalter auf den Auslieferungsstand zurück — eigene Eingaben gehen dabei
+            verloren.
           </p>
 
-          <div className="mt-5 flex flex-wrap items-center gap-3">
+          <dl className="mt-7 flex flex-wrap gap-x-10 gap-y-5">
+            {[
+              ["Objekte", objekte.length],
+              ["Mietgarantien", garantien.length],
+              ["Leads", leads.length],
+              ["Schalter aktiv", aktiveSchalter],
+            ].map(([titel, anzahl]) => (
+              <div key={titel}>
+                <dt className="mini-label">{titel}</dt>
+                <dd className="zahl mt-1 text-[0.84rem] text-tinte">{anzahl}</dd>
+              </div>
+            ))}
+          </dl>
+
+          <div className="mt-6 flex flex-wrap items-center gap-3">
             {!frage ? (
               <button
                 type="button"
@@ -161,7 +219,10 @@ function EinstellungenSeite() {
                 <button
                   type="button"
                   onClick={() => {
-                    zuruecksetzen();
+                    objekteZurueck();
+                    garantienZurueck();
+                    leadsZurueck();
+                    einstellungenZurueck();
                     setFrage(false);
                   }}
                   className="druckbar rounded-full bg-tinte px-4 py-2.5 text-[0.66rem] font-semibold tracking-[0.14em] uppercase text-grund shadow-karte"
@@ -194,11 +255,7 @@ function Spur({ fertig }: { fertig?: boolean }) {
         fertig ? "border-tinte bg-tinte text-grund" : "border-linie-stark text-grau",
       )}
     >
-      {fertig ? (
-        <Check size={10} strokeWidth={3} />
-      ) : (
-        <Minus size={10} strokeWidth={2.5} />
-      )}
+      {fertig ? <Check size={10} strokeWidth={3} /> : <Minus size={10} strokeWidth={2.5} />}
     </span>
   );
 }

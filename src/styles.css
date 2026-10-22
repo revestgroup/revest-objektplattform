@@ -63,6 +63,17 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/*
+ * Die ausgefahrene Schublade steht per translateX rechts außerhalb des
+ * Bildes. Ohne diese Sperre lässt sich die Seite auf dem Telefon seitwärts
+ * wegschieben — ein Fehler, den man nur auf echtem Glas bemerkt.
+ */
+html,
+body {
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+}
+
 body {
   margin: 0;
   background: var(--color-grund);

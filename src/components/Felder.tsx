@@ -18,7 +18,7 @@ function Raster({ spalten, children }: { spalten: 1 | 2 | 3; children: ReactNode
   return (
     <div
       className={cn(
-        "grid gap-x-4 gap-y-5",
+        "grid gap-x-6 gap-y-6",
         spalten === 1 && "grid-cols-1",
         spalten === 2 && "grid-cols-1 sm:grid-cols-2",
         spalten === 3 && "grid-cols-2 sm:grid-cols-3",
@@ -41,12 +41,17 @@ export function Bereich({
   spalten?: 1 | 2 | 3;
 }) {
   return (
-    <section className="border-t border-linie px-5 py-6 md:px-7">
+    // Ohne Trennlinie: die Überschrift in Versalien grenzt den Bereich
+    // deutlich genug ab, und bei acht Bereichen untereinander wären acht
+    // Striche die auffälligste Gestaltung der Maske.
+    <section className="px-6 pt-10 pb-2 first:pt-8 md:px-10">
       <h2 className="text-[0.72rem] font-semibold tracking-[0.18em] uppercase text-tinte">
         {titel}
       </h2>
-      {hinweis && <p className="mt-2 text-[0.7rem] leading-relaxed text-grau">{hinweis}</p>}
-      <div className="mt-5">
+      {hinweis && (
+        <p className="mt-2.5 max-w-md text-[0.72rem] leading-relaxed text-grau">{hinweis}</p>
+      )}
+      <div className="mt-7">
         <Raster spalten={spalten}>{children}</Raster>
       </div>
     </section>
@@ -81,12 +86,14 @@ export function Klappbereich({
   const [offen, setOffen] = useState(Boolean(offenAnfangs));
 
   return (
-    <section className="border-t border-linie px-5 md:px-7">
+    // Hier bleibt die Linie: sie markiert eine Zeile, die man anfassen kann,
+    // und trennt den zugeklappten Teil der Maske vom offenen.
+    <section className="mt-10 border-t border-linie px-6 first:mt-0 md:px-10">
       <button
         type="button"
         onClick={() => setOffen((o) => !o)}
         aria-expanded={offen}
-        className="druckbar -mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-lg px-2 py-5 text-left"
+        className="druckbar -mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-lg px-2 py-6 text-left"
       >
         <span className="min-w-0 flex-1">
           <span className="block text-[0.72rem] font-semibold tracking-[0.18em] uppercase text-tinte">
@@ -112,7 +119,7 @@ export function Klappbereich({
         />
       </button>
       {offen && (
-        <div className="eintritt pb-6">
+        <div className="eintritt pb-9">
           <Raster spalten={spalten}>{children}</Raster>
         </div>
       )}
@@ -344,6 +351,71 @@ export function Segmente<T extends string>({
       </div>
       {hinweis && <p className="mt-1.5 text-[0.65rem] leading-relaxed text-grau">{hinweis}</p>}
     </div>
+  );
+}
+
+/**
+ * Kippschalter für Einstellungen.
+ *
+ * Die ganze Zeile ist der Schalter — am Telefon trifft man so immer, ohne den
+ * Knopf selbst zu suchen. Der Knopf bewegt sich per translateX, damit die
+ * Bewegung auf der Grafikeinheit läuft und auch unter Last glatt bleibt.
+ *
+ * `vermerk` steht für Optionen, die heute nur vorgemerkt sind: lieber ein
+ * ehrlicher Hinweis als ein Schalter, der stumm nichts tut.
+ */
+export function Regler({
+  titel,
+  hinweis,
+  vermerk,
+  an,
+  umschalten,
+}: {
+  titel: string;
+  hinweis?: string;
+  vermerk?: string;
+  an: boolean;
+  umschalten: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={an}
+      onClick={umschalten}
+      className="druckbar flex w-full items-start gap-4 rounded-xl px-2 py-3 text-left hover:bg-flaeche-hoch"
+    >
+      <span className="min-w-0 flex-1">
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="text-[0.84rem] font-medium text-tinte">{titel}</span>
+          {vermerk && (
+            <span className="rounded-full border border-linie-stark px-2 py-0.5 text-[0.55rem] font-semibold tracking-[0.12em] uppercase text-grau">
+              {vermerk}
+            </span>
+          )}
+        </span>
+        {hinweis && (
+          <span className="mt-1 block max-w-prose text-[0.72rem] leading-relaxed text-grau">
+            {hinweis}
+          </span>
+        )}
+      </span>
+
+      <span
+        aria-hidden
+        className={cn(
+          "mt-0.5 flex h-[26px] w-[44px] shrink-0 items-center rounded-full border px-[3px] transition-colors duration-200 ease-out",
+          an ? "border-tinte bg-tinte" : "border-linie-stark bg-flaeche-hoch",
+        )}
+      >
+        <span
+          className={cn(
+            "size-[18px] rounded-full bg-grund shadow-karte transition-transform duration-200 ease-out-stark",
+            an ? "translate-x-[18px]" : "translate-x-0",
+          )}
+        />
+      </span>
+    </button>
   );
 }
 

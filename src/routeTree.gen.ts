@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuswertungRouteImport } from './routes/auswertung'
 import { Route as EinstellungenRouteImport } from './routes/einstellungen'
 import { Route as KarteRouteImport } from './routes/karte'
+import { Route as LeadsRouteImport } from './routes/leads'
+import { Route as MietverwaltungRouteImport } from './routes/mietverwaltung'
 import { Route as ObjekteRouteImport } from './routes/objekte'
 
 const IndexRoute = IndexRouteImport.update({
@@ -35,6 +37,16 @@ const KarteRoute = KarteRouteImport.update({
   path: '/karte',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LeadsRoute = LeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MietverwaltungRoute = MietverwaltungRouteImport.update({
+  id: '/mietverwaltung',
+  path: '/mietverwaltung',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ObjekteRoute = ObjekteRouteImport.update({
   id: '/objekte',
   path: '/objekte',
@@ -46,6 +58,8 @@ export interface FileRoutesByFullPath {
   '/auswertung': typeof AuswertungRoute
   '/einstellungen': typeof EinstellungenRoute
   '/karte': typeof KarteRoute
+  '/leads': typeof LeadsRoute
+  '/mietverwaltung': typeof MietverwaltungRoute
   '/objekte': typeof ObjekteRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +67,8 @@ export interface FileRoutesByTo {
   '/auswertung': typeof AuswertungRoute
   '/einstellungen': typeof EinstellungenRoute
   '/karte': typeof KarteRoute
+  '/leads': typeof LeadsRoute
+  '/mietverwaltung': typeof MietverwaltungRoute
   '/objekte': typeof ObjekteRoute
 }
 export interface FileRoutesById {
@@ -61,15 +77,38 @@ export interface FileRoutesById {
   '/auswertung': typeof AuswertungRoute
   '/einstellungen': typeof EinstellungenRoute
   '/karte': typeof KarteRoute
+  '/leads': typeof LeadsRoute
+  '/mietverwaltung': typeof MietverwaltungRoute
   '/objekte': typeof ObjekteRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auswertung' | '/einstellungen' | '/karte' | '/objekte'
+  fullPaths:
+    | '/'
+    | '/auswertung'
+    | '/einstellungen'
+    | '/karte'
+    | '/leads'
+    | '/mietverwaltung'
+    | '/objekte'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auswertung' | '/einstellungen' | '/karte' | '/objekte'
+  to:
+    | '/'
+    | '/auswertung'
+    | '/einstellungen'
+    | '/karte'
+    | '/leads'
+    | '/mietverwaltung'
+    | '/objekte'
   id:
-    '__root__' | '/' | '/auswertung' | '/einstellungen' | '/karte' | '/objekte'
+    | '__root__'
+    | '/'
+    | '/auswertung'
+    | '/einstellungen'
+    | '/karte'
+    | '/leads'
+    | '/mietverwaltung'
+    | '/objekte'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,6 +116,8 @@ export interface RootRouteChildren {
   AuswertungRoute: typeof AuswertungRoute
   EinstellungenRoute: typeof EinstellungenRoute
   KarteRoute: typeof KarteRoute
+  LeadsRoute: typeof LeadsRoute
+  MietverwaltungRoute: typeof MietverwaltungRoute
   ObjekteRoute: typeof ObjekteRoute
 }
 
@@ -110,6 +151,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KarteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/leads': {
+      id: '/leads'
+      path: '/leads'
+      fullPath: '/leads'
+      preLoaderRoute: typeof LeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mietverwaltung': {
+      id: '/mietverwaltung'
+      path: '/mietverwaltung'
+      fullPath: '/mietverwaltung'
+      preLoaderRoute: typeof MietverwaltungRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/objekte': {
       id: '/objekte'
       path: '/objekte'
@@ -125,6 +180,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuswertungRoute: AuswertungRoute,
   EinstellungenRoute: EinstellungenRoute,
   KarteRoute: KarteRoute,
+  LeadsRoute: LeadsRoute,
+  MietverwaltungRoute: MietverwaltungRoute,
   ObjekteRoute: ObjekteRoute,
 }
 export const routeTree = rootRouteImport

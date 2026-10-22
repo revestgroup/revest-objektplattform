@@ -22,7 +22,6 @@ import {
   STUFEN,
   STUFEN_REIHENFOLGE,
   ZUSTAENDE,
-  berechneKennzahlen,
   f,
   umrissAusMitte,
   type Ankaufsstufe,
@@ -296,19 +295,6 @@ export function ObjektFormular({
     };
   }, [v, bilder, bundesland, bestehend]);
 
-  const kennzahlen = useMemo(
-    () =>
-      berechneKennzahlen({
-        ...entwurf,
-        id: "vorschau",
-        dokumente: [],
-        einheiten: bestehend?.einheiten ?? [],
-        verlauf: [],
-        angelegtAm: new Date().toISOString(),
-      }),
-    [entwurf, bestehend],
-  );
-
   function absenden(e: React.FormEvent) {
     e.preventDefault();
     setGeprueft(true);
@@ -501,9 +487,13 @@ export function ObjektFormular({
           )}
         </Bereich>
 
+        {/* Drei Zahlen, keine Rechnung. Faktor, Rendite und Gesamtinvestition
+            stehen im Objekt unter „Übersicht" und „Verkaufsplanung" — beim
+            Anlegen kennt man den Kaufpreis und die Ist-Miete, alles andere
+            wäre geraten und würde später als Wahrheit gelesen. */}
         <Bereich
           titel="Preis und Miete"
-          hinweis="Diese drei Zahlen tragen die Kennzahlen unten. Sie rechnen beim Tippen mit."
+          hinweis="Was gefordert wird, was wir höchstens zahlen, was heute an Miete reinkommt."
         >
           <Zahlfeld
             id="kaufpreis"
@@ -529,7 +519,17 @@ export function ObjektFormular({
             setWert={(x) => setze("jahresNettokaltmiete", x)}
             einheit="€"
             platzhalter="68400"
-            breit
+            hinweis="Ist-Stand aus dem Exposé. Wunschmieten und Verkaufspreise kommen später in die Verkaufsplanung."
+          />
+          <Zahlfeld
+            id="maklerprovision"
+            label="Maklerprovision"
+            wert={v.maklerprovision}
+            setWert={(x) => setze("maklerprovision", x)}
+            einheit="%"
+            schritt="0.01"
+            platzhalter="3.57"
+            hinweis="0 bei Direktakquise."
           />
         </Bereich>
 
@@ -650,53 +650,45 @@ export function ObjektFormular({
           />
         </Klappbereich>
 
-        <Klappbereich
-          titel="Weitere Kosten und Potenzial"
-          hinweis="Provision, Potenzialmiete, laufende Kosten"
-          gefuellt={zaehle(
-            v.maklerprovision,
-            v.potenzialMiete,
-            v.nichtUmlagefaehig,
-            v.instandhaltungsruecklage,
-          )}
-        >
-          <Zahlfeld
-            id="maklerprovision"
-            label="Maklerprovision"
-            wert={v.maklerprovision}
-            setWert={(x) => setze("maklerprovision", x)}
-            einheit="%"
-            schritt="0.01"
-            platzhalter="3.57"
-            hinweis="0 bei Direktakquise."
-          />
-          <Zahlfeld
-            id="potenzialMiete"
-            label="Potenzialmiete"
-            wert={v.potenzialMiete}
-            setWert={(x) => setze("potenzialMiete", x)}
-            einheit="€"
-            platzhalter="101000"
-            hinweis="Nach Sanierung und Neuvermietung."
-          />
-          <Zahlfeld
-            id="nichtUmlagefaehig"
-            label="Nicht umlagefähige Kosten"
-            wert={v.nichtUmlagefaehig}
-            setWert={(x) => setze("nichtUmlagefaehig", x)}
-            einheit="€"
-            platzhalter="7200"
-            hinweis="Verwaltung, Instandhaltung, Mietausfallwagnis."
-          />
-          <Zahlfeld
-            id="instandhaltungsruecklage"
-            label="Instandhaltungsrücklage"
-            wert={v.instandhaltungsruecklage}
-            setWert={(x) => setze("instandhaltungsruecklage", x)}
-            einheit="€"
-            platzhalter="0"
-          />
-        </Klappbereich>
+        {/*
+          Nur beim Bearbeiten. Potenzialmiete und laufende Kosten stehen in
+          keinem Exposé — sie entstehen, wenn das Objekt schon geprüft wird.
+          Beim Anlegen wären es vier Felder, die niemand füllen kann.
+        */}
+        {bestehend && (
+          <Klappbereich
+            titel="Laufende Kosten und Potenzial"
+            hinweis="Potenzialmiete, nicht umlagefähige Kosten, Rücklage"
+            gefuellt={zaehle(v.potenzialMiete, v.nichtUmlagefaehig, v.instandhaltungsruecklage)}
+          >
+            <Zahlfeld
+              id="potenzialMiete"
+              label="Potenzialmiete"
+              wert={v.potenzialMiete}
+              setWert={(x) => setze("potenzialMiete", x)}
+              einheit="€"
+              platzhalter="101000"
+              hinweis="Nach Sanierung und Neuvermietung."
+            />
+            <Zahlfeld
+              id="nichtUmlagefaehig"
+              label="Nicht umlagefähige Kosten"
+              wert={v.nichtUmlagefaehig}
+              setWert={(x) => setze("nichtUmlagefaehig", x)}
+              einheit="€"
+              platzhalter="7200"
+              hinweis="Verwaltung, Instandhaltung, Mietausfallwagnis."
+            />
+            <Zahlfeld
+              id="instandhaltungsruecklage"
+              label="Instandhaltungsrücklage"
+              wert={v.instandhaltungsruecklage}
+              setWert={(x) => setze("instandhaltungsruecklage", x)}
+              einheit="€"
+              platzhalter="0"
+            />
+          </Klappbereich>
+        )}
 
         <Klappbereich
           titel="Unterlagen"
@@ -709,8 +701,6 @@ export function ObjektFormular({
       </div>
 
       <Fussleiste
-        kennzahlen={kennzahlen}
-        bundesland={bundesland}
         gueltig={gueltig}
         geprueft={geprueft}
         anzahlFehler={Object.keys(fehler).length}
@@ -722,50 +712,30 @@ export function ObjektFormular({
 }
 
 /**
- * Mitlaufende Kennzahlen plus Aktionen. Bleibt am unteren Rand stehen, weil
- * der Kaufpreis im Gespräch wandert und der Faktor sofort sichtbar sein muss.
+ * Nur Aktionen.
+ *
+ * Hier stand eine mitlaufende Kennzahlenleiste mit Faktor, Rendite und
+ * Gesamtinvestition. Sie ist weg: beim Anlegen ist noch nichts geprüft, und
+ * eine Rendite neben leeren Feldern lädt dazu ein, die erste Zahl zu glauben.
+ * Gerechnet wird im Objekt — unter „Übersicht" mit dem Ist-Stand, unter
+ * „Verkaufsplanung" mit den Wunschwerten.
  */
 function Fussleiste({
-  kennzahlen,
-  bundesland,
   gueltig,
   geprueft,
   anzahlFehler,
   bearbeiten,
   onAbbrechen,
 }: {
-  kennzahlen: ReturnType<typeof berechneKennzahlen>;
-  bundesland: string;
   gueltig: boolean;
   geprueft: boolean;
   anzahlFehler: number;
   bearbeiten: boolean;
   onAbbrechen: () => void;
 }) {
-  const k = kennzahlen;
-
   return (
-    <div className="sticky bottom-0 border-t border-linie-stark bg-flaeche/97 backdrop-blur-sm">
-      <div className="mx-auto w-full max-w-3xl">
-      {/*
-        Vier Zahlen, nicht acht. Grunderwerbsteuer, Notar und Provision stehen
-        im Detail unter „Kosten" — hier zählt nur, ob sich das Objekt rechnet.
-      */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-b border-linie px-5 py-4 sm:grid-cols-4 md:px-7">
-        <Zahl titel="Faktor" wert={f.faktor(k.faktor)} stark />
-        <Zahl titel="Bruttorendite" wert={f.prozent(k.bruttoMietrendite)} stark />
-        {/* Auf dem Telefon frisst die Leiste sonst ein Viertel des Schirms —
-            Faktor und Rendite genügen beim Tippen, der Rest steht im Detail. */}
-        <Zahl titel="Kaufpreis / m²" wert={f.eur(k.kaufpreisJeQm)} abSm />
-        <Zahl
-          titel="Gesamtinvestition"
-          wert={f.eurKurz(k.gesamtinvestition)}
-          unter={`inkl. ${f.prozent(k.grestSatz)} GrESt ${bundesland}`}
-          abSm
-        />
-      </div>
-
-      <div className="flex flex-wrap items-center justify-end gap-3 px-5 py-4 md:px-7">
+    <div className="sticky bottom-0 border-t border-linie bg-flaeche/97 backdrop-blur-sm">
+      <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-end gap-3 px-6 py-4 md:px-10">
         {geprueft && !gueltig && (
           <span className="mr-auto flex items-center gap-2 text-[0.72rem] text-tinte">
             <AlertCircle size={14} strokeWidth={2} />
@@ -775,7 +745,7 @@ function Fussleiste({
         <button
           type="button"
           onClick={onAbbrechen}
-          className="druckbar rounded-full border border-linie px-5 py-3 text-[0.68rem] font-medium tracking-[0.16em] uppercase text-grau-stark"
+          className="druckbar rounded-full px-4 py-3 text-[0.68rem] font-medium tracking-[0.16em] uppercase text-grau hover:text-tinte"
         >
           Abbrechen
         </button>
@@ -786,37 +756,6 @@ function Fussleiste({
           {bearbeiten ? "Änderungen speichern" : "Objekt anlegen"}
         </button>
       </div>
-      </div>
-    </div>
-  );
-}
-
-function Zahl({
-  titel,
-  wert,
-  unter,
-  stark,
-  abSm,
-}: {
-  titel: string;
-  wert: string;
-  unter?: string;
-  stark?: boolean;
-  /** Erst ab Tablet zeigen. */
-  abSm?: boolean;
-}) {
-  return (
-    <div className={cn("min-w-0", abSm && "hidden sm:block")}>
-      <div className="mini-label truncate !text-[0.56rem]">{titel}</div>
-      <div
-        className={cn(
-          "zahl mt-1 truncate font-semibold",
-          stark ? "text-base text-tinte" : "text-[0.82rem] text-grau-stark",
-        )}
-      >
-        {wert}
-      </div>
-      {unter && <div className="zahl mt-0.5 text-[0.6rem] text-grau">{unter}</div>}
     </div>
   );
 }

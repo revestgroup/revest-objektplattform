@@ -1,5 +1,15 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { BarChart3, Building2, LogOut, Map, Settings, X } from "lucide-react";
+import {
+  BarChart3,
+  Building2,
+  ChevronLeft,
+  KeyRound,
+  LogOut,
+  Map,
+  Settings,
+  Users,
+  X,
+} from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { useAuth } from "../lib/auth";
@@ -7,11 +17,14 @@ import { useObjekte } from "../lib/objekteStore";
 import { STUFEN } from "../lib/objekte";
 import { cn } from "../lib/utils";
 
+/** `kurz` ist die Beschriftung in der Unterleiste — dort zählt jeder Buchstabe. */
 const NAVIGATION = [
-  { zu: "/karte", titel: "Karte", icon: Map },
-  { zu: "/objekte", titel: "Objekte", icon: Building2 },
-  { zu: "/auswertung", titel: "Auswertung", icon: BarChart3 },
-  { zu: "/einstellungen", titel: "Einstellungen", icon: Settings },
+  { zu: "/karte", titel: "Karte", kurz: "Karte", icon: Map },
+  { zu: "/objekte", titel: "Objekte", kurz: "Objekte", icon: Building2 },
+  { zu: "/mietverwaltung", titel: "Mietverwaltung", kurz: "Miete", icon: KeyRound },
+  { zu: "/leads", titel: "Leads", kurz: "Leads", icon: Users },
+  { zu: "/auswertung", titel: "Auswertung", kurz: "Zahlen", icon: BarChart3 },
+  { zu: "/einstellungen", titel: "Einstellungen", kurz: "Konto", icon: Settings },
 ] as const;
 
 export function AppLayout({ children }: { children?: ReactNode }) {
@@ -196,20 +209,20 @@ function Kopfzeile() {
 function Unterleiste() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 flex h-14 border-t border-linie bg-flaeche pb-[env(safe-area-inset-bottom)] md:hidden">
-      {NAVIGATION.filter(({ zu }) => zu !== "/einstellungen").map(({ zu, titel, icon: Icon }) => (
+      {NAVIGATION.filter(({ zu }) => zu !== "/einstellungen").map(({ zu, kurz, icon: Icon }) => (
         <Link
           key={zu}
           to={zu}
-          className="group flex flex-1 flex-col items-center justify-center gap-0.5 text-[0.6rem] tracking-wider uppercase text-grau data-[status=active]:text-tinte"
+          className="group flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 text-[0.55rem] tracking-wide uppercase text-grau data-[status=active]:text-tinte"
           activeProps={{ "data-status": "active" }}
           activeOptions={{ exact: false }}
         >
           {/* Die aktive Seite bekommt eine Pille statt nur eine Farbe —
               auf dem Telefon ist das aus der Entfernung schneller lesbar. */}
-          <span className="druckbar flex h-7 w-12 items-center justify-center rounded-full group-data-[status=active]:bg-flaeche-aktiv">
-            <Icon size={17} strokeWidth={1.75} />
+          <span className="druckbar flex h-7 w-11 items-center justify-center rounded-full group-data-[status=active]:bg-flaeche-aktiv">
+            <Icon size={16} strokeWidth={1.75} />
           </span>
-          {titel}
+          {kurz}
         </Link>
       ))}
     </nav>
@@ -256,17 +269,11 @@ export function Seitenkopf({
 export function Schublade({
   offen,
   schliessen,
-  breit,
-  voll,
   titel,
   children,
 }: {
   offen: boolean;
   schliessen: () => void;
-  /** Formulare brauchen mehr Platz als eine Objektkarte. */
-  breit?: boolean;
-  /** Vollflächig über der Karte — für die Anlegemaske. */
-  voll?: boolean;
   titel: string;
   children: ReactNode;
 }) {
@@ -310,30 +317,39 @@ export function Schublade({
         role="dialog"
         aria-label={titel}
         className={cn(
-          "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-linie bg-grund shadow-schwebe",
-          // Auf dem Telefon füllt die Schublade die Breite — eine Rundung an
-          // der Kante hätte dort nichts, woran sie sich absetzen könnte.
-          !voll && "sm:rounded-l-2xl",
+          "fixed inset-0 z-50 flex flex-col bg-grund shadow-schwebe",
           // Transform statt Breite: läuft auf der GPU und bleibt unterbrechbar.
+          // Vollflächig statt schmale Spalte — bearbeitet wird mit Platz.
           "transition-transform duration-300 ease-drawer",
-          // Vollflächig deckt die Maske die Karte ganz ab — Timo hat beim
-          // Ausfüllen die volle Übersicht statt einer schmalen Spalte.
-          voll ? "sm:w-full" : breit ? "sm:w-[min(760px,92vw)]" : "sm:w-[min(480px,92vw)]",
           offen ? "translate-x-0" : "translate-x-full",
         )}
       >
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-linie px-5">
-          <div className="mini-label truncate">{titel}</div>
-          <button
-            type="button"
-            onClick={schliessen}
-            aria-label="Schließen"
-            className="druckbar flex size-8 items-center justify-center rounded-full text-grau hover:text-tinte"
-          >
-            <X size={16} strokeWidth={1.75} />
-          </button>
+        <div className="shrink-0 border-b border-linie bg-flaeche">
+          <div className="mx-auto flex h-14 w-full max-w-[1240px] items-center justify-between gap-3 px-4 pt-[env(safe-area-inset-top)] md:px-7">
+            <button
+              type="button"
+              onClick={schliessen}
+              className="druckbar -ml-1.5 flex shrink-0 items-center gap-1.5 rounded-full py-1.5 pr-3 pl-2 text-[0.72rem] text-grau-stark"
+            >
+              <ChevronLeft size={16} strokeWidth={2} />
+              Zurück
+            </button>
+            <div className="mini-label min-w-0 flex-1 truncate text-right md:text-center">
+              {titel}
+            </div>
+            <button
+              type="button"
+              onClick={schliessen}
+              aria-label="Schließen"
+              className="druckbar hidden size-8 shrink-0 items-center justify-center rounded-full text-grau hover:text-tinte md:flex"
+            >
+              <X size={16} strokeWidth={1.75} />
+            </button>
+          </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="mx-auto w-full max-w-[1240px]">{children}</div>
+        </div>
       </div>
     </>
   );

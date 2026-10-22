@@ -263,7 +263,6 @@ function ObjekteSeite() {
       <Schublade
         offen={modus.art !== "zu"}
         schliessen={() => setModus({ art: "zu" })}
-        breit={modus.art === "anlegen" || modus.art === "bearbeiten"}
         titel={
           modus.art === "anlegen"
             ? "Objekt anlegen"
