@@ -1,0 +1,3 @@
+# Interne Plattform — kein Crawling erwünscht.
+User-agent: *
+Disallow: /
