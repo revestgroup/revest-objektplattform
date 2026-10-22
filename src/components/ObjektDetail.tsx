@@ -1121,7 +1121,14 @@ export function ObjektSchwebekarte({
   ].filter((e) => e !== null);
 
   return (
-    <div className="relative w-[272px] overflow-hidden rounded-2xl border border-linie bg-flaeche/97 shadow-schwebe backdrop-blur-sm">
+    <div
+      className={cn(
+        // Angeheftet steht die Adresse ganz da: zum Ueberfahren reichen 272px,
+        // im festgehaltenen Blatt bricht die Strasse darin ab.
+        "relative overflow-hidden rounded-2xl border border-linie bg-flaeche/97 shadow-schwebe backdrop-blur-sm",
+        umfang === "voll" ? "w-[328px]" : "w-[272px]",
+      )}
+    >
       {/* Das Foto nur, wenn es eines gibt — der Streifen-Platzhalter hat auf
           dem Luftbild nichts verloren. */}
       {bild && (
