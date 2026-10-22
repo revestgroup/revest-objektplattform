@@ -4,10 +4,11 @@ import {
   Building2,
   ChevronLeft,
   KeyRound,
+  ListChecks,
   LogOut,
   Map,
+  Search,
   Settings,
-  Users,
   X,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
@@ -17,14 +18,23 @@ import { useObjekte } from "../lib/objekteStore";
 import { STUFEN } from "../lib/objekte";
 import { cn } from "../lib/utils";
 
-/** `kurz` ist die Beschriftung in der Unterleiste — dort zählt jeder Buchstabe. */
+/**
+ * Die Reihenfolge ist der Arbeitsweg: auf der Karte sehen, im Ankauf prüfen,
+ * als Projekt bauen. Aufgaben liegen daneben, weil sie zu jeder Stufe gehören.
+ *
+ * `kurz` ist die Beschriftung in der Unterleiste — dort zählt jeder Buchstabe.
+ * `unten` entscheidet, ob der Punkt auf dem Telefon in die Leiste kommt: fünf
+ * sind das Maximum, bei dem ein Ziel auf 375px noch breiter als ein Daumen
+ * ist. Alles Lesende wandert ins Kontomenü.
+ */
 const NAVIGATION = [
-  { zu: "/karte", titel: "Karte", kurz: "Karte", icon: Map },
-  { zu: "/objekte", titel: "Objekte", kurz: "Objekte", icon: Building2 },
-  { zu: "/mietverwaltung", titel: "Mietverwaltung", kurz: "Miete", icon: KeyRound },
-  { zu: "/leads", titel: "Leads", kurz: "Leads", icon: Users },
-  { zu: "/auswertung", titel: "Auswertung", kurz: "Zahlen", icon: BarChart3 },
-  { zu: "/einstellungen", titel: "Einstellungen", kurz: "Konto", icon: Settings },
+  { zu: "/karte", titel: "Karte", kurz: "Karte", icon: Map, unten: true },
+  { zu: "/ankauf", titel: "Ankauf", kurz: "Ankauf", icon: Search, unten: true },
+  { zu: "/projekte", titel: "Projekte", kurz: "Projekte", icon: Building2, unten: true },
+  { zu: "/aufgaben", titel: "Aufgaben", kurz: "Aufgaben", icon: ListChecks, unten: true },
+  { zu: "/mietverwaltung", titel: "Mietverwaltung", kurz: "Miete", icon: KeyRound, unten: true },
+  { zu: "/auswertung", titel: "Auswertung", kurz: "Zahlen", icon: BarChart3, unten: false },
+  { zu: "/einstellungen", titel: "Einstellungen", kurz: "Konto", icon: Settings, unten: false },
 ] as const;
 
 export function AppLayout({ children }: { children?: ReactNode }) {
@@ -139,8 +149,8 @@ function Bestandsblock() {
 
 /**
  * Mobiler Kopf: Wortmarke mittig, rechts das Konto mit Abmelden-Menü.
- * Einstellungen leben hier statt in der Unterleiste — die bleibt den
- * drei Arbeitsflächen vorbehalten.
+ * Auswertung und Einstellungen leben hier statt in der Unterleiste — die
+ * bleibt den fünf Arbeitsflächen vorbehalten.
  */
 function Kopfzeile() {
   const { nutzer, abmelden } = useAuth();
@@ -182,9 +192,17 @@ function Kopfzeile() {
                 </div>
               )}
               <Link
-                to="/einstellungen"
+                to="/auswertung"
                 onClick={() => setOffen(false)}
                 className="druckbar mt-1 flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[0.8rem] text-tinte"
+              >
+                <BarChart3 size={14} strokeWidth={1.75} />
+                Auswertung
+              </Link>
+              <Link
+                to="/einstellungen"
+                onClick={() => setOffen(false)}
+                className="druckbar flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[0.8rem] text-tinte"
               >
                 <Settings size={14} strokeWidth={1.75} />
                 Einstellungen
@@ -209,7 +227,7 @@ function Kopfzeile() {
 function Unterleiste() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 flex h-14 border-t border-linie bg-flaeche pb-[env(safe-area-inset-bottom)] md:hidden">
-      {NAVIGATION.filter(({ zu }) => zu !== "/einstellungen").map(({ zu, kurz, icon: Icon }) => (
+      {NAVIGATION.filter(({ unten }) => unten).map(({ zu, kurz, icon: Icon }) => (
         <Link
           key={zu}
           to={zu}

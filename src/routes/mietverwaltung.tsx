@@ -7,6 +7,11 @@
  *
  * Zwei Arten werden getrennt behandelt, weil sie unterschiedlich arbeiten:
  * eine Wohnung ist vermietet oder nicht, eine WG ist es zimmerweise.
+ *
+ * Zwei Reiter: die Garantien selbst und die Mieter-Leads. Letztere lagen
+ * früher als eigener Hauptreiter in der Navigation, was sie zu Objekt-Leads
+ * erklärte, die sie nie waren. Sie gehören hierher, weil ein Leerstand und ein
+ * Mietinteressent dieselbe Sache von zwei Seiten sind.
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowDownRight, ArrowUpRight, DoorOpen, Plus, Trash2, UserPlus } from "lucide-react";
@@ -14,6 +19,9 @@ import { useMemo, useState } from "react";
 
 import { Schublade, Seitenkopf } from "../components/AppLayout";
 import { Auswahlfeld, Bereich, Segmente, Textfeld, Zahlfeld } from "../components/Felder";
+import { Mieterleads } from "../components/Mieterleads";
+import { useLeads } from "../lib/leadStore";
+import { LEADSTATUS } from "../lib/leads";
 import { f } from "../lib/objekte";
 import { useObjekte } from "../lib/objekteStore";
 import {
@@ -29,15 +37,115 @@ import { cn } from "../lib/utils";
 
 export const Route = createFileRoute("/mietverwaltung")({ component: MietverwaltungSeite });
 
-type Modus = { art: "zu" } | { art: "detail"; id: string } | { art: "anlegen" };
+type Reiter = "garantien" | "leads";
+
+const REITER: { schluessel: Reiter; titel: string }[] = [
+  { schluessel: "garantien", titel: "Garantien" },
+  { schluessel: "leads", titel: "Mieter-Leads" },
+];
 
 function MietverwaltungSeite() {
+  const { garantien } = useVermietung();
+  const { leads } = useLeads();
+  const [reiter, setReiter] = useState<Reiter>("garantien");
+  // Das Anlegen liegt über den Reitern, weil der Knopf im Seitenkopf sitzt.
+  // Beim Wechseln geht es zu — ein halb getippter Lead im Garantieformular
+  // wäre schlimmer als ein Formular, das man neu öffnen muss.
+  const [anlegen, setAnlegen] = useState(false);
+
+  function reiterWaehlen(r: Reiter) {
+    setReiter(r);
+    setAnlegen(false);
+  }
+
+  const offeneLeads = leads.filter((l) => LEADSTATUS[l.status].offen).length;
+  const leer = garantien.filter((g) => {
+    const k = berechneGarantie(g);
+    return k.status !== "beendet" && k.belegt < k.plaetze;
+  }).length;
+
+  return (
+    <>
+      <Seitenkopf
+        label="Garantie und Vermietung"
+        titel="Mietverwaltung"
+        beschreibung={
+          reiter === "garantien"
+            ? "Jede verkaufte Einheit läuft mit Mietgarantie weiter. Hier steht, was garantiert ist, was tatsächlich hereinkommt — und was die Differenz kostet."
+            : "Anfragen von Mietinteressenten. Jeder belegte Platz senkt die Garantie, die Revest aus eigener Tasche zahlt."
+        }
+        aktion={
+          <button
+            type="button"
+            onClick={() => setAnlegen(true)}
+            className="druckbar flex items-center gap-2 rounded-full bg-tinte px-5 py-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-grund shadow-karte"
+          >
+            <Plus size={14} strokeWidth={2.25} />
+            {reiter === "garantien" ? "Garantie anlegen" : "Lead anlegen"}
+          </button>
+        }
+      />
+
+      {/* ----- Reiter ----- */}
+      <div className="scroll-reihe flex gap-1 overflow-x-auto border-b border-linie px-6 md:px-10">
+        {REITER.map((r) => {
+          const an = reiter === r.schluessel;
+          // Die Zahl am Reiter ist der Grund hinzuzuschauen: freie Plätze
+          // kosten Geld, offene Leads können es zurückholen.
+          const anzahl = r.schluessel === "garantien" ? leer : offeneLeads;
+          return (
+            <button
+              key={r.schluessel}
+              type="button"
+              onClick={() => reiterWaehlen(r.schluessel)}
+              aria-current={an ? "page" : undefined}
+              className={cn(
+                "druckbar -mb-px flex shrink-0 items-center gap-2 border-b-2 px-3.5 py-3.5 text-[0.76rem] font-medium whitespace-nowrap",
+                an ? "border-tinte text-tinte" : "border-transparent text-grau hover:text-grau-stark",
+              )}
+            >
+              {r.titel}
+              {anzahl > 0 && (
+                <span
+                  className={cn(
+                    "zahl rounded-full px-1.5 py-0.5 text-[0.6rem] font-semibold",
+                    an ? "bg-tinte text-grund" : "bg-flaeche-aktiv text-grau-stark",
+                  )}
+                >
+                  {anzahl}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {reiter === "garantien" ? (
+        <Garantien anlegenOffen={anlegen} anlegenSchliessen={() => setAnlegen(false)} />
+      ) : (
+        <Mieterleads anlegenOffen={anlegen} anlegenSchliessen={() => setAnlegen(false)} />
+      )}
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Garantien                                                            */
+/* ------------------------------------------------------------------ */
+
+function Garantien({
+  anlegenOffen,
+  anlegenSchliessen,
+}: {
+  anlegenOffen: boolean;
+  anlegenSchliessen: () => void;
+}) {
   const { garantien, bereit } = useVermietung();
   const [artFilter, setArtFilter] = useState<"" | Garantieart>("");
   const [statusFilter, setStatusFilter] = useState<"" | Garantiestatus>("");
-  const [modus, setModus] = useState<Modus>({ art: "zu" });
+  const [detailId, setDetailId] = useState<string | null>(null);
 
-  const gewaehlt = modus.art === "detail" ? garantien.find((g) => g.id === modus.id) ?? null : null;
+  const gewaehlt = detailId ? (garantien.find((g) => g.id === detailId) ?? null) : null;
 
   const liste = useMemo(() => {
     const mitZahlen = garantien.map((g) => ({ g, k: berechneGarantie(g) }));
@@ -57,22 +165,6 @@ function MietverwaltungSeite() {
 
   return (
     <>
-      <Seitenkopf
-        label="Garantie und Vermietung"
-        titel="Mietverwaltung"
-        beschreibung="Jede verkaufte Einheit läuft mit Mietgarantie weiter. Hier steht, was garantiert ist, was tatsächlich hereinkommt — und was die Differenz kostet."
-        aktion={
-          <button
-            type="button"
-            onClick={() => setModus({ art: "anlegen" })}
-            className="druckbar flex items-center gap-2 rounded-full bg-tinte px-5 py-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-grund shadow-karte"
-          >
-            <Plus size={14} strokeWidth={2.25} />
-            Garantie anlegen
-          </button>
-        }
-      />
-
       <Bilanz garantien={garantien} />
 
       {/* ----- Filter ----- */}
@@ -139,7 +231,7 @@ function MietverwaltungSeite() {
                 key={g.id}
                 garantie={g}
                 verzoegerung={Math.min(i, 8) * 28}
-                beiKlick={() => setModus({ art: "detail", id: g.id })}
+                beiKlick={() => setDetailId(g.id)}
               />
             ))}
           </ul>
@@ -151,18 +243,23 @@ function MietverwaltungSeite() {
       )}
 
       <Schublade
-        offen={modus.art !== "zu"}
-        schliessen={() => setModus({ art: "zu" })}
-        titel={modus.art === "anlegen" ? "Mietgarantie anlegen" : (gewaehlt?.adresse ?? "Garantie")}
+        offen={anlegenOffen || detailId !== null}
+        schliessen={() => {
+          anlegenSchliessen();
+          setDetailId(null);
+        }}
+        titel={anlegenOffen ? "Mietgarantie anlegen" : (gewaehlt?.adresse ?? "Garantie")}
       >
-        {modus.art === "anlegen" && (
+        {anlegenOffen ? (
           <GarantieFormular
-            onFertig={(id) => setModus({ art: "detail", id })}
-            onAbbrechen={() => setModus({ art: "zu" })}
+            onFertig={(id) => {
+              anlegenSchliessen();
+              setDetailId(id);
+            }}
+            onAbbrechen={anlegenSchliessen}
           />
-        )}
-        {modus.art === "detail" && gewaehlt && (
-          <GarantieDetail garantie={gewaehlt} onGeloescht={() => setModus({ art: "zu" })} />
+        ) : (
+          gewaehlt && <GarantieDetail garantie={gewaehlt} onGeloescht={() => setDetailId(null)} />
         )}
       </Schublade>
     </>
@@ -581,7 +678,7 @@ function GarantieDetail({
             loeschen(g.id);
             onGeloescht();
           }}
-          className="druckbar flex items-center gap-2 border border-linie px-4 py-2 text-[0.64rem] font-medium tracking-[0.14em] uppercase text-grau hover:border-[#E3BDB9] hover:text-[#8A2822]"
+          className="druckbar flex items-center gap-2 rounded-full border border-linie px-4 py-2 text-[0.64rem] font-medium tracking-[0.14em] uppercase text-grau hover:border-[#E3BDB9] hover:text-[#8A2822]"
         >
           <Trash2 size={12} strokeWidth={2} />
           Garantie löschen

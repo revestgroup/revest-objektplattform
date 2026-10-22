@@ -16,6 +16,7 @@ import { AuthProvider, useAuth } from "../lib/auth";
 import { EinstellungenProvider } from "../lib/einstellungenStore";
 import { LeadProvider } from "../lib/leadStore";
 import { ObjekteProvider } from "../lib/objekteStore";
+import { AufgabenProvider } from "../lib/aufgabenStore";
 import { VermietungProvider } from "../lib/vermietungStore";
 import appCss from "../styles.css?url";
 
@@ -81,11 +82,13 @@ function RootComponent() {
       <AuthProvider>
         <EinstellungenProvider>
           <ObjekteProvider>
-            <VermietungProvider>
-              <LeadProvider>
-                <Schleuse />
-              </LeadProvider>
-            </VermietungProvider>
+            <AufgabenProvider>
+              <VermietungProvider>
+                <LeadProvider>
+                  <Schleuse />
+                </LeadProvider>
+              </VermietungProvider>
+            </AufgabenProvider>
           </ObjekteProvider>
         </EinstellungenProvider>
       </AuthProvider>
@@ -130,7 +133,7 @@ function NichtGefunden() {
       </p>
       <Link
         to="/karte"
-        className="druckbar mt-8 border border-linie-stark px-6 py-2.5 text-xs font-medium tracking-[0.18em] uppercase text-tinte"
+        className="druckbar mt-8 rounded-full border border-linie-stark px-6 py-2.5 text-xs font-medium tracking-[0.18em] uppercase text-tinte"
       >
         Zur Karte
       </Link>

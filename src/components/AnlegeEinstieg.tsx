@@ -226,7 +226,9 @@ function Ablagefeld({
         ) : (
           <span className="block text-[0.74rem] font-medium text-grund/85">{titel}</span>
         )}
-        <span className="mt-0.5 block truncate text-[0.62rem] text-grund/50">
+        {/* Kein `truncate`: die Zeile darf umbrechen. „bei MFH" ist genau die
+            Hälfte, die beim Abschneiden verschwindet. */}
+        <span className="mt-0.5 block text-[0.62rem] leading-snug text-grund/50">
           {datei ? "Zum Austauschen antippen" : detail}
         </span>
       </span>

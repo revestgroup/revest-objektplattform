@@ -53,8 +53,16 @@
   color-scheme: light;
 }
 
-* {
-  border-color: var(--color-linie);
+/*
+ * Standardrahmenfarbe. Muss in `base` stehen: ungelayerte Regeln schlagen in
+ * der Kaskade alles, was in einem `@layer` liegt — also auch jedes
+ * `border-tinte` von Tailwind. Ohne den Layer wäre jede Rahmenfarbe im
+ * Projekt wirkungslos, und man sucht den Fehler in der Komponente.
+ */
+@layer base {
+  * {
+    border-color: var(--color-linie);
+  }
 }
 
 html {
@@ -88,13 +96,18 @@ body {
 /*
  * Bedienelemente bekommen ihren Radius zentral. Spart hunderte Klassen und
  * sorgt dafür, dass kein Knopf vergessen wird.
+ *
+ * 14px und nicht 10px: bei einer Feldhöhe von rund 42px wirken 10px wie eine
+ * abgefeilte Ecke, 14px wie eine gewollte Form. Das ist der Unterschied
+ * zwischen einem Formular, das streng aussieht, und einem, das freundlich
+ * aussieht — und diese Oberfläche begleitet jemanden durch den Arbeitstag.
  */
 @layer base {
   button,
   input,
   select,
   textarea {
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
   }
 }
 

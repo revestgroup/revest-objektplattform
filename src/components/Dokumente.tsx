@@ -24,11 +24,18 @@ export function Dokumentenablage({
   dokumente,
   onHochladen,
   onLoeschen,
+  nurOrdner,
 }: {
   dokumente: Dokument[];
   onHochladen: (neue: NeuesDokument[]) => void;
   /** Fehlt der Handler, ist die Ablage nur lesbar. */
   onLoeschen?: (id: string) => void;
+  /**
+   * Beschränkt die Ansicht auf einzelne Ordner. Gedacht für Reiter, die nur
+   * einen Teilvorgang zeigen — die Teilungserklärung braucht nicht zehn
+   * Ordner, von denen neun sie nichts angehen.
+   */
+  nurOrdner?: readonly string[];
 }) {
   // Ordner mit Inhalt stehen offen, leere bleiben zu — spart Scrollen.
   const [offen, setOffen] = useState<Set<string>>(
@@ -46,22 +53,26 @@ export function Dokumentenablage({
 
   return (
     <div className="divide-y divide-linie overflow-hidden rounded-2xl border border-linie bg-flaeche">
-      {DOKUMENT_ORDNER.map((ordner, i) => {
-        const inhalt = dokumente.filter((d) => d.ordner === ordner.schluessel);
-        return (
-          <Ordner
-            key={ordner.schluessel}
-            nummer={i + 1}
-            schluessel={ordner.schluessel}
-            titel={ordner.titel}
-            dokumente={inhalt}
-            offen={offen.has(ordner.schluessel)}
-            umschalten={() => umschalten(ordner.schluessel)}
-            onHochladen={onHochladen}
-            onLoeschen={onLoeschen}
-          />
-        );
-      })}
+      {/* Die Nummer kommt aus der festen Reihenfolge, nicht aus der gefilterten
+          Ansicht: Ordner 02 heißt überall 02, auch wenn er allein steht. */}
+      {DOKUMENT_ORDNER.map((ordner, i) => ({ ordner, nummer: i + 1 }))
+        .filter(({ ordner }) => !nurOrdner || nurOrdner.includes(ordner.schluessel))
+        .map(({ ordner, nummer }) => {
+          const inhalt = dokumente.filter((d) => d.ordner === ordner.schluessel);
+          return (
+            <Ordner
+              key={ordner.schluessel}
+              nummer={nummer}
+              schluessel={ordner.schluessel}
+              titel={ordner.titel}
+              dokumente={inhalt}
+              offen={offen.has(ordner.schluessel)}
+              umschalten={() => umschalten(ordner.schluessel)}
+              onHochladen={onHochladen}
+              onLoeschen={onLoeschen}
+            />
+          );
+        })}
     </div>
   );
 }

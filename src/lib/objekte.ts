@@ -405,6 +405,184 @@ export function berechneVerkaufsplan(o: Objekt, k: Kennzahlen): Verkaufsrechnung
   };
 }
 
+/* ------------------------------------------------------------------ */
+/* Ankaufsabschluss                                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Wie die Einheiten nach der Sanierung verwertet werden.
+ *
+ * Die Zahlen stehen am Objekt und nicht an der Einheit, weil die Entscheidung
+ * beim Deal fällt — und da gibt es noch keine Einheiten, nur eine Absicht.
+ * Die Teilungserklärung macht später konkrete Wohnungen daraus.
+ */
+export interface Aufteilung {
+  /** Einheiten, die als Eigentumswohnung in den Vertrieb gehen. */
+  etw: number;
+  /** Einheiten, die als WG vermietet und im Bestand gehalten werden. */
+  wg: number;
+}
+
+/**
+ * Der Weg der Teilungserklärung — vier Stationen, die jeder MFH-Ankauf
+ * durchläuft, wenn er in Einzeleigentum aufgeteilt wird.
+ */
+export type Teilungsstatus = "vorbereitung" | "beim_notar" | "beim_amt" | "eingetragen";
+
+export const TEILUNGSSTATUS: Record<
+  Teilungsstatus,
+  { titel: string; hinweis: string; farbe: string; weich: string; tief: string }
+> = {
+  vorbereitung: {
+    titel: "In Vorbereitung",
+    hinweis: "Aufteilungsplan und Abgeschlossenheitsbescheinigung werden erstellt.",
+    farbe: "#A3ABB8",
+    weich: "#EEF0F4",
+    tief: "#525C6B",
+  },
+  beim_notar: {
+    titel: "Beim Notar",
+    hinweis: "Der Entwurf liegt zur Beurkundung.",
+    farbe: "#E5A32E",
+    weich: "#FBEBD1",
+    tief: "#8A5A08",
+  },
+  beim_amt: {
+    titel: "Beim Grundbuchamt",
+    hinweis: "Eingereicht — jetzt entscheidet die Laufzeit des Amts.",
+    farbe: "#3E7BD6",
+    weich: "#E0EAFA",
+    tief: "#1F4E92",
+  },
+  eingetragen: {
+    titel: "Eingetragen",
+    hinweis: "Die Wohnungsgrundbücher sind angelegt. Ab jetzt ist jede Einheit verkäuflich.",
+    farbe: "#17935C",
+    weich: "#DBF2E6",
+    tief: "#0C5E3A",
+  },
+};
+
+export const TEILUNGSSTATUS_REIHENFOLGE: Teilungsstatus[] = [
+  "vorbereitung",
+  "beim_notar",
+  "beim_amt",
+  "eingetragen",
+];
+
+/**
+ * Die Aufteilung eines Hauses in Wohnungseigentum.
+ *
+ * Existiert nur, wenn sie beim Deal ausdrücklich angestoßen wurde. Ein Haus,
+ * das als Ganzes gehalten oder weiterverkauft wird, braucht keine — und dann
+ * ist ein leerer Reiter mit Ablage schlimmer als gar keiner.
+ */
+export interface Teilungserklaerung {
+  gestartetAm: string;
+  status: Teilungsstatus;
+  /** Wer beurkundet. Oft derselbe Notar wie beim Kaufvertrag, aber nicht immer. */
+  notar: string | null;
+  /** Geplante Zahl der Wohnungsgrundbücher. */
+  einheiten: number | null;
+  /** Wann die Eintragung erwartet wird. */
+  erwartetAm: string | null;
+  notiz: string | null;
+}
+
+/** Läuft die Teilung für dieses Objekt? Entscheidet über den Reiter im Detail. */
+export function hatTeilung(o: Objekt): boolean {
+  return Boolean(o.teilung);
+}
+
+/**
+ * Eine einzelne Wohnung oder ein ganzes Haus? Entscheidet, welche Frage beim
+ * Deal gestellt wird: bei einer Wohnung „ETW oder WG?", bei einem Haus
+ * „wie viele wovon?".
+ */
+export function istEinzelwohnung(o: Objekt): boolean {
+  return o.objektart === "etw";
+}
+
+/**
+ * Die Aufteilung als Satz. Null, wenn beim Deal nichts hinterlegt wurde —
+ * dann ist Schweigen ehrlicher als „0 ETW, 0 WG".
+ */
+export function aufteilungText(o: Objekt): string | null {
+  if (istEinzelwohnung(o)) {
+    if (!o.vertriebsweg) return null;
+    return o.vertriebsweg === "wg"
+      ? `WG-Vermietung${o.wgZimmer ? ` · ${o.wgZimmer} Zimmer` : ""}`
+      : "Eigentumswohnung";
+  }
+  const a = o.aufteilung;
+  if (!a || a.etw + a.wg === 0) return null;
+  const teile: string[] = [];
+  if (a.etw > 0) teile.push(`${a.etw} × ETW`);
+  if (a.wg > 0) teile.push(`${a.wg} × WG`);
+  return teile.join(" · ");
+}
+
+/* ------------------------------------------------------------------ */
+/* Kontakte                                                             */
+/* ------------------------------------------------------------------ */
+
+export type Kontaktrolle =
+  | "eigentuemer"
+  | "makler"
+  | "verwalter"
+  | "notar"
+  | "handwerker"
+  | "sonst";
+
+export const KONTAKTROLLEN: Record<Kontaktrolle, string> = {
+  eigentuemer: "Eigentümer",
+  makler: "Makler",
+  verwalter: "Verwalter",
+  notar: "Notar",
+  handwerker: "Handwerker",
+  sonst: "Sonstige",
+};
+
+/**
+ * Reihenfolge = wer zuerst gefragt wird. Der Eigentümer entscheidet, der
+ * Makler vermittelt, der Rest kommt später dazu.
+ */
+export const KONTAKTROLLEN_REIHENFOLGE: Kontaktrolle[] = [
+  "eigentuemer",
+  "makler",
+  "verwalter",
+  "notar",
+  "handwerker",
+  "sonst",
+];
+
+export interface Kontakt {
+  id: string;
+  rolle: Kontaktrolle;
+  name: string;
+  telefon: string | null;
+  email: string | null;
+  /**
+   * Was im Gespräch gesagt wurde. Getrennt von `Objekt.notiz`, weil die eine
+   * dem Objekt gehört und die andere dem Menschen: ein Objekt kann abgesagt
+   * sein, während der Kontakt weiterläuft — und dann ist diese Zeile das
+   * Einzige, was vom Vorgang übrig bleibt.
+   */
+  notiz: string | null;
+}
+
+/** Der Eigentümer, falls einer hinterlegt ist. Für Liste, Suche und Übersicht. */
+export function eigentuemerVon(o: Objekt): Kontakt | null {
+  return o.kontakte.find((k) => k.rolle === "eigentuemer" && k.name.trim() !== "") ?? null;
+}
+
+/** Alles, wonach man einen Kontakt suchen würde — als eine Zeile. */
+export function kontakteAlsText(o: Objekt): string {
+  return o.kontakte
+    .map((k) => [k.name, k.telefon ?? "", k.email ?? "", KONTAKTROLLEN[k.rolle]].join(" "))
+    .join(" ");
+}
+
 export interface Dokument {
   id: string;
   name: string;
@@ -464,18 +642,44 @@ export interface Objekt {
   denkmalschutz: boolean;
   erbbaurecht: boolean;
 
-  eigentuemer: string | null;
-  eigentuemerKontakt: string | null;
+  /**
+   * Alle Beteiligten an diesem Objekt — Eigentümer, Makler, Verwalter, Notar.
+   *
+   * Eine Liste statt fester Felder, weil die Besetzung je Objekt anders ist:
+   * bei einer Direktansprache gibt es keinen Makler, bei einer
+   * Erbengemeinschaft zwei Anwälte, und nach dem Ankauf kommt der Notar dazu.
+   * Feste Felder hätten für jeden dieser Fälle die falsche Zahl von Zeilen.
+   */
+  kontakte: Kontakt[];
   quelle: string | null;
 
   /**
    * Nur bei Wohnungen: Geht die Einheit als klassische ETW in den Vertrieb
-   * oder als WG-Vermietung? Entscheidung fällt nach der Prüfung — optional,
+   * oder als WG-Vermietung? Entscheidung fällt beim Deal — optional,
    * damit Bestandsdaten ohne das Feld gültig bleiben.
    */
   vertriebsweg?: "etw" | "wg" | null;
   /** Zimmerzahl bei WG-Vermietung. */
   wgZimmer?: number | null;
+  /**
+   * Bei Häusern: wie viele der Einheiten verkauft und wie viele als WG
+   * gehalten werden. Wird beim Deal festgelegt, weil ab da Geld daran hängt —
+   * eine ETW braucht einen Vertrieb, eine WG eine Mietgarantie.
+   */
+  aufteilung?: Aufteilung | null;
+
+  /** Wann der Deal zustande kam. Null, solange nicht gekauft. */
+  angekauftAm?: string | null;
+  /**
+   * Warum kein Deal zustande kam. Bleibt stehen, denn Objekte in Ulm kommen
+   * ein zweites Mal — und dann ist die alte Begründung die erste Frage.
+   */
+  absagegrund?: string | null;
+  /**
+   * Die Aufteilung in Wohnungseigentum. Null heißt: nicht angestoßen. Dann
+   * bleibt der Reiter im Objekt grau, statt eine leere Ablage anzubieten.
+   */
+  teilung?: Teilungserklaerung | null;
 
   notiz: string | null;
   bilder: string[];

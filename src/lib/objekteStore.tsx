@@ -13,7 +13,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
-import type { Dokument, Einheit, Objekt, Verkaufsplan, Verlaufseintrag } from "./objekte";
+import type {
+  Aufteilung,
+  Dokument,
+  Einheit,
+  Objekt,
+  Teilungserklaerung,
+  Verkaufsplan,
+  Verlaufseintrag,
+} from "./objekte";
+import { TEILUNGSSTATUS, f } from "./objekte";
 import { MOCK_OBJEKTE } from "./mockDaten";
 
 /**
@@ -21,7 +30,7 @@ import { MOCK_OBJEKTE } from "./mockDaten";
  * erhöht — ein alter Stand ohne die neuen Felder würde sonst beim Rechnen
  * über halbe Objekte stolpern.
  */
-const SPEICHER = "revest.objekte.v2";
+const SPEICHER = "revest.objekte.v4";
 
 /** Felder, die einen Reload nicht überleben, werden vor dem Speichern geleert. */
 function fuerSpeicher(objekte: Objekt[]) {
@@ -37,6 +46,28 @@ export type ObjektEntwurf = Omit<
   "id" | "dokumente" | "einheiten" | "verlauf" | "angelegtAm"
 >;
 
+/**
+ * Was beim Deal festgehalten wird.
+ *
+ * Alles in einem Zug, weil ein Ankauf ein Vorgang ist und kein Umschalter:
+ * Preis, Datum, Verwertung und die Frage, ob aufgeteilt wird. Wer das in vier
+ * Einzelschritte zerlegt, hat am Ende drei halb gepflegte Objekte.
+ */
+export interface Dealabschluss {
+  /** Beurkundeter Kaufpreis. Kann vom letzten Gebot abweichen. */
+  preis: number | null;
+  /** Tag der Beurkundung, als ISO-Datum. */
+  datum: string;
+  /** Nur bei Einzelwohnungen: ETW-Vertrieb oder WG-Vermietung. */
+  vertriebsweg: "etw" | "wg" | null;
+  wgZimmer: number | null;
+  /** Nur bei Häusern: wie viele Einheiten wohin. */
+  aufteilung: Aufteilung | null;
+  /** Haken gesetzt heißt: die Teilungserklärung läuft an, der Reiter wird nutzbar. */
+  teilungStarten: boolean;
+  notar: string | null;
+}
+
 interface StoreWert {
   objekte: Objekt[];
   /** Vor dem ersten Hydrieren rendert die Liste nichts — sonst blitzt der Mock-Stand auf. */
@@ -46,6 +77,12 @@ interface StoreWert {
   aendern: (id: string, teil: Partial<Objekt>, verlaufstext?: string) => void;
   loeschen: (id: string) => void;
   stufeSetzen: (id: string, stufe: Objekt["stufe"]) => void;
+  /** Der Deal. Macht aus einem Ankaufsobjekt ein Projekt. */
+  dealAbschliessen: (id: string, abschluss: Dealabschluss) => void;
+  /** Kein Deal — mit Grund, weil die Frage in zwei Jahren wiederkommt. */
+  absagen: (id: string, grund: string) => void;
+  /** Teilungserklärung nachträglich anstoßen oder ändern. */
+  teilungSetzen: (id: string, teilung: Teilungserklaerung | null) => void;
   notizAnhaengen: (id: string, text: string) => void;
   dokumenteAnhaengen: (id: string, dokumente: Omit<Dokument, "id" | "hochgeladenAm">[]) => void;
   dokumentLoeschen: (id: string, dokumentId: string) => void;
@@ -135,6 +172,90 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
                 verlauf: [...o.verlauf, eintrag("status", `Stufe auf ${stufe} gesetzt`)],
               },
         ),
+
+      // Ein Deal schreibt an fünf Stellen gleichzeitig: Stufe, Datum, Preis,
+      // Verwertung und Preisgeschichte. Deshalb liegt er hier und nicht als
+      // fünf Aufrufe in der Oberfläche — sonst gibt es Objekte, die angekauft
+      // sind, ohne dass jemand weiß, zu welchem Preis.
+      dealAbschliessen: (id, a) =>
+        mutieren(id, (o) => {
+          const preis = a.preis ?? o.kaufpreis;
+          const texte = [
+            `Deal: angekauft${preis !== null ? ` für ${f.eur(preis)}` : ""}, beurkundet am ${f.datum(a.datum)}`,
+          ];
+          if (a.teilungStarten) texte.push("Teilungserklärung angestoßen");
+
+          return {
+            ...o,
+            stufe: "angekauft",
+            angekauftAm: a.datum,
+            kaufpreis: preis,
+            // Die Frist war die Zusage an den Verkäufer. Sie ist eingelöst.
+            fristBis: null,
+            absagegrund: null,
+            vertriebsweg: a.vertriebsweg,
+            wgZimmer: a.wgZimmer,
+            aufteilung: a.aufteilung,
+            teilung: a.teilungStarten
+              ? {
+                  gestartetAm: a.datum,
+                  status: "vorbereitung",
+                  notar: a.notar,
+                  einheiten: a.aufteilung
+                    ? a.aufteilung.etw + a.aufteilung.wg || o.anzahlEinheiten
+                    : o.anzahlEinheiten,
+                  erwartetAm: null,
+                  notiz: null,
+                }
+              : null,
+            // Der beurkundete Preis gehört in die Preisgeschichte, sonst endet
+            // sie beim letzten Gebot und das Objekt sieht aus wie offen.
+            angebote:
+              preis === null
+                ? o.angebote
+                : [
+                    ...o.angebote,
+                    {
+                      id: neueId("a"),
+                      datum: a.datum,
+                      art: "notarpreis" as const,
+                      preis,
+                      quelle: a.notar,
+                      ergebnis: "angenommen" as const,
+                      notiz: null,
+                    },
+                  ],
+            verlauf: [...o.verlauf, ...texte.map((t) => eintrag("status", t))],
+          };
+        }),
+
+      absagen: (id, grund) =>
+        mutieren(id, (o) => ({
+          ...o,
+          stufe: "abgesagt",
+          fristBis: null,
+          absagegrund: grund.trim() || null,
+          verlauf: [
+            ...o.verlauf,
+            eintrag("status", grund.trim() ? `Kein Deal: ${grund.trim()}` : "Kein Deal"),
+          ],
+        })),
+
+      teilungSetzen: (id, teilung) =>
+        mutieren(id, (o) => {
+          const text = !teilung
+            ? "Teilungserklärung zurückgezogen"
+            : !o.teilung
+              ? "Teilungserklärung angestoßen"
+              : o.teilung.status !== teilung.status
+                ? `Teilungserklärung: ${TEILUNGSSTATUS[teilung.status].titel}`
+                : null;
+          return {
+            ...o,
+            teilung,
+            verlauf: text ? [...o.verlauf, eintrag("status", text)] : o.verlauf,
+          };
+        }),
 
       notizAnhaengen: (id, text) =>
         mutieren(id, (o) => ({ ...o, verlauf: [...o.verlauf, eintrag("notiz", text)] })),

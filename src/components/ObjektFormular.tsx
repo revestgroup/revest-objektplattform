@@ -78,8 +78,6 @@ interface FormularZustand {
   energiekennwert: string;
   denkmalschutz: boolean;
   erbbaurecht: boolean;
-  eigentuemer: string;
-  eigentuemerKontakt: string;
   quelle: string;
   /** Nur bei Wohnungen: klassischer ETW-Verkauf oder WG-Vermietung. */
   vertriebsweg: "etw" | "wg";
@@ -132,8 +130,6 @@ function leerZustand(): FormularZustand {
     energiekennwert: "",
     denkmalschutz: false,
     erbbaurecht: false,
-    eigentuemer: "",
-    eigentuemerKontakt: "",
     quelle: "",
     vertriebsweg: "etw",
     wgZimmer: "",
@@ -171,8 +167,6 @@ function ausObjekt(o: Objekt): FormularZustand {
     energiekennwert: t(o.energiekennwert),
     denkmalschutz: o.denkmalschutz,
     erbbaurecht: o.erbbaurecht,
-    eigentuemer: o.eigentuemer ?? "",
-    eigentuemerKontakt: o.eigentuemerKontakt ?? "",
     quelle: o.quelle ?? "",
     vertriebsweg: o.vertriebsweg ?? "etw",
     wgZimmer: t(o.wgZimmer ?? null),
@@ -278,15 +272,15 @@ export function ObjektFormular({
       energiekennwert: z(v.energiekennwert),
       denkmalschutz: v.denkmalschutz,
       erbbaurecht: v.erbbaurecht,
-      eigentuemer: s(v.eigentuemer),
-      eigentuemerKontakt: s(v.eigentuemerKontakt),
       quelle: s(v.quelle),
       vertriebsweg: v.objektart === "etw" ? v.vertriebsweg : null,
       wgZimmer:
         v.objektart === "etw" && v.vertriebsweg === "wg" ? z(v.wgZimmer) : null,
       notiz: s(v.notiz),
       bilder,
-      // Angebotshistorie und Gewerkeliste werden im Detail gepflegt, nicht hier.
+      // Kontakte, Angebotshistorie und Gewerkeliste werden im Detail gepflegt,
+      // nicht hier — durchreichen, damit das Bearbeiten sie nicht löscht.
+      kontakte: bestehend?.kontakte ?? [],
       angebote: bestehend?.angebote ?? [],
       sanierung: bestehend?.sanierung ?? [],
       fristBis: v.fristStarten
@@ -533,27 +527,20 @@ export function ObjektFormular({
           />
         </Bereich>
 
-        {/* Offen, nicht zugeklappt: die Pipeline lebt vom Kontakt zu Makler
-            und Eigentümer — der muss beim Anlegen direkt erfassbar sein. */}
+        {/*
+          Hier standen Eigentümer und Kontakt. Sie sind in den Reiter „Kontakt“
+          gewandert, wo auch Makler, Verwalter und Notar stehen — zwei Felder
+          hätten nie gereicht, und zwei Orte für dieselbe Telefonnummer wären
+          einer zu viel. Nach dem Anlegen öffnet sich das Objekt ohnehin, der
+          Reiter liegt dann einen Klick entfernt.
+
+          Die Quelle bleibt: sie ist keine Person, sondern die Antwort auf
+          „woher wissen wir davon?“ — und die kennt man beim Anlegen.
+        */}
         <Bereich
-          titel="Eigentümer und Quelle"
-          hinweis="Wer verkauft, wer vermittelt. Die KI übernimmt diese Angaben später direkt aus dem Exposé."
+          titel="Herkunft"
+          hinweis="Woher der Vorgang kommt. Die Beteiligten trägst du nach dem Anlegen im Reiter „Kontakt“ ein."
         >
-          <Textfeld
-            id="eigentuemer"
-            label="Eigentümer"
-            wert={v.eigentuemer}
-            setWert={(x) => setze("eigentuemer", x)}
-            platzhalter="Erbengemeinschaft Hofmann"
-          />
-          <Textfeld
-            id="eigentuemerKontakt"
-            label="Kontakt"
-            wert={v.eigentuemerKontakt}
-            setWert={(x) => setze("eigentuemerKontakt", x)}
-            platzhalter="RA Dr. Keller · 0731 55 44 21"
-            hinweis="Makler oder Eigentümer — Name, Telefon, E-Mail."
-          />
           <Auswahlfeld
             id="quelle"
             label="Quelle"

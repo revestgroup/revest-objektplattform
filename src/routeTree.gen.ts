@@ -10,16 +10,29 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AnkaufRouteImport } from './routes/ankauf'
+import { Route as AufgabenRouteImport } from './routes/aufgaben'
 import { Route as AuswertungRouteImport } from './routes/auswertung'
 import { Route as EinstellungenRouteImport } from './routes/einstellungen'
 import { Route as KarteRouteImport } from './routes/karte'
 import { Route as LeadsRouteImport } from './routes/leads'
 import { Route as MietverwaltungRouteImport } from './routes/mietverwaltung'
 import { Route as ObjekteRouteImport } from './routes/objekte'
+import { Route as ProjekteRouteImport } from './routes/projekte'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnkaufRoute = AnkaufRouteImport.update({
+  id: '/ankauf',
+  path: '/ankauf',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AufgabenRoute = AufgabenRouteImport.update({
+  id: '/aufgaben',
+  path: '/aufgaben',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuswertungRoute = AuswertungRouteImport.update({
@@ -52,73 +65,99 @@ const ObjekteRoute = ObjekteRouteImport.update({
   path: '/objekte',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjekteRoute = ProjekteRouteImport.update({
+  id: '/projekte',
+  path: '/projekte',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ankauf': typeof AnkaufRoute
+  '/aufgaben': typeof AufgabenRoute
   '/auswertung': typeof AuswertungRoute
   '/einstellungen': typeof EinstellungenRoute
   '/karte': typeof KarteRoute
   '/leads': typeof LeadsRoute
   '/mietverwaltung': typeof MietverwaltungRoute
   '/objekte': typeof ObjekteRoute
+  '/projekte': typeof ProjekteRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ankauf': typeof AnkaufRoute
+  '/aufgaben': typeof AufgabenRoute
   '/auswertung': typeof AuswertungRoute
   '/einstellungen': typeof EinstellungenRoute
   '/karte': typeof KarteRoute
   '/leads': typeof LeadsRoute
   '/mietverwaltung': typeof MietverwaltungRoute
   '/objekte': typeof ObjekteRoute
+  '/projekte': typeof ProjekteRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/ankauf': typeof AnkaufRoute
+  '/aufgaben': typeof AufgabenRoute
   '/auswertung': typeof AuswertungRoute
   '/einstellungen': typeof EinstellungenRoute
   '/karte': typeof KarteRoute
   '/leads': typeof LeadsRoute
   '/mietverwaltung': typeof MietverwaltungRoute
   '/objekte': typeof ObjekteRoute
+  '/projekte': typeof ProjekteRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/ankauf'
+    | '/aufgaben'
     | '/auswertung'
     | '/einstellungen'
     | '/karte'
     | '/leads'
     | '/mietverwaltung'
     | '/objekte'
+    | '/projekte'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/ankauf'
+    | '/aufgaben'
     | '/auswertung'
     | '/einstellungen'
     | '/karte'
     | '/leads'
     | '/mietverwaltung'
     | '/objekte'
+    | '/projekte'
   id:
     | '__root__'
     | '/'
+    | '/ankauf'
+    | '/aufgaben'
     | '/auswertung'
     | '/einstellungen'
     | '/karte'
     | '/leads'
     | '/mietverwaltung'
     | '/objekte'
+    | '/projekte'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnkaufRoute: typeof AnkaufRoute
+  AufgabenRoute: typeof AufgabenRoute
   AuswertungRoute: typeof AuswertungRoute
   EinstellungenRoute: typeof EinstellungenRoute
   KarteRoute: typeof KarteRoute
   LeadsRoute: typeof LeadsRoute
   MietverwaltungRoute: typeof MietverwaltungRoute
   ObjekteRoute: typeof ObjekteRoute
+  ProjekteRoute: typeof ProjekteRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -128,6 +167,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ankauf': {
+      id: '/ankauf'
+      path: '/ankauf'
+      fullPath: '/ankauf'
+      preLoaderRoute: typeof AnkaufRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/aufgaben': {
+      id: '/aufgaben'
+      path: '/aufgaben'
+      fullPath: '/aufgaben'
+      preLoaderRoute: typeof AufgabenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auswertung': {
@@ -172,17 +225,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ObjekteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projekte': {
+      id: '/projekte'
+      path: '/projekte'
+      fullPath: '/projekte'
+      preLoaderRoute: typeof ProjekteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnkaufRoute: AnkaufRoute,
+  AufgabenRoute: AufgabenRoute,
   AuswertungRoute: AuswertungRoute,
   EinstellungenRoute: EinstellungenRoute,
   KarteRoute: KarteRoute,
   LeadsRoute: LeadsRoute,
   MietverwaltungRoute: MietverwaltungRoute,
   ObjekteRoute: ObjekteRoute,
+  ProjekteRoute: ProjekteRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

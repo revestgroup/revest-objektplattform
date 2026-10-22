@@ -1,14 +1,16 @@
 /**
  * Detailansicht eines Objekts.
  *
- * Vier Reiter, weil der Ankauf vier Phasen hat: erst die Zahlen, dann die
- * Aufteilung in Einheiten, parallel die Unterlagen, und über allem der
- * Verlauf als Gedächtnis. Alles in einer einzigen langen Seite wäre schneller
- * gebaut, aber unbenutzbar.
+ * Die Reiter folgen dem Ankauf: erst die Zahlen, dann was zu tun ist, dann mit
+ * wem, dann Planung, Kosten, Einheiten, Unterlagen — und über allem der Verlauf
+ * als Gedächtnis. Alles in einer einzigen langen Seite wäre schneller gebaut,
+ * aber unbenutzbar.
  */
 import {
   ArrowUpRight,
   Crosshair,
+  Hammer,
+  Lock,
   MapPin,
   Pencil,
   Plus,
@@ -30,7 +32,9 @@ import {
   STUFEN_REIHENFOLGE,
   ZUSTAENDE,
   adresse,
+  aufteilungText,
   berechneKennzahlen,
+  eigentuemerVon,
   f,
   type Angebot,
   type Angebotsergebnis,
@@ -39,27 +43,83 @@ import {
   type Objekt,
   type Sanierungsposten,
 } from "../lib/objekte";
+import { useAufgaben } from "../lib/aufgabenStore";
 import { useObjekte } from "../lib/objekteStore";
 import { cn } from "../lib/utils";
 import { Bildergalerie, Bildflaeche, istQuelle } from "./Bilder";
+import { DealKnoepfe } from "./Deal";
 import { Dokumentenablage } from "./Dokumente";
+import { Kontaktblatt } from "./Kontaktblatt";
+import { Objektaufgaben } from "./Objektaufgaben";
 import { Fristzeichen, Stufenzeichen } from "./Stufe";
+import { Teilung, TeilungAnstossen } from "./Teilung";
 import { Verkaufsplanung } from "./Verkaufsplanung";
 
-const REITER = [
+type Reiter =
+  | "uebersicht"
+  | "aufgaben"
+  | "kontakt"
+  | "verkauf"
+  | "kosten"
+  | "teilung"
+  | "sanierung"
+  | "einheiten"
+  | "dokumente"
+  | "verlauf";
+
+/**
+ * Welche Reiter ein Objekt zeigt, hängt an seiner Phase — nicht an der Liste,
+ * aus der man kommt.
+ *
+ * Vor dem Kauf gibt es nichts zu bauen und nichts zu teilen: Einheiten
+ * entstehen erst mit der Teilungserklärung, Gewerke erst nach dem Notartermin.
+ * Diese Reiter vorher zu zeigen hieße, leere Tabellen anzubieten und so zu
+ * tun, als wäre dort Arbeit möglich.
+ *
+ * Die Reihenfolge im Projekt ist die Reihenfolge der Arbeit: teilen, bauen,
+ * abrechnen, aufteilen, verkaufen.
+ */
+const ANKAUF_REITER: Reiter[] = [
   "uebersicht",
+  "aufgaben",
+  "kontakt",
   "verkauf",
   "kosten",
-  "einheiten",
   "dokumente",
   "verlauf",
-] as const;
-type Reiter = (typeof REITER)[number];
+];
+
+const PROJEKT_REITER: Reiter[] = [
+  "uebersicht",
+  "aufgaben",
+  "kontakt",
+  "teilung",
+  "sanierung",
+  "kosten",
+  "einheiten",
+  "verkauf",
+  "dokumente",
+  "verlauf",
+];
+
+/**
+ * Zwei Reiter heißen je Phase anders, weil dieselbe Tabelle eine andere Frage
+ * beantwortet: vor dem Kauf ist die Verkaufsplanung die Rechnung, die über
+ * Kauf oder Nichtkauf entscheidet — danach ist sie die Preisliste.
+ */
+function reiterTitel(r: Reiter, projekt: boolean): string {
+  if (r === "verkauf") return projekt ? "Vertrieb" : "Kalkulation";
+  return REITER_TITEL[r];
+}
 
 const REITER_TITEL: Record<Reiter, string> = {
   uebersicht: "Übersicht",
-  verkauf: "Verkaufsplanung",
+  aufgaben: "Aufgaben",
+  kontakt: "Kontakt",
+  verkauf: "Kalkulation",
   kosten: "Kosten",
+  teilung: "Teilung",
+  sanierung: "Sanierung",
   einheiten: "Einheiten",
   dokumente: "Dokumente",
   verlauf: "Verlauf",
@@ -77,6 +137,36 @@ export function ObjektDetail({
 }) {
   const [reiter, setReiter] = useState<Reiter>("uebersicht");
   const k = useMemo(() => berechneKennzahlen(objekt), [objekt]);
+  const { aufgaben } = useAufgaben();
+
+  const projekt = objekt.stufe === "angekauft";
+  const reiterliste = projekt ? PROJEKT_REITER : ANKAUF_REITER;
+
+  // Nach dem Deal wechselt die Reiterliste unter den Füßen. Wer gerade in der
+  // Kalkulation stand, soll nicht ins Leere schauen — gibt es den Reiter in
+  // der neuen Phase nicht, landet man auf der Übersicht.
+  const sichtbar = reiterliste.includes(reiter) ? reiter : "uebersicht";
+  const verwertung = aufteilungText(objekt);
+
+  /**
+   * Die Zahl am Reiter. Bei Aufgaben zählen nur die offenen — eine erledigte
+   * Aufgabe ist kein Grund hinzuschauen.
+   */
+  const zahlen = useMemo<Record<Reiter, number | null>>(
+    () => ({
+      uebersicht: null,
+      aufgaben: aufgaben.filter((a) => a.objektId === objekt.id && !a.erledigtAm).length,
+      kontakt: objekt.kontakte.length,
+      verkauf: objekt.verkaufsplan?.posten.length ?? 0,
+      kosten: null,
+      teilung: null,
+      sanierung: objekt.sanierung.length,
+      einheiten: objekt.einheiten.length,
+      dokumente: objekt.dokumente.length,
+      verlauf: objekt.verlauf.length,
+    }),
+    [objekt, aufgaben],
+  );
 
   return (
     <div className="flex min-h-full flex-col">
@@ -110,13 +200,25 @@ export function ObjektDetail({
           )}
           <Punkt />
           <span>{BUNDESLAND_NAMEN[objekt.bundesland]}</span>
+          {verwertung && (
+            <>
+              <Punkt />
+              <span className="text-grau-stark">{verwertung}</span>
+            </>
+          )}
         </div>
 
+        {/* Der Deal steht über dem Bearbeiten, weil er die Entscheidung ist
+            und nicht die Pflege. Nach dem Kauf verschwindet er wieder. */}
         <div className="mt-5 flex flex-wrap gap-2">
+          <DealKnoepfe objekt={objekt} />
+        </div>
+
+        <div className="mt-2.5 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={onBearbeiten}
-            className="druckbar flex items-center gap-2 border border-linie-stark px-4 py-2 text-[0.66rem] font-medium tracking-[0.14em] uppercase text-tinte"
+            className="druckbar flex items-center gap-2 rounded-full border border-linie-stark px-4 py-2 text-[0.66rem] font-medium tracking-[0.14em] uppercase text-tinte"
           >
             <Pencil size={12} strokeWidth={2} />
             Bearbeiten
@@ -125,45 +227,54 @@ export function ObjektDetail({
             <button
               type="button"
               onClick={onAufKarte}
-              className="druckbar flex items-center gap-2 border border-linie px-4 py-2 text-[0.66rem] font-medium tracking-[0.14em] uppercase text-grau-stark"
+              className="druckbar flex items-center gap-2 rounded-full border border-linie px-4 py-2 text-[0.66rem] font-medium tracking-[0.14em] uppercase text-grau-stark"
             >
               <Crosshair size={12} strokeWidth={2} />
               Auf der Karte
             </button>
           )}
+          {projekt && <TeilungAnstossen objekt={objekt} />}
         </div>
+
+        {/* Eine Absage ohne Begründung ist in zwei Jahren wertlos — hier steht
+            sie dort, wo sie gelesen wird, und nicht nur im Verlauf. */}
+        {objekt.stufe === "abgesagt" && objekt.absagegrund && (
+          <p className="mt-4 rounded-xl border border-[#E3BDB9] bg-[#F8DEDC] px-3.5 py-2.5 text-[0.74rem] leading-relaxed text-[#8A2822]">
+            Kein Deal: {objekt.absagegrund}
+          </p>
+        )}
       </div>
 
       {/* ----- Reiter ----- */}
-      {/* Fünf Reiter passen auf dem Telefon nicht nebeneinander — also wischen
+      {/* Zehn Reiter passen auf dem Telefon nicht nebeneinander — also wischen
           statt umbrechen, sonst wandert der Inhalt nach unten. */}
       <div className="scroll-reihe sticky top-0 z-10 flex shrink-0 gap-1 overflow-x-auto border-b border-linie bg-grund/95 px-6 backdrop-blur-sm md:px-9">
-        {REITER.map((r) => {
-          const aktiv = r === reiter;
-          const anzahl =
-            r === "einheiten"
-              ? objekt.einheiten.length
-              : r === "dokumente"
-                ? objekt.dokumente.length
-                : r === "verlauf"
-                  ? objekt.verlauf.length
-                  : r === "kosten"
-                    ? objekt.sanierung.length
-                    : r === "verkauf"
-                      ? (objekt.verkaufsplan?.posten.length ?? 0)
-                      : null;
+        {reiterliste.map((r) => {
+          const aktiv = r === sichtbar;
+          const anzahl = zahlen[r];
+          // Die Teilung ist erst nutzbar, wenn sie angestoßen wurde. Grau und
+          // sichtbar statt versteckt: so weiß man, dass es den Vorgang gibt,
+          // und warum er noch nicht offen ist.
+          const gesperrt = r === "teilung" && !objekt.teilung;
           return (
             <button
               key={r}
               type="button"
-              onClick={() => setReiter(r)}
+              onClick={() => !gesperrt && setReiter(r)}
               aria-selected={aktiv}
+              aria-disabled={gesperrt || undefined}
+              title={gesperrt ? "Beim Deal nicht angestoßen" : undefined}
               className={cn(
                 "relative -mb-px flex shrink-0 items-center gap-1.5 px-3 py-3.5 text-[0.68rem] font-medium tracking-[0.12em] uppercase transition-colors duration-150 ease-out",
-                aktiv ? "text-tinte" : "text-grau hover:text-grau-stark",
+                gesperrt
+                  ? "cursor-not-allowed text-grau/45"
+                  : aktiv
+                    ? "text-tinte"
+                    : "text-grau hover:text-grau-stark",
               )}
             >
-              {REITER_TITEL[r]}
+              {reiterTitel(r, projekt)}
+              {gesperrt && <Lock size={10} strokeWidth={2.25} className="shrink-0" />}
               {anzahl !== null && anzahl > 0 && (
                 <span className="zahl text-[0.6rem] text-grau">{anzahl}</span>
               )}
@@ -181,12 +292,16 @@ export function ObjektDetail({
       </div>
 
       <div className="flex-1">
-        {reiter === "uebersicht" && <Uebersicht objekt={objekt} kennzahlen={k} />}
-        {reiter === "verkauf" && <Verkaufsplanung objekt={objekt} />}
-        {reiter === "kosten" && <Kosten objekt={objekt} kennzahlen={k} />}
-        {reiter === "einheiten" && <Einheiten objekt={objekt} />}
-        {reiter === "dokumente" && <Dokumente objekt={objekt} />}
-        {reiter === "verlauf" && <Verlauf objekt={objekt} />}
+        {sichtbar === "uebersicht" && <Uebersicht objekt={objekt} kennzahlen={k} />}
+        {sichtbar === "aufgaben" && <Objektaufgaben objekt={objekt} />}
+        {sichtbar === "kontakt" && <Kontaktblatt objekt={objekt} />}
+        {sichtbar === "verkauf" && <Verkaufsplanung objekt={objekt} />}
+        {sichtbar === "teilung" && <Teilung objekt={objekt} />}
+        {sichtbar === "sanierung" && <Sanierung objekt={objekt} kennzahlen={k} />}
+        {sichtbar === "kosten" && <Kosten objekt={objekt} kennzahlen={k} />}
+        {sichtbar === "einheiten" && <Einheiten objekt={objekt} />}
+        {sichtbar === "dokumente" && <Dokumente objekt={objekt} />}
+        {sichtbar === "verlauf" && <Verlauf objekt={objekt} />}
       </div>
     </div>
   );
@@ -194,14 +309,14 @@ export function ObjektDetail({
 
 function Marke({ children }: { children: React.ReactNode }) {
   return (
-    <span className="border border-linie-stark px-2 py-1 text-[0.58rem] font-medium tracking-[0.14em] uppercase text-grau-stark">
+    <span className="rounded-full border border-linie-stark px-2.5 py-1 text-[0.58rem] font-medium tracking-[0.14em] uppercase text-grau-stark">
       {children}
     </span>
   );
 }
 
 function Punkt() {
-  return <span aria-hidden className="size-[3px] bg-linie-stark" />;
+  return <span aria-hidden className="size-[3px] rounded-full bg-linie-stark" />;
 }
 
 /* ------------------------------------------------------------------ */
@@ -272,9 +387,11 @@ function Uebersicht({
         <Reihe titel="Instandhaltungsrücklage" wert={f.eur(objekt.instandhaltungsruecklage)} />
       </Block>
 
-      <Block titel="Eigentümer und Quelle">
-        <Reihe titel="Eigentümer" wert={objekt.eigentuemer ?? "unbekannt"} />
-        <Reihe titel="Kontakt" wert={objekt.eigentuemerKontakt ?? "—"} />
+      {/* Die Beteiligten stehen im Reiter „Kontakt“, wo sie auch bearbeitet
+          werden. Hier bleibt nur der Name als Orientierung — zwei Orte für
+          dieselbe Telefonnummer wären einer zu viel. */}
+      <Block titel="Herkunft">
+        <Reihe titel="Eigentümer" wert={eigentuemerVon(objekt)?.name ?? "nicht hinterlegt"} />
         <Reihe titel="Quelle" wert={objekt.quelle ?? "—"} />
         <Reihe titel="Angelegt" wert={f.datum(objekt.angelegtAm)} />
       </Block>
@@ -399,10 +516,13 @@ function Reihe({
 /* ------------------------------------------------------------------ */
 
 /**
- * Die vollständige Rechnung eines Objekts, in der Reihenfolge, in der das Geld
- * fließt: was verhandelt wurde, was der Ankauf kostet, was die Sanierung je
- * Gewerk kostet — und was am Ende übrig bleibt. Plan und Ist stehen überall
- * nebeneinander, weil die Abweichung die eigentliche Information ist.
+ * Die Rechnung eines Objekts, in der Reihenfolge, in der das Geld fließt: was
+ * verhandelt wurde, was der Ankauf kostet — und was am Ende übrig bleibt.
+ *
+ * Die Gewerke stehen bewusst nicht hier, sondern im Reiter „Sanierung". Das
+ * sind zwei Fragen: „wo steht die Baustelle?" ist eine Bauleiterfrage, „was
+ * kostet uns das Projekt?" eine kaufmännische. In einem Reiter musste man für
+ * die zweite immer an der ersten vorbeiscrollen.
  */
 function Kosten({
   objekt,
@@ -412,15 +532,6 @@ function Kosten({
   kennzahlen: ReturnType<typeof berechneKennzahlen>;
 }) {
   const k = kennzahlen;
-
-  // Gewerke in der Reihenfolge des Bauablaufs, nicht in der Reihenfolge der
-  // Eingabe — so liest sich die Liste wie der Bauzeitenplan.
-  const posten = useMemo(() => {
-    const rang = new Map(GEWERKE.map((g, i) => [g.schluessel, i]));
-    return [...objekt.sanierung].sort(
-      (a, b) => (rang.get(a.gewerk) ?? 99) - (rang.get(b.gewerk) ?? 99),
-    );
-  }, [objekt.sanierung]);
 
   return (
     <div className="divide-y divide-linie">
@@ -468,63 +579,6 @@ function Kosten({
         <Reihe titel="Gesamtinvestition" wert={f.eur(k.gesamtinvestition)} stark />
       </Block>
 
-      {/* ----- Sanierung je Gewerk ----- */}
-      <section className="px-6 py-9 md:px-9">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <div className="mini-label">Sanierung je Gewerk</div>
-          {k.sanierungFortschritt !== null && (
-            <div className="text-[0.66rem] text-grau">
-              <span className="zahl">{f.prozent(k.sanierungFortschritt)}</span> abgenommen
-            </div>
-          )}
-        </div>
-
-        {posten.length === 0 ? (
-          <p className="mt-3 text-[0.8rem] leading-relaxed text-grau">
-            Noch keine Gewerke kalkuliert. Die Aufteilung entsteht mit der Ankaufskalkulation.
-          </p>
-        ) : (
-          <>
-            <div className="mt-3.5 overflow-hidden rounded-2xl border border-linie">
-              {/* Nur Plan und Ist als Spalten. Eine dritte Zahlenspalte passt in
-                  die Schublade nicht, ohne die Gewerknamen abzuschneiden — die
-                  Abweichung steht deshalb unter dem Gewerk und in der Summe. */}
-              <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 border-b border-linie bg-flaeche-hoch px-3.5 py-2">
-                <span className="mini-label !text-[0.5rem]">Gewerk</span>
-                <span className="mini-label w-[84px] text-right !text-[0.5rem]">Plan</span>
-                <span className="mini-label w-[84px] text-right !text-[0.5rem]">Ist</span>
-              </div>
-
-              <ul className="divide-y divide-linie bg-flaeche">
-                {posten.map((p) => (
-                  <Gewerkzeile key={p.id} posten={p} />
-                ))}
-              </ul>
-
-              <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 border-t border-linie bg-flaeche-hoch px-3.5 py-2.5">
-                <span className="text-[0.74rem] font-medium text-tinte">Summe</span>
-                <span className="zahl w-[84px] text-right text-[0.78rem] font-semibold text-tinte">
-                  {f.eur(k.sanierungGeplant)}
-                </span>
-                <span className="zahl w-[84px] text-right text-[0.78rem] font-semibold text-tinte">
-                  {f.eur(k.sanierungTatsaechlich)}
-                </span>
-              </div>
-            </div>
-
-            <dl className="mt-3.5 divide-y divide-linie">
-              <Reihe
-                titel="Abweichung gegen Budget"
-                wert={abweichung(k.sanierungAbweichung)}
-                unter="nur Gewerke mit abgerechneter Schlussrechnung"
-                ton={k.sanierungAbweichung > 0 ? "warnung" : "gut"}
-              />
-              <Reihe titel="Sanierung je m²" wert={f.eur(k.sanierungJeQm)} />
-            </dl>
-          </>
-        )}
-      </section>
-
       {/* ----- Was am Ende übrig bleibt ----- */}
       <Block titel="Projektrechnung">
         <Reihe titel="Gesamtinvestition Ankauf" wert={f.eur(k.gesamtinvestition)} />
@@ -553,6 +607,99 @@ function Kosten({
         />
         <Reihe titel="Marge" wert={f.prozent(k.margeProzent)} />
       </Block>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Sanierung                                                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Die Baustelle. Eine Frage: wo stehen wir, und wo läuft das Budget weg?
+ *
+ * Oben die drei Zahlen, die das beantworten — Budget, Abgerechnetes,
+ * Fortschritt —, darunter die Gewerke in der Reihenfolge des Bauablaufs. Nach
+ * Betrag zu sortieren wäre naheliegend, aber eine Liste, die mit dem Dach
+ * beginnt und beim Maler endet, liest sich wie der Bauzeitenplan und lässt
+ * sofort sehen, was als Nächstes dran ist.
+ */
+function Sanierung({
+  objekt,
+  kennzahlen,
+}: {
+  objekt: Objekt;
+  kennzahlen: ReturnType<typeof berechneKennzahlen>;
+}) {
+  const k = kennzahlen;
+
+  const posten = useMemo(() => {
+    const rang = new Map(GEWERKE.map((g, i) => [g.schluessel, i]));
+    return [...objekt.sanierung].sort(
+      (a, b) => (rang.get(a.gewerk) ?? 99) - (rang.get(b.gewerk) ?? 99),
+    );
+  }, [objekt.sanierung]);
+
+  if (posten.length === 0) {
+    return (
+      <div className="px-6 py-16 text-center md:px-9">
+        <Hammer size={22} strokeWidth={1.5} className="mx-auto text-grau" />
+        <p className="mx-auto mt-4 max-w-sm text-[0.82rem] leading-relaxed text-grau">
+          Noch keine Gewerke kalkuliert. Das Budget steht in der Kalkulation als
+          Summe — hier wird es auf die einzelnen Firmen verteilt.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="divide-y divide-linie">
+      <div className="grid grid-cols-3 gap-x-6 px-6 py-8 md:px-9">
+        <GrossZahl titel="Budget" wert={f.eurKurz(k.sanierungGeplant)} />
+        <GrossZahl titel="Abgerechnet" wert={f.eurKurz(k.sanierungTatsaechlich)} />
+        <GrossZahl titel="Abgenommen" wert={f.prozent(k.sanierungFortschritt)} />
+      </div>
+
+      <section className="px-6 py-8 md:px-9">
+        <div className="mini-label">Gewerke</div>
+
+        <div className="mt-3.5 overflow-hidden rounded-2xl border border-linie">
+          {/* Nur Plan und Ist als Spalten. Eine dritte Zahlenspalte passt in
+              die Schublade nicht, ohne die Gewerknamen abzuschneiden — die
+              Abweichung steht deshalb unter dem Gewerk und in der Summe. */}
+          <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 border-b border-linie bg-flaeche-hoch px-3.5 py-2">
+            <span className="mini-label !text-[0.5rem]">Gewerk</span>
+            <span className="mini-label w-[84px] text-right !text-[0.5rem]">Plan</span>
+            <span className="mini-label w-[84px] text-right !text-[0.5rem]">Ist</span>
+          </div>
+
+          <ul className="divide-y divide-linie bg-flaeche">
+            {posten.map((p) => (
+              <Gewerkzeile key={p.id} posten={p} />
+            ))}
+          </ul>
+
+          <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 border-t border-linie bg-flaeche-hoch px-3.5 py-2.5">
+            <span className="text-[0.74rem] font-medium text-tinte">Summe</span>
+            <span className="zahl w-[84px] text-right text-[0.78rem] font-semibold text-tinte">
+              {f.eur(k.sanierungGeplant)}
+            </span>
+            <span className="zahl w-[84px] text-right text-[0.78rem] font-semibold text-tinte">
+              {f.eur(k.sanierungTatsaechlich)}
+            </span>
+          </div>
+        </div>
+
+        <dl className="mt-3.5 divide-y divide-linie">
+          <Reihe
+            titel="Abweichung gegen Budget"
+            wert={abweichung(k.sanierungAbweichung)}
+            unter="nur Gewerke mit abgerechneter Schlussrechnung"
+            ton={k.sanierungAbweichung > 0 ? "warnung" : "gut"}
+          />
+          <Reihe titel="Sanierung je m²" wert={f.eur(k.sanierungJeQm)} />
+        </dl>
+      </section>
     </div>
   );
 }
@@ -722,7 +869,7 @@ function Einheiten({ objekt }: { objekt: Objekt }) {
         <button
           type="button"
           onClick={hinzufuegen}
-          className="druckbar mx-auto mt-6 flex items-center gap-2 border border-linie-stark px-5 py-2.5 text-[0.66rem] font-medium tracking-[0.14em] uppercase text-tinte"
+          className="druckbar mx-auto mt-6 flex items-center gap-2 rounded-full border border-linie-stark px-5 py-2.5 text-[0.66rem] font-medium tracking-[0.14em] uppercase text-tinte"
         >
           <Plus size={13} strokeWidth={2} />
           Erste Einheit anlegen
@@ -799,7 +946,7 @@ function Einheiten({ objekt }: { objekt: Objekt }) {
         <button
           type="button"
           onClick={hinzufuegen}
-          className="druckbar flex items-center gap-2 border border-linie-stark px-4 py-2 text-[0.66rem] font-medium tracking-[0.14em] uppercase text-tinte"
+          className="druckbar flex items-center gap-2 rounded-full border border-linie-stark px-4 py-2 text-[0.66rem] font-medium tracking-[0.14em] uppercase text-tinte"
         >
           <Plus size={13} strokeWidth={2} />
           Einheit
@@ -888,7 +1035,7 @@ function Verlauf({ objekt }: { objekt: Objekt }) {
         <button
           type="submit"
           disabled={!text.trim()}
-          className="druckbar mt-2.5 flex items-center gap-2 border border-linie-stark px-4 py-2 text-[0.66rem] font-medium tracking-[0.14em] uppercase text-tinte disabled:opacity-35"
+          className="druckbar mt-2.5 flex items-center gap-2 rounded-full border border-linie-stark px-4 py-2 text-[0.66rem] font-medium tracking-[0.14em] uppercase text-tinte disabled:opacity-35"
         >
           <Send size={12} strokeWidth={2} />
           Eintragen
