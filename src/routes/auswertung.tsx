@@ -41,28 +41,39 @@ function AuswertungSeite() {
         <div className="h-64" />
       ) : (
         <div className="divide-y divide-linie">
-          {/* ----- Bestand ----- */}
-          {/* Stand früher am Fuß der Seitenleiste. Dort war es eine Zahl, die
-              auf jeder Seite mitlief, ohne dass man sie je gebraucht hätte —
-              hier steht sie da, wo man Zahlen sucht. */}
-          <section className="flex flex-wrap gap-x-8 gap-y-5 px-6 py-6 md:gap-x-12 md:px-10">
+          {/* ----- Stückzahlen ----- */}
+          {/* Standen früher als Kacheln über der Ankaufsliste. Dort waren sie
+              im Weg — wer eine Liste öffnet, sucht ein Objekt, keine Summe.
+              „Über Limit" ist die einzige Zahl hier, die eine Entscheidung
+              erzwingt, und bekommt deshalb Farbe. */}
+          <section className="flex flex-wrap gap-x-8 gap-y-5 px-4 py-6 sm:px-6 md:gap-x-12 md:px-10">
             {[
               { titel: "In Prüfung", wert: d.aktiv },
+              { titel: "Über Limit", wert: d.ueberLimit, warnt: d.ueberLimit > 0 },
               { titel: "Angekauft", wert: d.angekauft.length },
               { titel: "Einheiten", wert: d.einheitenGesamt },
+              { titel: "Kein Deal", wert: d.abgesagt.length },
             ].map((k, i) => (
               <div key={k.titel} className="eintritt" style={{ animationDelay: `${i * 28}ms` }}>
                 <div className="mini-label">{k.titel}</div>
-                <div className="zahl mt-1.5 text-[1.4rem] leading-none font-semibold text-tinte">
+                <div
+                  className="zahl mt-1.5 text-[1.4rem] leading-none font-semibold text-tinte"
+                  style={k.warnt ? { color: STUFEN.abgesagt.farbe } : undefined}
+                >
                   {k.wert}
                 </div>
               </div>
             ))}
           </section>
 
-          {/* ----- Kopfzahlen ----- */}
-          <section className="grid grid-cols-2 gap-3 px-6 py-6 md:px-10 lg:grid-cols-4">
+          {/* ----- Geldzahlen ----- */}
+          <section className="grid grid-cols-2 gap-3 px-4 py-6 sm:grid-cols-3 sm:px-6 md:px-10 lg:grid-cols-3">
             {[
+              {
+                titel: "Pipeline",
+                wert: f.eurKurz(d.pipeline),
+                unten: "Kaufpreise in Prüfung",
+              },
               {
                 titel: "Gesamtinvestition",
                 // Gekürzt, weil die Kachel auf dem Telefon halb so breit ist
@@ -75,12 +86,13 @@ function AuswertungSeite() {
                 // Die einzige Unterzeile, die etwas trägt: was noch zu holen ist.
                 unten: d.mietPotenzial > 0 ? `+ ${f.eur(d.mietPotenzial)} Potenzial` : undefined,
               },
+              { titel: "Sanierung geplant", wert: f.eurKurz(d.sanierung) },
               { titel: "Ø Faktor", wert: f.faktor(d.faktorMittel) },
               { titel: "Ø Bruttorendite", wert: f.prozent(d.renditeMittel) },
             ].map((k, i) => (
               <div
                 key={k.titel}
-                className="eintritt rounded-2xl border border-linie bg-flaeche px-4 py-4 md:px-5 md:py-5"
+                className="eintritt min-w-0 rounded-2xl border border-linie bg-flaeche px-4 py-4 md:px-5 md:py-5"
                 style={{ animationDelay: `${i * 28}ms` }}
               >
                 <div className="mini-label">{k.titel}</div>
@@ -210,7 +222,16 @@ function AuswertungSeite() {
 function auswerten(objekte: Objekt[]) {
   const angekauft = objekte.filter((o) => o.stufe === "angekauft");
   const abgesagt = objekte.filter((o) => o.stufe === "abgesagt");
-  const aktiv = objekte.filter((o) => STUFEN[o.stufe].aktiv).length;
+  const inPruefung = objekte.filter((o) => STUFEN[o.stufe].aktiv);
+  const aktiv = inPruefung.length;
+
+  // Was noch zur Entscheidung ansteht, und wo die Forderung über dem eigenen
+  // Limit liegt: nachverhandeln oder absagen.
+  const pipeline = inPruefung.reduce((s, o) => s + (o.kaufpreis ?? 0), 0);
+  const ueberLimit = inPruefung.filter(
+    (o) => o.kaufpreis !== null && o.ankaufslimit !== null && o.kaufpreis > o.ankaufslimit,
+  ).length;
+  const sanierung = angekauft.reduce((s, o) => s + berechneKennzahlen(o).sanierungGeplant, 0);
 
   const investiert = angekauft.reduce(
     (s, o) => s + (berechneKennzahlen(o).gesamtinvestition ?? 0),
@@ -244,6 +265,9 @@ function auswerten(objekte: Objekt[]) {
     angekauft,
     abgesagt,
     aktiv,
+    pipeline,
+    ueberLimit,
+    sanierung,
     investiert,
     jahresmiete,
     mietPotenzial,

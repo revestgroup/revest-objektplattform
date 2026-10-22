@@ -14,7 +14,6 @@ import { useEffect, type ReactNode } from "react";
 import { AppLayout } from "../components/AppLayout";
 import { AuthProvider, useAuth } from "../lib/auth";
 import { EinstellungenProvider } from "../lib/einstellungenStore";
-import { LeadProvider } from "../lib/leadStore";
 import { ObjekteProvider } from "../lib/objekteStore";
 import { AufgabenProvider } from "../lib/aufgabenStore";
 import { VermietungProvider } from "../lib/vermietungStore";
@@ -84,9 +83,7 @@ function RootComponent() {
           <ObjekteProvider>
             <AufgabenProvider>
               <VermietungProvider>
-                <LeadProvider>
-                  <Schleuse />
-                </LeadProvider>
+                <Schleuse />
               </VermietungProvider>
             </AufgabenProvider>
           </ObjekteProvider>

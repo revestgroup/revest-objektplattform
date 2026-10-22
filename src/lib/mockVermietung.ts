@@ -14,17 +14,12 @@ function vorMonaten(anzahl: number): string {
   return d.toISOString();
 }
 
-function zimmer(
-  praefix: string,
-  zeilen: [qm: number, miete: number, mieter: string | null, seitMonaten: number | null][],
-): Zimmer[] {
-  return zeilen.map(([qm, miete, mieter, seit], i) => ({
+function zimmer(praefix: string, zeilen: [qm: number, miete: number][]): Zimmer[] {
+  return zeilen.map(([qm, miete], i) => ({
     id: `${praefix}-z${i + 1}`,
     bezeichnung: `Zimmer ${i + 1}`,
     flaeche: qm,
     miete,
-    mieter,
-    einzugAm: seit === null ? null : vorMonaten(seit),
   }));
 }
 
@@ -43,8 +38,7 @@ export const MOCK_GARANTIEN: Mietgarantie[] = [
     beginn: vorMonaten(8),
     laufzeitMonate: 36,
     garantiemiete: 480,
-    mieter: "L. Brandner",
-    istMiete: 462,
+    sollmiete: 480,
     zimmer: [],
     notiz: "Mietvertrag läuft unbefristet. 18 € Unterdeckung aus der Staffel vor dem Ankauf.",
   },
@@ -62,11 +56,10 @@ export const MOCK_GARANTIEN: Mietgarantie[] = [
     beginn: vorMonaten(4),
     laufzeitMonate: 36,
     garantiemiete: 600,
-    // Leerstand: Revest zahlt die volle Garantie aus eigener Tasche.
-    mieter: null,
-    istMiete: 598,
+    // Leerstand: bis der Nachmieter einzieht, zahlt Revest die volle Garantie.
+    sollmiete: 598,
     zimmer: [],
-    notiz: "Vormieter zum 30.09. ausgezogen. Zwei Besichtigungen gelaufen, Zusage steht aus.",
+    notiz: "Vormieter zum 30.09. ausgezogen. Nachmieter hat den Vertrag, Rücklauf steht aus.",
   },
   {
     id: "mg-003",
@@ -82,15 +75,14 @@ export const MOCK_GARANTIEN: Mietgarantie[] = [
     beginn: vorMonaten(13),
     laufzeitMonate: 60,
     garantiemiete: 2_150,
-    mieter: null,
-    istMiete: null,
+    sollmiete: null,
     zimmer: zimmer("mg-003", [
-      [14, 450, "J. Keller", 12],
-      [16, 470, "S. Aydin", 12],
-      [13, 440, "N. Brecht", 7],
-      [15, 460, "P. Kuhn", 3],
-      // Ein freies Zimmer — die WG trägt die Garantie trotzdem fast allein.
-      [12, 430, null, null],
+      [14, 450],
+      [16, 470],
+      [13, 440],
+      [15, 460],
+      // Zimmer 5 steht frei — die WG trägt die Garantie trotzdem fast allein.
+      [12, 430],
     ]),
     notiz: "Zimmer 5 seit dem Auszug im August frei. Anfrage über die Leadseite liegt vor.",
   },
@@ -109,13 +101,12 @@ export const MOCK_GARANTIEN: Mietgarantie[] = [
     // Läuft in zwei Monaten aus — Anschlussvereinbarung steht an.
     laufzeitMonate: 36,
     garantiemiete: 1_720,
-    mieter: null,
-    istMiete: null,
+    sollmiete: null,
     zimmer: zimmer("mg-004", [
-      [15, 455, "F. Oswald", 20],
-      [14, 440, "M. Treiber", 16],
-      [17, 480, "L. Sayed", 9],
-      [13, 430, "C. Wetzel", 4],
+      [15, 455],
+      [14, 440],
+      [17, 480],
+      [13, 430],
     ]),
     notiz: "Verlängerung um 24 Monate angeboten. Käufer will erst die Abrechnung sehen.",
   },
@@ -133,8 +124,7 @@ export const MOCK_GARANTIEN: Mietgarantie[] = [
     beginn: vorMonaten(40),
     laufzeitMonate: 36,
     garantiemiete: 520,
-    mieter: "K. Riedel",
-    istMiete: 545,
+    sollmiete: 520,
     zimmer: [],
     notiz: "Garantie ausgelaufen, Käufer verwaltet selbst weiter. Mieter unverändert.",
   },

@@ -17,7 +17,6 @@ import { Regler } from "../components/Felder";
 import { useAuth } from "../lib/auth";
 import { GRUPPEN } from "../lib/einstellungen";
 import { useEinstellungen } from "../lib/einstellungenStore";
-import { useLeads } from "../lib/leadStore";
 import { DOKUMENT_ORDNER, BUNDESLAND_NAMEN, GRUNDERWERBSTEUER, f } from "../lib/objekte";
 import { useObjekte } from "../lib/objekteStore";
 import { STADTTEIL_NAMEN } from "../lib/stadtteile";
@@ -38,8 +37,7 @@ const PHASE_2 = [
 function EinstellungenSeite() {
   const { nutzer } = useAuth();
   const { objekte, zuruecksetzen: objekteZurueck } = useObjekte();
-  const { garantien, zuruecksetzen: garantienZurueck } = useVermietung();
-  const { leads, zuruecksetzen: leadsZurueck } = useLeads();
+  const { garantien, mieter, zuruecksetzen: garantienZurueck } = useVermietung();
   const { einstellungen, umschalten, zuruecksetzen: einstellungenZurueck } = useEinstellungen();
   const [frage, setFrage] = useState(false);
 
@@ -174,7 +172,7 @@ function EinstellungenSeite() {
             {[
               ["Objekte", objekte.length],
               ["Mietgarantien", garantien.length],
-              ["Leads", leads.length],
+              ["Mieter", mieter.length],
               ["Schalter aktiv", aktiveSchalter],
             ].map(([titel, anzahl]) => (
               <div key={titel}>
@@ -202,7 +200,6 @@ function EinstellungenSeite() {
                   onClick={() => {
                     objekteZurueck();
                     garantienZurueck();
-                    leadsZurueck();
                     einstellungenZurueck();
                     setFrage(false);
                   }}

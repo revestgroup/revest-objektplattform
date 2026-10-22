@@ -10,9 +10,13 @@
  * Die Karte bleibt davon unberührt. Sie liest den ganzen Bestand, weil die
  * Frage „was liegt hier?“ nichts mit der Frage „kaufen wir das?“ zu tun hat.
  *
- * Was sich zwischen beiden Sichten unterscheidet, steht in BEREICHE: die vier
- * Kopfzahlen, die Sortierung, die Stufen im Filter. Der Rest ist identisch,
- * damit man sich beim Wechsel nicht neu orientieren muss.
+ * Was sich zwischen beiden Sichten unterscheidet, steht in BEREICHE: die
+ * Sortierung und die Stufen im Filter. Der Rest ist identisch, damit man sich
+ * beim Wechsel nicht neu orientieren muss.
+ *
+ * Summen stehen hier bewusst nicht. Wer eine Liste öffnet, will Objekte sehen
+ * und nicht erst vier Kacheln wegscrollen; die Zahlen zum Bestand stehen in
+ * der Auswertung.
  */
 import { Plus, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -25,10 +29,8 @@ import {
   STUFEN,
   STUFEN_REIHENFOLGE,
   berechneKennzahlen,
-  f,
   kontakteAlsText,
   type Ankaufsstufe,
-  type Objekt,
 } from "../lib/objekte";
 import { useObjekte, type ObjektEntwurf } from "../lib/objekteStore";
 import { cn } from "../lib/utils";
@@ -196,8 +198,6 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
         }
       />
 
-      <Kopfzahlen bereich={bereich} bestand={bestand} />
-
       {/* ----- Filterleiste ----- */}
       <div className="sticky top-0 z-20 border-b border-linie bg-grund/95 backdrop-blur-sm">
         <div className="flex items-center gap-2 px-6 py-3 md:gap-3 md:px-10">
@@ -362,67 +362,3 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Vier Zahlen über der Liste                                           */
-/* ------------------------------------------------------------------ */
-
-/**
- * Jede Sicht bekommt die Zahlen, nach denen man hier fragt.
- *
- * Im Ankauf: wie viel liegt an, was würde es kosten, wo ist die Forderung über
- * unserem Limit. Im Projekt: was steckt drin, wie viele Einheiten, was ist an
- * Sanierung noch offen. Dieselben vier Kacheln mit demselben Inhalt wären in
- * einer der beiden Sichten immer die falschen.
- */
-function Kopfzahlen({ bereich, bestand }: { bereich: Bereich; bestand: Objekt[] }) {
-  const kacheln = useMemo(() => {
-    if (bereich === "projekte") {
-      const investiert = bestand.reduce(
-        (s, o) => s + (berechneKennzahlen(o).gesamtinvestition ?? 0),
-        0,
-      );
-      const einheiten = bestand.reduce((s, o) => s + o.einheiten.length, 0);
-      const sanierung = bestand.reduce((s, o) => s + berechneKennzahlen(o).sanierungGeplant, 0);
-      return [
-        { titel: "Projekte", wert: String(bestand.length) },
-        // Gekürzt: ausgeschrieben läuft ein zweistelliger Millionenbetrag auf
-        // dem Telefon über den Kachelrand hinaus.
-        { titel: "Investiert", wert: f.eurKurz(investiert) },
-        { titel: "Einheiten", wert: String(einheiten) },
-        { titel: "Sanierung", wert: f.eurKurz(sanierung) },
-      ];
-    }
-
-    const aktiv = bestand.filter((o) => STUFEN[o.stufe].aktiv);
-    const archiv = bestand.filter((o) => !STUFEN[o.stufe].aktiv);
-    const pipeline = aktiv.reduce((s, o) => s + (o.kaufpreis ?? 0), 0);
-    // Die Forderung über dem eigenen Limit ist die Zahl, die eine Entscheidung
-    // erzwingt: nachverhandeln oder absagen.
-    const ueberLimit = aktiv.filter(
-      (o) => o.kaufpreis !== null && o.ankaufslimit !== null && o.kaufpreis > o.ankaufslimit,
-    ).length;
-    return [
-      { titel: "In Prüfung", wert: String(aktiv.length) },
-      { titel: "Pipeline", wert: f.eurKurz(pipeline) },
-      { titel: "Über Limit", wert: String(ueberLimit) },
-      { titel: "Archiv", wert: String(archiv.length) },
-    ];
-  }, [bereich, bestand]);
-
-  return (
-    <dl className="grid grid-cols-2 gap-3 px-6 py-5 md:px-10 lg:grid-cols-4">
-      {kacheln.map((k, i) => (
-        <div
-          key={k.titel}
-          className="eintritt rounded-2xl border border-linie bg-flaeche px-4 py-4 md:px-5"
-          style={{ animationDelay: `${i * 28}ms` }}
-        >
-          <dt className="mini-label">{k.titel}</dt>
-          <dd className="zahl mt-2 text-[1.4rem] leading-none font-semibold text-tinte md:text-[1.75rem]">
-            {k.wert}
-          </dd>
-        </div>
-      ))}
-    </dl>
-  );
-}

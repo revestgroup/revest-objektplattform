@@ -8,26 +8,27 @@
  * Zwei Arten werden getrennt behandelt, weil sie unterschiedlich arbeiten:
  * eine Wohnung ist vermietet oder nicht, eine WG ist es zimmerweise.
  *
- * Zwei Reiter: die Garantien selbst und die Mieter-Leads. Letztere lagen
- * früher als eigener Hauptreiter in der Navigation, was sie zu Objekt-Leads
- * erklärte, die sie nie waren. Sie gehören hierher, weil ein Leerstand und ein
- * Mietinteressent dieselbe Sache von zwei Seiten sind.
+ * Drei Reiter auf dieselbe Sache: Einheiten zeigt die Plätze und was sie
+ * kosten, Mieter zeigt die Menschen und ihre Akten, Auswertung zeigt, was
+ * daraus über die Zeit folgt. Ein Leerstand und ein Interessent sind zwei
+ * Seiten derselben Münze — nur wird hier nichts verkauft, sondern vermietet.
  */
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowDownRight, ArrowUpRight, DoorOpen, Plus, Trash2, UserPlus } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Plus, Trash2, UserMinus, UserPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { Schublade, Seitenkopf } from "../components/AppLayout";
 import { Auswahlfeld, Bereich, Segmente, Textfeld, Zahlfeld } from "../components/Felder";
-import { Mieterleads } from "../components/Mieterleads";
-import { useLeads } from "../lib/leadStore";
-import { LEADSTATUS } from "../lib/leads";
+import { Mieterliste } from "../components/Mieterliste";
+import { Vermietungsauswertung } from "../components/Vermietungsauswertung";
+import { MIETERSTATUS, unterlagenstand, type Mieter } from "../lib/mieter";
 import { f } from "../lib/objekte";
 import { useObjekte } from "../lib/objekteStore";
 import {
   GARANTIEARTEN,
   GARANTIESTATUS,
   berechneGarantie,
+  mieterDerGarantie,
   type Garantieart,
   type Garantiestatus,
   type Mietgarantie,
@@ -37,19 +38,19 @@ import { cn } from "../lib/utils";
 
 export const Route = createFileRoute("/mietverwaltung")({ component: MietverwaltungSeite });
 
-type Reiter = "garantien" | "leads";
+type Reiter = "einheiten" | "mieter" | "auswertung";
 
 const REITER: { schluessel: Reiter; titel: string }[] = [
-  { schluessel: "garantien", titel: "Garantien" },
-  { schluessel: "leads", titel: "Mieter-Leads" },
+  { schluessel: "einheiten", titel: "Einheiten" },
+  { schluessel: "mieter", titel: "Mieter" },
+  { schluessel: "auswertung", titel: "Auswertung" },
 ];
 
 function MietverwaltungSeite() {
-  const { garantien } = useVermietung();
-  const { leads } = useLeads();
-  const [reiter, setReiter] = useState<Reiter>("garantien");
+  const { garantien, mieter } = useVermietung();
+  const [reiter, setReiter] = useState<Reiter>("einheiten");
   // Das Anlegen liegt über den Reitern, weil der Knopf im Seitenkopf sitzt.
-  // Beim Wechseln geht es zu — ein halb getippter Lead im Garantieformular
+  // Beim Wechseln geht es zu — ein halb getippter Mieter im Garantieformular
   // wäre schlimmer als ein Formular, das man neu öffnen muss.
   const [anlegen, setAnlegen] = useState(false);
 
@@ -58,9 +59,9 @@ function MietverwaltungSeite() {
     setAnlegen(false);
   }
 
-  const offeneLeads = leads.filter((l) => LEADSTATUS[l.status].offen).length;
+  const ohnePlatz = mieter.filter((m) => MIETERSTATUS[m.status].offen).length;
   const leer = garantien.filter((g) => {
-    const k = berechneGarantie(g);
+    const k = berechneGarantie(g, mieter);
     return k.status !== "beendet" && k.belegt < k.plaetze;
   }).length;
 
@@ -70,24 +71,27 @@ function MietverwaltungSeite() {
         label="Garantie und Vermietung"
         titel="Mietverwaltung"
         aktion={
-          <button
-            type="button"
-            onClick={() => setAnlegen(true)}
-            className="druckbar flex items-center gap-2 rounded-full bg-tinte px-5 py-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-grund shadow-karte"
-          >
-            <Plus size={14} strokeWidth={2.25} />
-            {reiter === "garantien" ? "Garantie anlegen" : "Lead anlegen"}
-          </button>
+          reiter === "auswertung" ? undefined : (
+            <button
+              type="button"
+              onClick={() => setAnlegen(true)}
+              className="druckbar flex items-center gap-2 rounded-full bg-tinte px-5 py-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-grund shadow-karte"
+            >
+              <Plus size={14} strokeWidth={2.25} />
+              {reiter === "einheiten" ? "Garantie anlegen" : "Mieter anlegen"}
+            </button>
+          )
         }
       />
 
       {/* ----- Reiter ----- */}
-      <div className="scroll-reihe flex gap-1 overflow-x-auto border-b border-linie px-6 md:px-10">
+      <div className="scroll-reihe flex gap-1 overflow-x-auto border-b border-linie px-4 sm:px-6 md:px-10">
         {REITER.map((r) => {
           const an = reiter === r.schluessel;
           // Die Zahl am Reiter ist der Grund hinzuzuschauen: freie Plätze
-          // kosten Geld, offene Leads können es zurückholen.
-          const anzahl = r.schluessel === "garantien" ? leer : offeneLeads;
+          // kosten Geld, wartende Mieter können es zurückholen.
+          const anzahl =
+            r.schluessel === "einheiten" ? leer : r.schluessel === "mieter" ? ohnePlatz : 0;
           return (
             <button
               key={r.schluessel}
@@ -115,10 +119,12 @@ function MietverwaltungSeite() {
         })}
       </div>
 
-      {reiter === "garantien" ? (
+      {reiter === "einheiten" ? (
         <Garantien anlegenOffen={anlegen} anlegenSchliessen={() => setAnlegen(false)} />
+      ) : reiter === "mieter" ? (
+        <Mieterliste anlegenOffen={anlegen} anlegenSchliessen={() => setAnlegen(false)} />
       ) : (
-        <Mieterleads anlegenOffen={anlegen} anlegenSchliessen={() => setAnlegen(false)} />
+        <Vermietungsauswertung />
       )}
     </>
   );
@@ -135,7 +141,7 @@ function Garantien({
   anlegenOffen: boolean;
   anlegenSchliessen: () => void;
 }) {
-  const { garantien, bereit } = useVermietung();
+  const { garantien, mieter, bereit } = useVermietung();
   const [artFilter, setArtFilter] = useState<"" | Garantieart>("");
   const [statusFilter, setStatusFilter] = useState<"" | Garantiestatus>("");
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -143,7 +149,7 @@ function Garantien({
   const gewaehlt = detailId ? (garantien.find((g) => g.id === detailId) ?? null) : null;
 
   const liste = useMemo(() => {
-    const mitZahlen = garantien.map((g) => ({ g, k: berechneGarantie(g) }));
+    const mitZahlen = garantien.map((g) => ({ g, k: berechneGarantie(g, mieter) }));
     return mitZahlen
       .filter(({ g, k }) => {
         if (artFilter && g.art !== artFilter) return false;
@@ -156,11 +162,11 @@ function Garantien({
         if (a.k.deckung < 0 !== b.k.deckung < 0) return a.k.deckung < 0 ? -1 : 1;
         return a.k.restMonate - b.k.restMonate;
       });
-  }, [garantien, artFilter, statusFilter]);
+  }, [garantien, mieter, artFilter, statusFilter]);
 
   return (
     <>
-      <Bilanz garantien={garantien} />
+      <Bilanz garantien={garantien} mieter={mieter} />
 
       {/* ----- Filter ----- */}
       <div className="sticky top-0 z-20 border-b border-linie bg-grund/95 backdrop-blur-sm">
@@ -186,7 +192,7 @@ function Garantien({
 
           {(["aktiv", "auslaufend", "beendet"] as const).map((s) => {
             const an = statusFilter === s;
-            const anzahl = garantien.filter((g) => berechneGarantie(g).status === s).length;
+            const anzahl = garantien.filter((g) => berechneGarantie(g, mieter).status === s).length;
             return (
               <button
                 key={s}
@@ -265,17 +271,17 @@ function Garantien({
 /* Bilanz über allem                                                    */
 /* ------------------------------------------------------------------ */
 
-function Bilanz({ garantien }: { garantien: Mietgarantie[] }) {
+function Bilanz({ garantien, mieter }: { garantien: Mietgarantie[]; mieter: Mieter[] }) {
   const z = useMemo(() => {
     const laufend = garantien
-      .map((g) => ({ g, k: berechneGarantie(g) }))
+      .map((g) => ({ g, k: berechneGarantie(g, mieter) }))
       .filter(({ k }) => k.status !== "beendet");
     const garantiert = laufend.reduce((s, { g }) => s + g.garantiemiete, 0);
     const ist = laufend.reduce((s, { k }) => s + k.istMiete, 0);
     const freie = laufend.reduce((s, { k }) => s + (k.plaetze - k.belegt), 0);
     const restverpflichtung = laufend.reduce((s, { k }) => s + k.restverpflichtung, 0);
     return { anzahl: laufend.length, garantiert, ist, deckung: ist - garantiert, freie, restverpflichtung };
-  }, [garantien]);
+  }, [garantien, mieter]);
 
   const unter = z.deckung < 0;
 
@@ -337,7 +343,8 @@ function GarantieKachel({
   beiKlick: () => void;
   verzoegerung: number;
 }) {
-  const k = berechneGarantie(g);
+  const { mieter } = useVermietung();
+  const k = berechneGarantie(g, mieter);
   const st = GARANTIESTATUS[k.status];
   const unter = k.deckung < 0;
 
@@ -442,8 +449,8 @@ function GarantieDetail({
   garantie: Mietgarantie;
   onGeloescht: () => void;
 }) {
-  const { aendern, loeschen, zimmerSetzen, zimmerAnlegen, zimmerLoeschen } = useVermietung();
-  const k = berechneGarantie(g);
+  const { mieter, aendern, loeschen, zimmerAnlegen } = useVermietung();
+  const k = berechneGarantie(g, mieter);
   const st = GARANTIESTATUS[k.status];
 
   return (
@@ -537,81 +544,7 @@ function GarantieDetail({
         {g.art === "wg" ? (
           <ul className="mt-4 space-y-2">
             {g.zimmer.map((z) => (
-              <li
-                key={z.id}
-                className="rounded-xl border border-linie bg-flaeche p-3.5 md:flex md:items-center md:gap-3"
-              >
-                <div className="flex items-center gap-3 md:w-44 md:shrink-0">
-                  <span
-                    aria-hidden
-                    className="size-2 shrink-0 rounded-full"
-                    style={{ background: z.mieter ? "#17935C" : "#C5453B" }}
-                  />
-                  <input
-                    value={z.bezeichnung}
-                    onChange={(e) => zimmerSetzen(g.id, z.id, { bezeichnung: e.target.value })}
-                    aria-label="Bezeichnung"
-                    className="min-w-0 flex-1 border-none bg-transparent p-0 text-[0.82rem] font-medium text-tinte focus:outline-none"
-                  />
-                </div>
-
-                <div className="mt-3 grid grid-cols-2 gap-2 md:mt-0 md:flex md:flex-1 md:items-center md:gap-3">
-                  <label className="min-w-0 md:flex-1">
-                    <span className="mini-label block text-[0.52rem]">Mieter</span>
-                    <input
-                      value={z.mieter ?? ""}
-                      onChange={(e) =>
-                        zimmerSetzen(g.id, z.id, { mieter: e.target.value.trim() || null })
-                      }
-                      placeholder="frei"
-                      className="mt-1 w-full border border-linie bg-flaeche px-2.5 py-1.5 text-[0.78rem] text-tinte placeholder:text-grau focus:border-linie-stark focus:outline-none"
-                    />
-                  </label>
-                  <label className="min-w-0 md:w-28">
-                    <span className="mini-label block text-[0.52rem]">Kaltmiete</span>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      value={z.miete || ""}
-                      onChange={(e) => zimmerSetzen(g.id, z.id, { miete: Number(e.target.value) || 0 })}
-                      className="zahl mt-1 w-full border border-linie bg-flaeche px-2.5 py-1.5 text-[0.78rem] text-tinte focus:border-linie-stark focus:outline-none"
-                    />
-                  </label>
-                </div>
-
-                <div className="mt-3 flex items-center gap-2 md:mt-0 md:shrink-0">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      zimmerSetzen(g.id, z.id, {
-                        mieter: z.mieter ? null : "Neuer Mieter",
-                        einzugAm: z.mieter ? null : new Date().toISOString(),
-                      })
-                    }
-                    className="druckbar flex items-center gap-1.5 rounded-full border border-linie-stark px-3 py-1.5 text-[0.62rem] font-medium tracking-[0.1em] uppercase text-grau-stark"
-                  >
-                    {z.mieter ? (
-                      <>
-                        <DoorOpen size={12} strokeWidth={2} />
-                        Freiräumen
-                      </>
-                    ) : (
-                      <>
-                        <UserPlus size={12} strokeWidth={2} />
-                        Belegen
-                      </>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => zimmerLoeschen(g.id, z.id)}
-                    aria-label="Zimmer entfernen"
-                    className="druckbar flex size-8 items-center justify-center rounded-full text-grau hover:text-[#8A2822]"
-                  >
-                    <Trash2 size={13} strokeWidth={1.75} />
-                  </button>
-                </div>
-              </li>
+              <Platzzeile key={z.id} garantie={g} zimmerId={z.id} />
             ))}
             {g.zimmer.length === 0 && (
               <li className="rounded-xl border border-dashed border-linie-stark px-4 py-8 text-center text-[0.76rem] text-grau">
@@ -620,35 +553,9 @@ function GarantieDetail({
             )}
           </ul>
         ) : (
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label>
-              <span className="mini-label block">Mieter</span>
-              <input
-                value={g.mieter ?? ""}
-                onChange={(e) => aendern(g.id, { mieter: e.target.value.trim() || null })}
-                placeholder="Leerstand"
-                className="mt-2 w-full border border-linie bg-flaeche px-3 py-2.5 text-[0.82rem] text-tinte placeholder:text-grau focus:border-linie-stark focus:outline-none"
-              />
-            </label>
-            <label>
-              <span className="mini-label block">Kaltmiete / Monat</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                value={g.istMiete ?? ""}
-                onChange={(e) =>
-                  aendern(g.id, { istMiete: e.target.value === "" ? null : Number(e.target.value) })
-                }
-                className="zahl mt-2 w-full border border-linie bg-flaeche px-3 py-2.5 text-[0.82rem] text-tinte focus:border-linie-stark focus:outline-none"
-              />
-            </label>
-            {!g.mieter && (
-              <p className="text-[0.72rem] leading-relaxed text-[#8A2822] sm:col-span-2">
-                Leerstand — Revest zahlt die Garantie von {f.eur(g.garantiemiete)} aktuell
-                vollständig aus eigener Tasche.
-              </p>
-            )}
-          </div>
+          <ul className="mt-4">
+            <Platzzeile garantie={g} zimmerId={null} />
+          </ul>
         )}
       </section>
 
@@ -684,6 +591,143 @@ function GarantieDetail({
 }
 
 /* ------------------------------------------------------------------ */
+/* Ein Platz                                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Ein Platz: ein WG-Zimmer oder die ganze Wohnung. Links der Zuschnitt
+ * (Bezeichnung, Sollmiete), rechts wer darin sitzt.
+ *
+ * Belegt wird nicht mehr durch Tippen eines Namens, sondern durch Auswahl
+ * eines Mieters. Nur so hat der Name eine Akte hinter sich.
+ */
+function Platzzeile({ garantie: g, zimmerId }: { garantie: Mietgarantie; zimmerId: string | null }) {
+  const { mieter, aendern, zimmerSetzen, zimmerLoeschen, zuordnen, freigeben } = useVermietung();
+  const [wahl, setWahl] = useState("");
+
+  const z = zimmerId ? (g.zimmer.find((x) => x.id === zimmerId) ?? null) : null;
+  const drin = mieterDerGarantie(g, mieter).find((m) => m.zimmerId === zimmerId) ?? null;
+  // Nur wer noch keinen Platz hat, kann einen bekommen.
+  const frei = mieter.filter((m) => MIETERSTATUS[m.status].offen);
+
+  return (
+    <li className="rounded-xl border border-linie bg-flaeche p-3.5">
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden
+          className="size-2 shrink-0 rounded-full"
+          style={{ background: drin ? "#17935C" : "#C5453B" }}
+        />
+        {z ? (
+          <input
+            value={z.bezeichnung}
+            onChange={(e) => zimmerSetzen(g.id, z.id, { bezeichnung: e.target.value })}
+            aria-label="Bezeichnung"
+            className="min-w-0 flex-1 border-none bg-transparent p-0 text-[0.82rem] font-medium text-tinte focus:outline-none"
+          />
+        ) : (
+          <span className="min-w-0 flex-1 truncate text-[0.82rem] font-medium text-tinte">
+            {g.einheitTitel}
+          </span>
+        )}
+
+        <label className="shrink-0">
+          <span className="sr-only">Sollmiete</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            value={z ? z.miete || "" : (g.sollmiete ?? "")}
+            onChange={(e) =>
+              z
+                ? zimmerSetzen(g.id, z.id, { miete: Number(e.target.value) || 0 })
+                : aendern(g.id, {
+                    sollmiete: e.target.value === "" ? null : Number(e.target.value),
+                  })
+            }
+            className="zahl w-20 border border-linie bg-flaeche px-2 py-1.5 text-right text-[0.76rem] text-tinte focus:border-linie-stark focus:outline-none"
+          />
+        </label>
+
+        {z && (
+          <button
+            type="button"
+            onClick={() => zimmerLoeschen(g.id, z.id)}
+            aria-label="Zimmer entfernen"
+            className="druckbar flex size-8 shrink-0 items-center justify-center rounded-full text-grau hover:text-[#8A2822]"
+          >
+            <Trash2 size={13} strokeWidth={1.75} />
+          </button>
+        )}
+      </div>
+
+      <div className="mt-3 border-t border-linie pt-3">
+        {drin ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className="rounded-full px-2.5 py-1 text-[0.58rem] font-semibold tracking-[0.12em] uppercase"
+              style={{
+                background: MIETERSTATUS[drin.status].weich,
+                color: MIETERSTATUS[drin.status].tief,
+              }}
+            >
+              {MIETERSTATUS[drin.status].titel}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-[0.8rem] font-medium text-tinte">
+              {drin.name}
+            </span>
+            <span className="zahl shrink-0 text-[0.74rem] text-grau">{f.eur(drin.miete)}</span>
+            <button
+              type="button"
+              onClick={() => freigeben(drin.id)}
+              className="druckbar flex shrink-0 items-center gap-1.5 rounded-full border border-linie-stark px-3 py-1.5 text-[0.6rem] font-medium tracking-[0.1em] uppercase text-grau-stark"
+            >
+              <UserMinus size={11} strokeWidth={2} />
+              Freigeben
+            </button>
+          </div>
+        ) : frei.length === 0 ? (
+          <p className="text-[0.74rem] text-grau">
+            Frei — kein Mieter wartet. Über „Mieter" einen anlegen.
+          </p>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={wahl}
+              onChange={(e) => setWahl(e.target.value)}
+              aria-label="Mieter wählen"
+              className="min-w-0 flex-1 border border-linie bg-flaeche px-2.5 py-1.5 text-[0.76rem] text-tinte focus:border-linie-stark focus:outline-none"
+            >
+              <option value="">Mieter wählen …</option>
+              {frei.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                  {unterlagenstand(m).vollstaendig ? "" : " — Unterlagen offen"}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              disabled={!wahl}
+              onClick={() => {
+                zuordnen(wahl, g.id, zimmerId);
+                setWahl("");
+              }}
+              className={cn(
+                "druckbar flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[0.6rem] font-semibold tracking-[0.1em] uppercase",
+                wahl ? "bg-tinte text-grund" : "cursor-default bg-flaeche-aktiv text-grau",
+              )}
+            >
+              <UserPlus size={11} strokeWidth={2} />
+              Belegen
+            </button>
+          </div>
+        )}
+      </div>
+    </li>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Anlegen                                                              */
 /* ------------------------------------------------------------------ */
 
@@ -707,8 +751,7 @@ function GarantieFormular({
   const [beginn, setBeginn] = useState(() => new Date().toISOString().slice(0, 10));
   const [laufzeit, setLaufzeit] = useState("36");
   const [garantiemiete, setGarantiemiete] = useState("");
-  const [mieter, setMieter] = useState("");
-  const [istMiete, setIstMiete] = useState("");
+  const [sollmiete, setSollmiete] = useState("");
   const [anzahlZimmer, setAnzahlZimmer] = useState("4");
   const [fehler, setFehler] = useState<Record<string, string>>({});
 
@@ -753,8 +796,7 @@ function GarantieFormular({
       beginn: new Date(beginn).toISOString(),
       laufzeitMonate: Number(laufzeit) || 36,
       garantiemiete: Number(garantiemiete),
-      mieter: art === "wohnung" ? mieter.trim() || null : null,
-      istMiete: art === "wohnung" ? zahl(istMiete) : null,
+      sollmiete: art === "wohnung" ? (zahl(sollmiete) ?? Number(garantiemiete)) : null,
       zimmer:
         art === "wg"
           ? Array.from({ length: anzahl }, (_, i) => ({
@@ -764,8 +806,6 @@ function GarantieFormular({
               // Garantiesumme gleichmäßig verteilt — Timo justiert danach
               // zimmerweise nach, wenn die Verträge da sind.
               miete: proZimmer,
-              mieter: null,
-              einzugAm: null,
             }))
           : [],
       notiz: null,
@@ -888,14 +928,14 @@ function GarantieFormular({
       </Bereich>
 
       {art === "wohnung" && (
-        <Bereich titel="Aktuelles Mietverhältnis">
-          <Textfeld id="mieter" label="Mieter" wert={mieter} setWert={setMieter} />
+        <Bereich titel="Mietverhältnis">
           <Zahlfeld
-            id="istmiete"
-            label="Kaltmiete je Monat"
-            wert={istMiete}
-            setWert={setIstMiete}
+            id="sollmiete"
+            label="Sollmiete je Monat"
+            wert={sollmiete}
+            setWert={setSollmiete}
             einheit="€"
+            hinweis="Mieter wird danach im Reiter Mieter zugeordnet."
           />
         </Bereich>
       )}

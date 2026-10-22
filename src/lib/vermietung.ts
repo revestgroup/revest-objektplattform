@@ -15,7 +15,11 @@
  *
  * Die eine Zahl, die zählt, ist die Deckung: Ist-Miete minus Garantiemiete.
  * Negativ heißt, Revest legt jeden Monat Geld drauf.
+ *
+ * Wer wo wohnt, steht nicht hier. Die Zuordnung gehört dem Mieter
+ * (`Mieter.garantieId` / `Mieter.zimmerId`); diese Datei rechnet sie nur aus.
  */
+import { MIETERSTATUS, zahltMiete, type Mieter } from "./mieter";
 
 export type Garantieart = "wohnung" | "wg";
 
@@ -35,15 +39,18 @@ export const GARANTIESTATUS: Record<
   beendet: { titel: "Beendet", farbe: "#A3ABB8", weich: "#EEF0F4", tief: "#525C6B" },
 };
 
-/** Ein einzelnes WG-Zimmer. Leer stehende Zimmer haben `mieter: null`. */
+/**
+ * Ein einzelnes WG-Zimmer.
+ *
+ * Wer darin wohnt, steht nicht hier, sondern im Mieter (`zimmerId`). Sonst
+ * gäbe es zwei Listen, die auseinanderlaufen können.
+ */
 export interface Zimmer {
   id: string;
   bezeichnung: string;
   flaeche: number | null;
-  /** Monatliche Kaltmiete laut Vertrag. */
+  /** Monatliche Sollmiete. Was ein Mieter wirklich zahlt, steht im Mieter. */
   miete: number;
-  mieter: string | null;
-  einzugAm: string | null;
 }
 
 export interface Mietgarantie {
@@ -70,9 +77,8 @@ export interface Mietgarantie {
   /** Monatlich garantierte Kaltmiete. Das ist die Verpflichtung. */
   garantiemiete: number;
 
-  /** Nur bei `art: "wohnung"` — bei WG stehen die Werte in `zimmer`. */
-  mieter: string | null;
-  istMiete: number | null;
+  /** Sollmiete der ganzen Einheit. Nur bei `art: "wohnung"` gesetzt. */
+  sollmiete: number | null;
 
   /** Nur bei `art: "wg"`. */
   zimmer: Zimmer[];
@@ -107,15 +113,37 @@ export function ende(g: Mietgarantie): Date {
   return d;
 }
 
-/** Ist-Miete: bei der WG zählen nur belegte Zimmer. */
-export function istMiete(g: Mietgarantie): number {
-  if (g.art === "wg") {
-    return g.zimmer.reduce((s, z) => s + (z.mieter ? z.miete : 0), 0);
-  }
-  return g.mieter ? (g.istMiete ?? 0) : 0;
+/** Die Mieter dieser Garantie — zugeordnet oder eingezogen. */
+export function mieterDerGarantie(g: Mietgarantie, alle: Mieter[]): Mieter[] {
+  return alle.filter((m) => m.garantieId === g.id && MIETERSTATUS[m.status].belegt);
 }
 
-export function berechneGarantie(g: Mietgarantie, heute = new Date()): Garantiekennzahlen {
+/** Der Mieter eines Zimmers. Null heißt: frei. */
+export function mieterDesZimmers(
+  g: Mietgarantie,
+  zimmerId: string,
+  alle: Mieter[],
+): Mieter | null {
+  return (
+    mieterDerGarantie(g, alle).find((m) => m.zimmerId === zimmerId) ?? null
+  );
+}
+
+/**
+ * Ist-Miete: was wirklich eingeht. Nur eingezogene Mieter zahlen — ein
+ * zugeordneter Mieter belegt den Platz, überweist aber noch nichts.
+ */
+export function istMiete(g: Mietgarantie, alle: Mieter[]): number {
+  return alle
+    .filter((m) => m.garantieId === g.id && zahltMiete(m))
+    .reduce((s, m) => s + (m.miete ?? 0), 0);
+}
+
+export function berechneGarantie(
+  g: Mietgarantie,
+  alle: Mieter[],
+  heute = new Date(),
+): Garantiekennzahlen {
   const bis = ende(g);
   const restMonate = Math.max(
     0,
@@ -123,9 +151,9 @@ export function berechneGarantie(g: Mietgarantie, heute = new Date()): Garantiek
   );
   const vorbei = bis.getTime() <= heute.getTime();
 
-  const ist = istMiete(g);
+  const ist = istMiete(g, alle);
   const plaetze = g.art === "wg" ? g.zimmer.length : 1;
-  const belegt = g.art === "wg" ? g.zimmer.filter((z) => z.mieter).length : g.mieter ? 1 : 0;
+  const belegt = Math.min(plaetze, mieterDerGarantie(g, alle).length);
 
   return {
     ende: bis,
@@ -138,4 +166,56 @@ export function berechneGarantie(g: Mietgarantie, heute = new Date()): Garantiek
     plaetze,
     restverpflichtung: vorbei ? 0 : restMonate * g.garantiemiete,
   };
+}
+
+/**
+ * Ein freier Platz — eine leere Wohnung oder ein leeres WG-Zimmer. Das ist
+ * die Liste, gegen die man einen Interessenten zuordnet; beendete Garantien
+ * sind nicht dabei, weil Revest dort nichts mehr zu vergeben hat.
+ */
+export interface FreierPlatz {
+  garantieId: string;
+  zimmerId: string | null;
+  adresse: string;
+  einheitTitel: string;
+  /** „Zimmer 3" bei der WG, sonst die Einheit selbst. */
+  bezeichnung: string;
+  sollmiete: number | null;
+}
+
+export function freiePlaetze(garantien: Mietgarantie[], alle: Mieter[]): FreierPlatz[] {
+  const plaetze: FreierPlatz[] = [];
+
+  for (const g of garantien) {
+    if (berechneGarantie(g, alle).status === "beendet") continue;
+    const besetzt = mieterDerGarantie(g, alle);
+
+    if (g.art === "wg") {
+      for (const z of g.zimmer) {
+        if (besetzt.some((m) => m.zimmerId === z.id)) continue;
+        plaetze.push({
+          garantieId: g.id,
+          zimmerId: z.id,
+          adresse: g.adresse,
+          einheitTitel: g.einheitTitel,
+          bezeichnung: z.bezeichnung,
+          sollmiete: z.miete,
+        });
+      }
+      continue;
+    }
+
+    if (besetzt.length === 0) {
+      plaetze.push({
+        garantieId: g.id,
+        zimmerId: null,
+        adresse: g.adresse,
+        einheitTitel: g.einheitTitel,
+        bezeichnung: g.einheitTitel,
+        sollmiete: g.sollmiete,
+      });
+    }
+  }
+
+  return plaetze;
 }
