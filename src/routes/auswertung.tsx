@@ -35,15 +35,31 @@ function AuswertungSeite() {
 
   return (
     <>
-      <Seitenkopf
-        label="Zahlen zum Bestand"
-        titel="Auswertung"
-      />
+      <Seitenkopf label="Zahlen zum Bestand" titel="Auswertung" />
 
       {!bereit ? (
         <div className="h-64" />
       ) : (
         <div className="divide-y divide-linie">
+          {/* ----- Bestand ----- */}
+          {/* Stand früher am Fuß der Seitenleiste. Dort war es eine Zahl, die
+              auf jeder Seite mitlief, ohne dass man sie je gebraucht hätte —
+              hier steht sie da, wo man Zahlen sucht. */}
+          <section className="flex flex-wrap gap-x-12 gap-y-5 px-6 py-6 md:px-10">
+            {[
+              { titel: "In Prüfung", wert: d.aktiv },
+              { titel: "Angekauft", wert: d.angekauft.length },
+              { titel: "Einheiten", wert: d.einheitenGesamt },
+            ].map((k, i) => (
+              <div key={k.titel} className="eintritt" style={{ animationDelay: `${i * 28}ms` }}>
+                <div className="mini-label">{k.titel}</div>
+                <div className="zahl mt-1.5 text-[1.4rem] leading-none font-semibold text-tinte">
+                  {k.wert}
+                </div>
+              </div>
+            ))}
+          </section>
+
           {/* ----- Kopfzahlen ----- */}
           <section className="grid grid-cols-2 gap-3 px-6 py-6 md:px-10 lg:grid-cols-4">
             {[
@@ -52,23 +68,15 @@ function AuswertungSeite() {
                 // Gekürzt, weil die Kachel auf dem Telefon halb so breit ist
                 // wie vorher die Tabellenzelle.
                 wert: f.eurKurz(d.investiert),
-                unten: `${d.angekauft.length} Objekte angekauft`,
               },
               {
                 titel: "Jahresmiete",
                 wert: f.eurKurz(d.jahresmiete),
-                unten: d.mietPotenzial > 0 ? `+ ${f.eur(d.mietPotenzial)} Potenzial` : "im Bestand",
+                // Die einzige Unterzeile, die etwas trägt: was noch zu holen ist.
+                unten: d.mietPotenzial > 0 ? `+ ${f.eur(d.mietPotenzial)} Potenzial` : undefined,
               },
-              {
-                titel: "Ø Faktor",
-                wert: f.faktor(d.faktorMittel),
-                unten: "gewichtet nach Kaufpreis",
-              },
-              {
-                titel: "Ø Bruttorendite",
-                wert: f.prozent(d.renditeMittel),
-                unten: "auf den Kaufpreis",
-              },
+              { titel: "Ø Faktor", wert: f.faktor(d.faktorMittel) },
+              { titel: "Ø Bruttorendite", wert: f.prozent(d.renditeMittel) },
             ].map((k, i) => (
               <div
                 key={k.titel}
@@ -85,10 +93,7 @@ function AuswertungSeite() {
           </section>
 
           {/* ----- Pipeline ----- */}
-          <Abschnitt
-            nummer="01"
-            titel="Pipeline"
-          >
+          <Abschnitt nummer="01" titel="Pipeline">
             <div className="flex flex-col gap-3">
               {STUFEN_REIHENFOLGE.map((s) => {
                 const gruppe = objekte.filter((o) => o.stufe === s);
@@ -108,10 +113,7 @@ function AuswertungSeite() {
           </Abschnitt>
 
           {/* ----- Stadtteile ----- */}
-          <Abschnitt
-            nummer="02"
-            titel="Verteilung nach Stadtteil"
-          >
+          <Abschnitt nummer="02" titel="Verteilung nach Stadtteil">
             <div className="flex flex-col gap-3">
               {d.stadtteile.map((b) => (
                 <Balken
@@ -144,11 +146,7 @@ function AuswertungSeite() {
               </div>
             </Abschnitt>
 
-            <Abschnitt
-              nummer="04"
-              titel="Einheiten im Bestand"
-              hinweis={`${d.einheitenGesamt} Einheiten aus ${d.angekauft.length} angekauften Objekten.`}
-            >
+            <Abschnitt nummer="04" titel="Einheiten im Bestand">
               {d.einheitenGesamt === 0 ? (
                 <p className="text-[0.78rem] text-grau">
                   Noch keine Einheiten erfasst — sie entstehen mit der Teilungserklärung.
@@ -173,10 +171,7 @@ function AuswertungSeite() {
           </div>
 
           {/* ----- Absagen ----- */}
-          <Abschnitt
-            nummer="05"
-            titel="Nicht zustande gekommen"
-          >
+          <Abschnitt nummer="05" titel="Nicht zustande gekommen">
             {d.abgesagt.length === 0 ? (
               <p className="text-[0.78rem] text-grau">Keine Absagen hinterlegt.</p>
             ) : (
@@ -215,6 +210,7 @@ function AuswertungSeite() {
 function auswerten(objekte: Objekt[]) {
   const angekauft = objekte.filter((o) => o.stufe === "angekauft");
   const abgesagt = objekte.filter((o) => o.stufe === "abgesagt");
+  const aktiv = objekte.filter((o) => STUFEN[o.stufe].aktiv).length;
 
   const investiert = angekauft.reduce(
     (s, o) => s + (berechneKennzahlen(o).gesamtinvestition ?? 0),
@@ -247,6 +243,7 @@ function auswerten(objekte: Objekt[]) {
   return {
     angekauft,
     abgesagt,
+    aktiv,
     investiert,
     jahresmiete,
     mietPotenzial,
@@ -273,12 +270,10 @@ function auswerten(objekte: Objekt[]) {
 function Abschnitt({
   nummer,
   titel,
-  hinweis,
   children,
 }: {
   nummer: string;
   titel: string;
-  hinweis?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -289,9 +284,6 @@ function Abschnitt({
           {titel}
         </h2>
       </div>
-      {hinweis && (
-        <p className="mt-2 max-w-xl text-[0.7rem] leading-relaxed text-grau">{hinweis}</p>
-      )}
       <div className="mt-6">{children}</div>
     </section>
   );

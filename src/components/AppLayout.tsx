@@ -14,8 +14,6 @@ import {
 import { useEffect, useState, type ReactNode } from "react";
 
 import { useAuth } from "../lib/auth";
-import { useObjekte } from "../lib/objekteStore";
-import { STUFEN } from "../lib/objekte";
 import { cn } from "../lib/utils";
 
 /**
@@ -89,8 +87,6 @@ function Seitenleiste() {
         ))}
       </nav>
 
-      <Bestandsblock />
-
       {nutzer && (
         <div className="border-t border-linie p-3">
           <div className="flex items-center gap-3 px-1 py-1">
@@ -113,37 +109,6 @@ function Seitenleiste() {
         </div>
       )}
     </aside>
-  );
-}
-
-/**
- * Kleine Bilanz am Fuß der Leiste. Steht hier und nicht auf einer eigenen
- * Seite, weil es die eine Zahl ist, die Timo immer sehen will.
- */
-function Bestandsblock() {
-  const { objekte, bereit } = useObjekte();
-  if (!bereit) return <div className="h-[132px]" />;
-
-  const aktiv = objekte.filter((o) => STUFEN[o.stufe].aktiv).length;
-  const angekauft = objekte.filter((o) => o.stufe === "angekauft");
-  const einheiten = angekauft.reduce((s, o) => s + o.einheiten.length, 0);
-
-  return (
-    <div className="border-t border-linie px-5 py-4">
-      <div className="mini-label">Bestand</div>
-      <dl className="mt-3 space-y-2">
-        {[
-          ["Aktiv in Prüfung", aktiv],
-          ["Angekauft", angekauft.length],
-          ["Einheiten", einheiten],
-        ].map(([titel, wert]) => (
-          <div key={titel as string} className="flex items-baseline justify-between gap-2">
-            <dt className="text-[0.7rem] text-grau">{titel}</dt>
-            <dd className="zahl text-sm font-semibold text-tinte">{wert}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
   );
 }
 
