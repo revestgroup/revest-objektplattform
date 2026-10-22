@@ -838,7 +838,9 @@ export function berechneKennzahlen(o: Objekt): Kennzahlen {
 
   return {
     kaufpreisJeQm: kp !== null && o.wohnflaeche ? kp / o.wohnflaeche : null,
-    bruttoMietrendite: kp !== null && miete !== null && kp > 0 ? (miete / kp) * 100 : null,
+    // Beide verlangen eine Miete über null. Ohne Miete gibt es keine Rendite,
+    // und „0,0 %“ sähe aus wie eine gerechnete Aussage statt wie eine fehlende.
+    bruttoMietrendite: kp !== null && miete !== null && kp > 0 && miete > 0 ? (miete / kp) * 100 : null,
     faktor: kp !== null && miete !== null && miete > 0 ? kp / miete : null,
     grestSatz,
     grestEuro,

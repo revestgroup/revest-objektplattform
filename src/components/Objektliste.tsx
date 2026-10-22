@@ -11,20 +11,26 @@
  * Frage „was liegt hier?“ nichts mit der Frage „kaufen wir das?“ zu tun hat.
  *
  * Was sich zwischen beiden Sichten unterscheidet, steht in BEREICHE: die
- * Sortierung und die Stufen im Filter. Der Rest ist identisch, damit man sich
- * beim Wechsel nicht neu orientieren muss.
+ * Sortierung, die Stufen im Filter und ob es eine Pipeline gibt. Der Rest ist
+ * identisch, damit man sich beim Wechsel nicht neu orientieren muss.
+ *
+ * Der Ankauf kennt zusätzlich zwei Darstellungen desselben Bestands: das
+ * Raster für „welche Objekte haben wir?“ und die Pipeline für „woran hängt
+ * es?“. Gefiltert und sortiert wird nur einmal; beide Ansichten bekommen
+ * dieselbe Liste.
  *
  * Summen stehen hier bewusst nicht. Wer eine Liste öffnet, will Objekte sehen
  * und nicht erst vier Kacheln wegscrollen; die Zahlen zum Bestand stehen in
  * der Auswertung.
  */
-import { Plus, Search, X } from "lucide-react";
+import { Columns3, LayoutGrid, Plus, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { Schublade, Seitenkopf } from "./AppLayout";
 import type { NeuesDokument } from "./Dokumente";
 import { ObjektDetail, ObjektKachel } from "./ObjektDetail";
 import { ObjektFormular } from "./ObjektFormular";
+import { ObjektPipeline } from "./ObjektPipeline";
 import {
   STUFEN,
   STUFEN_REIHENFOLGE,
@@ -48,6 +54,9 @@ const SORTIERUNGEN = {
 
 type Sortierung = keyof typeof SORTIERUNGEN;
 
+/** Dieselben Objekte, zwei Fragen: welche haben wir, und woran hängt es. */
+type Ansicht = "liste" | "pipeline";
+
 interface Bereichsangaben {
   label: string;
   titel: string;
@@ -57,6 +66,8 @@ interface Bereichsangaben {
   standardSortierung: Sortierung;
   /** Stufenfilter nur dort, wo es mehr als eine Stufe zu filtern gibt. */
   stufenfilter: boolean;
+  /** Pipeline nur dort, wo es Stufen zum Verschieben gibt. */
+  pipeline: boolean;
   leer: string;
 }
 
@@ -70,6 +81,7 @@ const BEREICHE: Record<Bereich, Bereichsangaben> = {
     sortierungen: ["neu", "stufe", "preis", "faktor", "rendite"],
     standardSortierung: "neu",
     stufenfilter: true,
+    pipeline: true,
     leer: "Noch kein Objekt in Prüfung.",
   },
   projekte: {
@@ -79,6 +91,9 @@ const BEREICHE: Record<Bereich, Bereichsangaben> = {
     sortierungen: ["neu", "preis", "einheiten", "rendite"],
     standardSortierung: "neu",
     stufenfilter: false,
+    // Alle Projekte stehen auf derselben Stufe. Eine Pipeline mit einer Spalte
+    // wäre eine Liste mit Rahmen drumherum.
+    pipeline: false,
     leer: "Noch kein Objekt angekauft.",
   },
 };
@@ -97,6 +112,7 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
   const [stufen, setStufen] = useState<Set<Ankaufsstufe>>(new Set());
   const [stadt, setStadt] = useState<"" | "Ulm" | "Neu-Ulm">("");
   const [sortierung, setSortierung] = useState<Sortierung>(b.standardSortierung);
+  const [ansicht, setAnsicht] = useState<Ansicht>("liste");
   // Kommt eine Objekt-ID aus der Adresse — etwa aus einer Aufgabe —, öffnet
   // sich das Detail sofort. Danach ist es normaler Zustand: Zumachen soll
   // nicht die Adresse umschreiben müssen.
@@ -166,6 +182,17 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
     setModus({ art: "detail", id: neu.id });
   }
 
+  // Zwei Dinge gehören in der Pipeline nicht mehr: ein Stufenfilter, der
+  // Spalten leer aussehen lässt, und eine Sortierung nach Stufe, die dort
+  // keine Wirkung hat.
+  function ansichtWechseln(neu: Ansicht) {
+    setAnsicht(neu);
+    if (neu === "pipeline") {
+      setStufen(new Set());
+      if (sortierung === "stufe") setSortierung(b.standardSortierung);
+    }
+  }
+
   function stufeUmschalten(s: Ankaufsstufe) {
     setStufen((alt) => {
       const neu = new Set(alt);
@@ -200,8 +227,11 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
 
       {/* ----- Filterleiste ----- */}
       <div className="sticky top-0 z-20 border-b border-linie bg-grund/95 backdrop-blur-sm">
-        <div className="flex items-center gap-2 px-6 py-3 md:gap-3 md:px-10">
-          <label className="relative min-w-0 flex-1">
+        {/* Auf dem Telefon bekommt die Suche eine eigene Zeile. Zusammen mit
+            Sortierung und Umschalter blieben sonst vier Zeichen Platz für den
+            Straßennamen. */}
+        <div className="flex flex-wrap items-center gap-2 px-4 py-3 sm:flex-nowrap sm:px-6 md:gap-3 md:px-10">
+          <label className="relative order-1 w-full min-w-0 sm:order-none sm:flex-1">
             <Search
               size={14}
               strokeWidth={1.75}
@@ -217,23 +247,56 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
             />
           </label>
 
+          {/* Die Sortierung ordnet in der Liste das Raster und in der Pipeline
+              den Stapel innerhalb der Spalte — nach Stufe zu sortieren ist
+              dort aber sinnlos, weil die Spalte schon die Stufe ist. */}
           <select
             value={sortierung}
             onChange={(e) => setSortierung(e.target.value as Sortierung)}
             aria-label="Sortierung"
-            className="shrink-0 border border-linie bg-flaeche px-3.5 py-2.5 text-[0.76rem] text-tinte focus:border-linie-stark focus:outline-none"
+            className="order-2 min-w-0 flex-1 border border-linie bg-flaeche px-3 py-2.5 text-[0.76rem] text-tinte focus:border-linie-stark focus:outline-none sm:order-none sm:flex-none sm:shrink md:px-3.5"
           >
-            {b.sortierungen.map((s) => (
-              <option key={s} value={s}>
-                {SORTIERUNGEN[s]}
-              </option>
-            ))}
+            {b.sortierungen
+              .filter((s) => !(ansicht === "pipeline" && s === "stufe"))
+              .map((s) => (
+                <option key={s} value={s}>
+                  {SORTIERUNGEN[s]}
+                </option>
+              ))}
           </select>
+
+          {b.pipeline && (
+            <div className="order-3 flex shrink-0 gap-1 rounded-full border border-linie bg-flaeche-hoch p-1 sm:order-none">
+              {(
+                [
+                  { wert: "liste", titel: "Liste", Zeichen: LayoutGrid },
+                  { wert: "pipeline", titel: "Pipeline", Zeichen: Columns3 },
+                ] as const
+              ).map((a) => (
+                <button
+                  key={a.wert}
+                  type="button"
+                  onClick={() => ansichtWechseln(a.wert)}
+                  aria-pressed={ansicht === a.wert}
+                  aria-label={`Ansicht ${a.titel}`}
+                  title={a.titel}
+                  className={cn(
+                    "druckbar flex size-8 items-center justify-center rounded-full",
+                    ansicht === a.wert
+                      ? "bg-tinte text-grund shadow-karte"
+                      : "text-grau-stark hover:text-tinte",
+                  )}
+                >
+                  <a.Zeichen size={14} strokeWidth={1.9} />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Stadt und Stufe teilen sich eine Reihe. Auf dem Telefon schiebt sie
             sich seitwärts, statt in drei Zeilen die halbe Höhe zu fressen. */}
-        <div className="scroll-reihe flex gap-2 overflow-x-auto px-6 pb-3 md:flex-wrap md:px-10">
+        <div className="scroll-reihe flex gap-2 overflow-x-auto px-4 pb-3 sm:px-6 md:flex-wrap md:px-10">
           <div className="flex shrink-0 gap-1 rounded-full border border-linie bg-flaeche-hoch p-1">
             {(["", "Ulm", "Neu-Ulm"] as const).map((s) => (
               <button
@@ -251,7 +314,10 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
             ))}
           </div>
 
-          {b.stufenfilter && (
+          {/* In der Pipeline ist die Spalte schon der Stufenfilter. Zwei
+              Filter auf dieselbe Eigenschaft würden sich gegenseitig
+              widersprechen — leere Spalten, obwohl Objekte da sind. */}
+          {b.stufenfilter && ansicht === "liste" && (
             <>
               <span aria-hidden className="my-1 w-px shrink-0 bg-linie" />
 
@@ -286,7 +352,7 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
         </div>
       </div>
 
-      {/* ----- Liste ----- */}
+      {/* ----- Bestand ----- */}
       {!bereit ? (
         <div className="h-48" />
       ) : liste.length === 0 ? (
@@ -311,19 +377,27 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
         </div>
       ) : (
         <>
-          {/* Auf dem Telefon eine Kachel pro Reihe: Straßenname, Preis und
-              Frist müssen vollständig lesbar bleiben, nicht nur angedeutet. */}
-          <ul className="grid grid-cols-1 gap-3 px-6 py-6 sm:grid-cols-2 md:gap-4 md:px-10 lg:grid-cols-3 xl:grid-cols-4">
-            {liste.map((o, i) => (
-              <ObjektKachel
-                key={o.id}
-                objekt={o}
-                beiKlick={() => setModus({ art: "detail", id: o.id })}
-                verzoegerung={Math.min(i, 10) * 24}
-              />
-            ))}
-          </ul>
-          <p className="border-t border-linie px-6 py-5 text-[0.68rem] text-grau md:px-10">
+          {ansicht === "pipeline" ? (
+            <ObjektPipeline
+              objekte={liste}
+              stufen={b.stufen}
+              oeffnen={(id) => setModus({ art: "detail", id })}
+            />
+          ) : (
+            /* Auf dem Telefon eine Kachel pro Reihe: Straßenname, Preis und
+               Frist müssen vollständig lesbar bleiben, nicht nur angedeutet. */
+            <ul className="grid grid-cols-1 gap-3 px-4 py-6 sm:grid-cols-2 sm:px-6 md:gap-4 md:px-10 lg:grid-cols-3 xl:grid-cols-4">
+              {liste.map((o, i) => (
+                <ObjektKachel
+                  key={o.id}
+                  objekt={o}
+                  beiKlick={() => setModus({ art: "detail", id: o.id })}
+                  verzoegerung={Math.min(i, 10) * 24}
+                />
+              ))}
+            </ul>
+          )}
+          <p className="border-t border-linie px-4 py-5 text-[0.68rem] text-grau sm:px-6 md:px-10">
             {liste.length} {liste.length === 1 ? "Objekt" : "Objekte"}
             {gefiltert && ` von ${bestand.length}`}
           </p>
