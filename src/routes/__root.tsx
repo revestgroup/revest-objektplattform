@@ -138,20 +138,53 @@ function NichtGefunden() {
   );
 }
 
+/**
+ * Ein offener Tab überlebt den nächsten Deploy nicht: die Seite hält die alte
+ * index.html im Speicher und lädt beim Seitenwechsel ein Teilstück nach, dessen
+ * Dateiname es nach dem Neubau nicht mehr gibt. Der Fehler sieht aus wie ein
+ * Defekt, ist aber nur ein veralteter Tab.
+ *
+ * Deshalb lädt die Seite in genau diesem Fall einmal selbst neu. Das Merkzeichen
+ * liegt in der Sitzung, damit aus einem echten Netzfehler keine Schleife wird —
+ * beim zweiten Mal bleibt die Meldung stehen.
+ */
+function istVeralteterStand(error: unknown): boolean {
+  const text = error instanceof Error ? `${error.name} ${error.message}` : String(error);
+  return /dynamically imported module|Importing a module script failed|error loading dynamically/i.test(
+    text,
+  );
+}
+
+const NEU_GELADEN = "revest.neugeladen";
+
 function Fehler({ error, reset }: ErrorComponentProps) {
+  const veraltet = istVeralteterStand(error);
+
+  useEffect(() => {
+    if (!veraltet || sessionStorage.getItem(NEU_GELADEN)) return;
+    sessionStorage.setItem(NEU_GELADEN, "1");
+    window.location.reload();
+  }, [veraltet]);
+
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center px-6 text-center">
       <div className="mini-label">Fehler</div>
-      <div className="headline mt-3 text-3xl">Diese Seite ist nicht geladen</div>
+      <div className="headline mt-3 text-3xl">
+        {veraltet ? "Neue Fassung verfügbar" : "Diese Seite ist nicht geladen"}
+      </div>
       <p className="mt-3 max-w-sm text-sm text-grau">
-        {error instanceof Error ? error.message : "Unbekannter Fehler."}
+        {veraltet
+          ? "Dieser Tab lief noch auf einem älteren Stand. Die Seite lädt sich gerade neu."
+          : error instanceof Error
+            ? error.message
+            : "Unbekannter Fehler."}
       </p>
       <button
         type="button"
-        onClick={reset}
+        onClick={() => (veraltet ? window.location.reload() : reset())}
         className="druckbar mt-8 rounded-full border border-linie-stark px-6 py-2.5 text-xs font-medium tracking-[0.18em] uppercase text-tinte"
       >
-        Nochmal versuchen
+        {veraltet ? "Jetzt neu laden" : "Nochmal versuchen"}
       </button>
     </div>
   );
