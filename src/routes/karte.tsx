@@ -20,8 +20,8 @@ import {
   ChevronDown,
   Layers,
   Map as MapIcon,
-  Maximize2,
   Minimize2,
+  Scan,
   SlidersHorizontal,
   Type,
   X,
@@ -248,14 +248,6 @@ function KarteSeite() {
       {/* top-16: die Karte liegt unter der festen Kopfzeile, die Leiste nicht. */}
       <div className="absolute inset-x-0 top-16 z-20 md:hidden">
         <div className="flex items-center gap-2 px-3 pt-3">
-          {/* Zurück ins Dashboard — die Karte ist von dort maximiert worden. */}
-          <Link
-            to="/dashboard"
-            aria-label="Karte schließen"
-            className={cn(KNOPF, "size-11 shrink-0 border-linie text-tinte")}
-          >
-            <Minimize2 size={17} strokeWidth={1.75} />
-          </Link>
           <button
             type="button"
             onClick={() => setFilterOffen((a) => !a)}
@@ -293,8 +285,17 @@ function KarteSeite() {
               aria-label="Gesamtansicht"
               className={cn(KNOPF, "size-11 border-linie text-tinte")}
             >
-              <Maximize2 size={16} strokeWidth={1.75} />
+              <Scan size={17} strokeWidth={1.75} />
             </button>
+            {/* Zurück ins Dashboard. Steht da, wo auf der Startseite der
+                Knopf zum Vergrößern saß — derselbe Platz, umgekehrte Richtung. */}
+            <Link
+              to="/dashboard"
+              aria-label="Karte schließen"
+              className={cn(KNOPF, "size-11 border-linie text-tinte")}
+            >
+              <Minimize2 size={17} strokeWidth={1.75} />
+            </Link>
           </div>
         </div>
 
@@ -321,19 +322,7 @@ function KarteSeite() {
         )}
       </div>
 
-      {/* ================= Desktop: Schließen oben links ================= */}
-      <Link
-        to="/dashboard"
-        title="Karte schließen"
-        className={cn(
-          KNOPF,
-          "absolute top-5 left-5 z-20 hidden size-9 border-linie text-grau hover:text-tinte md:flex",
-        )}
-      >
-        <Minimize2 size={14} strokeWidth={1.75} />
-      </Link>
-
-      {/* ================= Desktop: Ansicht und Filter oben rechts ================= */}
+      {/* ================= Desktop: Ansicht, Filter, Schließen oben rechts ================= */}
       <div className="absolute top-5 right-5 z-20 hidden md:block">
         <div className="flex gap-2">
           {/* Ein Segment, kein Umschalter — man sieht sofort beide Möglichkeiten. */}
@@ -367,7 +356,7 @@ function KarteSeite() {
             aria-label="Gesamtansicht"
             className={cn(KNOPF, "size-9 border-linie text-grau hover:text-tinte")}
           >
-            <Maximize2 size={14} strokeWidth={1.75} />
+            <Scan size={14} strokeWidth={1.75} />
           </button>
 
           {/* Filter als Icon — das Feld kommt nur auf Abruf. */}
@@ -392,6 +381,16 @@ function KarteSeite() {
               </span>
             )}
           </button>
+
+          {/* Zurück ins Dashboard — ganz außen, wie das Schließkreuz eines Fensters. */}
+          <Link
+            to="/dashboard"
+            title="Karte schließen"
+            aria-label="Karte schließen"
+            className={cn(KNOPF, "size-9 border-linie text-grau hover:text-tinte")}
+          >
+            <Minimize2 size={14} strokeWidth={1.75} />
+          </Link>
         </div>
 
         {/* Ausklapp-Feld unter dem Filter-Icon. */}
