@@ -106,6 +106,11 @@ interface Props {
   onSchweben: (z: KartenZustand) => void;
   /** Wird mit der Steuerung befüllt, sobald die Karte bereit ist. */
   steuerungRef?: React.RefObject<KartenSteuerung | null>;
+  /**
+   * Rand um den Start-Ausschnitt. Im kleinen Feld auf der Startseite frisst
+   * der volle Rand die halbe Fläche — dort steht ein kleinerer Wert.
+   */
+  polsterung?: number;
 }
 
 export interface KartenSteuerung {
@@ -202,6 +207,7 @@ export function Karte({
   onLeerKlick,
   onSchweben,
   steuerungRef,
+  polsterung = 56,
 }: Props) {
   const behaelterRef = useRef<HTMLDivElement>(null);
   const karteRef = useRef<maplibregl.Map | null>(null);
@@ -211,6 +217,8 @@ export function Karte({
   // bei jedem Render neu gebunden werden.
   const objekteRef = useRef(objekte);
   objekteRef.current = objekte;
+  const polsterungRef = useRef(polsterung);
+  polsterungRef.current = polsterung;
   const rueckrufRef = useRef({ onObjektWaehlen, onLeerKlick, onSchweben });
   rueckrufRef.current = { onObjektWaehlen, onLeerKlick, onSchweben };
 
@@ -229,7 +237,7 @@ export function Karte({
       container: behaelterRef.current,
       style: BASISKARTE,
       bounds: ausschnittVonObjekten(objekteRef.current),
-      fitBoundsOptions: { padding: 56, maxZoom: 14 },
+      fitBoundsOptions: { padding: polsterungRef.current, maxZoom: 14 },
       attributionControl: { compact: true },
       // Die Karte ist ein Werkzeug, keine Show. Keine schrägen Ansichten.
       pitchWithRotate: false,
@@ -307,10 +315,9 @@ export function Karte({
           source: "luftbild",
           layout: { visibility: "none" },
           paint: {
-            // Leicht entsättigt und abgedunkelt, damit die Ampelpunkte darauf
-            // nicht mit dem bunten Foto konkurrieren.
-            "raster-saturation": -0.25,
-            "raster-brightness-max": 0.92,
+            // Das Foto bleibt unbearbeitet. Jede Entsättigung oder Abdunklung
+            // frisst genau die Details, wegen derer man das Luftbild anschaut —
+            // die Ampelpunkte setzen sich über ihren weißen Rand durch.
             "raster-opacity": 0,
             "raster-opacity-transition": { duration: 280, delay: 0 },
             // Beim Zoomschritt die scharfe Kachel sofort zeigen statt erst
@@ -670,7 +677,12 @@ export function Karte({
         }),
       zuruecksetzen: () =>
         karteRef.current?.fitBounds(ausschnittVonObjekten(objekteRef.current), {
-          padding: { top: 56, right: 56, bottom: polsterUnten(), left: 56 },
+          padding: {
+            top: polsterungRef.current,
+            right: polsterungRef.current,
+            bottom: polsterUnten(),
+            left: polsterungRef.current,
+          },
           maxZoom: 14,
           duration: 700,
         }),

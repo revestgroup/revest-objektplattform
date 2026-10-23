@@ -56,10 +56,10 @@ function EinstellungenSeite() {
           Abstand. Jede Zeile ihre eigene Linie ergäbe ein Gitter aus Strichen. */}
       <div className="divide-y divide-linie">
         {/* ----- Konto ----- */}
-        <section className="px-6 py-11 md:px-10 md:py-14">
+        <section className="px-4 py-7 sm:px-6 md:px-10 md:py-10">
           <h2 className="mini-label">Zugang</h2>
           {nutzer && (
-            <dl className="mt-7 grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:max-w-2xl">
+            <dl className="mt-5 grid gap-x-10 gap-y-5 sm:grid-cols-2 lg:max-w-2xl">
               {[
                 ["Name", nutzer.name],
                 ["Rolle", nutzer.rolle],
@@ -77,7 +77,7 @@ function EinstellungenSeite() {
 
         {/* ----- Schalter ----- */}
         {GRUPPEN.map((gruppe) => (
-          <section key={gruppe.titel} className="px-6 py-11 md:px-10 md:py-14">
+          <section key={gruppe.titel} className="px-4 py-7 sm:px-6 md:px-10 md:py-10">
             <h2 className="mini-label">{gruppe.titel}</h2>
             {/* Weder Kästen noch Striche: die Zeilen gehören zusammen, und der
                 Schalter rechts markiert den Rand jeder Zeile schon selbst. */}
@@ -96,9 +96,9 @@ function EinstellungenSeite() {
         ))}
 
         {/* ----- Region ----- */}
-        <section className="px-6 py-11 md:px-10 md:py-14">
+        <section className="px-4 py-7 sm:px-6 md:px-10 md:py-10">
           <h2 className="mini-label">Region</h2>
-          <dl className="mt-7 grid gap-x-10 gap-y-6 sm:grid-cols-3 lg:max-w-2xl">
+          <dl className="mt-5 grid gap-x-10 gap-y-5 sm:grid-cols-3 lg:max-w-2xl">
             {[
               ["Ulm", `${ulm} Stadtteile`, `Grunderwerbsteuer ${f.prozent(GRUNDERWERBSTEUER.BW)}`],
               [
@@ -115,7 +115,7 @@ function EinstellungenSeite() {
               </div>
             ))}
           </dl>
-          <p className="mt-7 text-[0.68rem] text-grau">
+          <p className="mt-5 text-[0.68rem] text-grau">
             Steuersätze hinterlegt für{" "}
             {Object.keys(GRUNDERWERBSTEUER)
               .map((k) => `${BUNDESLAND_NAMEN[k]} ${f.prozent(GRUNDERWERBSTEUER[k])}`)
@@ -124,11 +124,11 @@ function EinstellungenSeite() {
         </section>
 
         {/* ----- Ordner ----- */}
-        <section className="px-6 py-11 md:px-10 md:py-14">
+        <section className="px-4 py-7 sm:px-6 md:px-10 md:py-10">
           <h2 className="mini-label">Ordnerstruktur</h2>
           {/* Zehn umrandete Kästchen waren zwanzig Linien für eine Liste, die
               nur gelesen wird. Jetzt trägt die Nummer die Ordnung. */}
-          <ol className="mt-7 grid gap-x-10 gap-y-3 sm:grid-cols-2 lg:max-w-2xl">
+          <ol className="mt-5 grid gap-x-10 gap-y-3 sm:grid-cols-2 lg:max-w-2xl">
             {DOKUMENT_ORDNER.map((o, i) => (
               <li
                 key={o.schluessel}
@@ -144,9 +144,9 @@ function EinstellungenSeite() {
         </section>
 
         {/* ----- Phase 2 ----- */}
-        <section className="px-6 py-11 md:px-10 md:py-14">
+        <section className="px-4 py-7 sm:px-6 md:px-10 md:py-10">
           <h2 className="mini-label">Was Phase 2 bringt</h2>
-          <ul className="mt-7 flex max-w-2xl flex-col gap-3.5">
+          <ul className="mt-5 flex max-w-2xl flex-col gap-3.5">
             <li className="flex items-start gap-3">
               <Spur fertig />
               <span className="text-[0.8rem] text-tinte">
@@ -163,9 +163,9 @@ function EinstellungenSeite() {
         </section>
 
         {/* ----- Daten ----- */}
-        <section className="px-6 py-11 md:px-10 md:py-14">
+        <section className="px-4 py-7 sm:px-6 md:px-10 md:py-10">
           <h2 className="mini-label">Vorschaudaten</h2>
-          <dl className="mt-7 flex flex-wrap gap-x-10 gap-y-5">
+          <dl className="mt-5 flex flex-wrap gap-x-10 gap-y-5">
             {[
               ["Objekte", objekte.length],
               ["Mietgarantien", garantien.length],

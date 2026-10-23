@@ -46,7 +46,10 @@ function AuswertungSeite() {
               im Weg — wer eine Liste öffnet, sucht ein Objekt, keine Summe.
               „Über Limit" ist die einzige Zahl hier, die eine Entscheidung
               erzwingt, und bekommt deshalb Farbe. */}
-          <section className="flex flex-wrap gap-x-8 gap-y-5 px-4 py-6 sm:px-6 md:gap-x-12 md:px-10">
+          {/* Auf dem Telefon ein Raster statt Umbruch: fünf Zahlen in einer
+              Flex-Reihe brechen auf 3+2 mit schiefen Spalten um, und schiefe
+              Spalten liest man einzeln statt als Zeile. */}
+          <section className="grid grid-cols-3 gap-x-4 gap-y-6 px-4 py-6 sm:flex sm:flex-wrap sm:gap-x-10 sm:px-6 md:gap-x-12 md:px-10">
             {[
               { titel: "In Prüfung", wert: d.aktiv },
               { titel: "Über Limit", wert: d.ueberLimit, warnt: d.ueberLimit > 0 },
@@ -54,8 +57,12 @@ function AuswertungSeite() {
               { titel: "Einheiten", wert: d.einheitenGesamt },
               { titel: "Kein Deal", wert: d.abgesagt.length },
             ].map((k, i) => (
-              <div key={k.titel} className="eintritt" style={{ animationDelay: `${i * 28}ms` }}>
-                <div className="mini-label">{k.titel}</div>
+              <div
+                key={k.titel}
+                className="eintritt min-w-0"
+                style={{ animationDelay: `${i * 28}ms` }}
+              >
+                <div className="mini-label truncate">{k.titel}</div>
                 <div
                   className="zahl mt-1.5 text-[1.4rem] leading-none font-semibold text-tinte"
                   style={k.warnt ? { color: STUFEN.abgesagt.farbe } : undefined}

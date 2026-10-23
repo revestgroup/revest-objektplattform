@@ -14,13 +14,14 @@
  * Standardansicht ist das Luftbild — Timo denkt in Dächern und Grundstücken,
  * der Plan ist die Ausnahme zum Nachschlagen von Straßennamen.
  */
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import {
   ArrowRight,
   ChevronDown,
   Layers,
   Map as MapIcon,
   Maximize2,
+  Minimize2,
   SlidersHorizontal,
   Type,
   X,
@@ -244,24 +245,30 @@ function KarteSeite() {
       )}
 
       {/* ================= Telefon: Leiste oben ================= */}
-      <div className="absolute inset-x-0 top-0 z-20 md:hidden">
+      {/* top-16: die Karte liegt unter der festen Kopfzeile, die Leiste nicht. */}
+      <div className="absolute inset-x-0 top-16 z-20 md:hidden">
         <div className="flex items-center gap-2 px-3 pt-3">
+          {/* Zurück ins Dashboard — die Karte ist von dort maximiert worden. */}
+          <Link
+            to="/dashboard"
+            aria-label="Karte schließen"
+            className={cn(KNOPF, "size-11 shrink-0 border-linie text-tinte")}
+          >
+            <Minimize2 size={17} strokeWidth={1.75} />
+          </Link>
           <button
             type="button"
             onClick={() => setFilterOffen((a) => !a)}
             aria-pressed={filterOffen}
             className={cn(
               KNOPF,
-              "h-11 px-4 text-[0.72rem] font-medium",
+              "h-11 min-w-0 px-4 text-[0.72rem] font-medium whitespace-nowrap",
               stufen.size > 0 ? "border-tinte bg-tinte text-grund" : "border-linie text-tinte",
             )}
           >
             <SlidersHorizontal size={15} strokeWidth={2} />
-            {stufen.size > 0 ? `${stufen.size} Filter` : "Filter"}
+            {stufen.size > 0 ? `${stufen.size} Filter` : `${sichtbar.length} Objekte`}
           </button>
-          <span className={cn(KNOPF, "h-11 border-linie px-4 text-[0.72rem] text-grau-stark")}>
-            <span className="zahl font-semibold text-tinte">{sichtbar.length}</span> Objekte
-          </span>
           <div className="ml-auto flex gap-2">
             <button
               type="button"
@@ -313,6 +320,18 @@ function KarteSeite() {
           </div>
         )}
       </div>
+
+      {/* ================= Desktop: Schließen oben links ================= */}
+      <Link
+        to="/dashboard"
+        title="Karte schließen"
+        className={cn(
+          KNOPF,
+          "absolute top-5 left-5 z-20 hidden size-9 border-linie text-grau hover:text-tinte md:flex",
+        )}
+      >
+        <Minimize2 size={14} strokeWidth={1.75} />
+      </Link>
 
       {/* ================= Desktop: Ansicht und Filter oben rechts ================= */}
       <div className="absolute top-5 right-5 z-20 hidden md:block">

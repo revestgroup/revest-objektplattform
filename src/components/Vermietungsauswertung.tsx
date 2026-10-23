@@ -14,6 +14,8 @@ import { useMemo } from "react";
 import {
   BELASTUNGSFARBEN,
   MIETERQUELLEN,
+  MIETERSTATUS,
+  unterlagenstand,
   belastungsurteil,
   mietbelastung,
   zahltMiete,
@@ -221,6 +223,31 @@ export function Vermietungsauswertung() {
         </ul>
       </Abschnitt>
 
+      {/* ----- Warteliste ----- */}
+      <Abschnitt titel="Mieterpipeline">
+        <div className="flex flex-wrap gap-x-8 gap-y-5">
+          {[
+            { titel: "Ohne Platz", wert: d.ohnePlatz },
+            { titel: "Zuordnungsreif", wert: d.zuordnungsreif },
+            { titel: "Unterlagen offen", wert: d.unterlagenOffen, warnung: true },
+            { titel: "Vertrag unterwegs", wert: d.vertragUnterwegs },
+            { titel: "Eingezogen", wert: d.eingezogen },
+          ].map((k) => (
+            <div key={k.titel} className="min-w-0">
+              <div className="mini-label">{k.titel}</div>
+              <div
+                className={cn(
+                  "zahl mt-1.5 text-[1.3rem] leading-none font-semibold",
+                  k.warnung && k.wert > 0 ? "text-[#8A2822]" : "text-tinte",
+                )}
+              >
+                {k.wert}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Abschnitt>
+
       {/* ----- Geld ----- */}
       <Abschnitt titel="Monatlich">
         <div className="flex flex-wrap gap-x-8 gap-y-5">
@@ -299,6 +326,10 @@ function auswerten(garantien: Mietgarantie[], mieter: Mieter[]) {
   }
   const quellen = [...quellenZaehler.entries()].sort((a, b) => b[1] - a[1]);
 
+  // Wer noch auf einen Platz wartet, und woran es hängt.
+  const ohnePlatz = mieter.filter((m) => MIETERSTATUS[m.status].offen);
+  const unterlagenOffen = ohnePlatz.filter((m) => !unterlagenstand(m).vollstaendig).length;
+
   return {
     laufende,
     beendet,
@@ -324,6 +355,11 @@ function auswerten(garantien: Mietgarantie[], mieter: Mieter[]) {
       const t = new Date(m.einzugAm).getTime();
       return t >= heute && t <= inNeunzig;
     }).length,
+    ohnePlatz: ohnePlatz.length,
+    zuordnungsreif: ohnePlatz.length - unterlagenOffen,
+    unterlagenOffen,
+    vertragUnterwegs: mieter.filter((m) => m.vertrag?.status === "versendet").length,
+    eingezogen: mieter.filter((m) => m.status === "eingezogen").length,
     quellen,
     maxQuelle: Math.max(1, ...quellen.map(([, n]) => n)),
   };

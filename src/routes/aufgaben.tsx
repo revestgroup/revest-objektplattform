@@ -96,7 +96,7 @@ function AufgabenSeite() {
   return (
     <>
       <Seitenkopf
-        titel="Aufgaben"
+        titel="To Do's"
         aktion={
           <button
             type="button"
@@ -104,12 +104,10 @@ function AufgabenSeite() {
             className="druckbar flex items-center gap-2 rounded-full bg-tinte px-5 py-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-grund shadow-karte"
           >
             <Plus size={14} strokeWidth={2.25} />
-            Aufgabe anlegen
+            To Do erstellen
           </button>
         }
       />
-
-      <Kennzahlen aufgaben={aufgaben} />
 
       {/* ----- Filter ----- */}
       <div className="sticky top-0 z-20 border-b border-linie bg-grund/95 backdrop-blur-sm">
@@ -231,80 +229,10 @@ function AufgabenSeite() {
         </section>
       )}
 
-      <Schublade offen={anlegen} schliessen={() => setAnlegen(false)} titel="Aufgabe anlegen">
+      <Schublade offen={anlegen} schliessen={() => setAnlegen(false)} titel="To Do erstellen">
         <AufgabenFormular onFertig={() => setAnlegen(false)} onAbbrechen={() => setAnlegen(false)} />
       </Schublade>
     </>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Kennzahlen                                                           */
-/* ------------------------------------------------------------------ */
-
-function Kennzahlen({ aufgaben }: { aufgaben: Aufgabe[] }) {
-  const z = useMemo(() => {
-    const offen = aufgaben.filter((a) => !a.erledigtAm);
-    const ueberfaellig = offen.filter((a) => faelligkeit(a) === "ueberfaellig");
-    const heute = offen.filter((a) => faelligkeit(a) === "heute");
-    const woche = offen.filter((a) => ["ueberfaellig", "heute", "bald"].includes(faelligkeit(a)));
-    // Innerhalb der letzten sieben Tage abgehakt — das Gegengewicht zur
-    // Liste der offenen Punkte.
-    const grenze = Date.now() - 7 * 86_400_000;
-    const geschafft = aufgaben.filter(
-      (a) => a.erledigtAm && new Date(a.erledigtAm).getTime() >= grenze,
-    );
-    return {
-      offen: offen.length,
-      ueberfaellig: ueberfaellig.length,
-      heute: heute.length,
-      woche: woche.length,
-      geschafft: geschafft.length,
-    };
-  }, [aufgaben]);
-
-  return (
-    <dl className="grid grid-cols-2 gap-3 px-6 py-5 md:px-10 lg:grid-cols-4">
-      {[
-        {
-          titel: "Überfällig",
-          wert: String(z.ueberfaellig),
-          unten: z.ueberfaellig === 0 ? "nichts liegen geblieben" : "blockiert den Rest",
-          warnung: z.ueberfaellig > 0,
-        },
-        {
-          titel: "Heute fällig",
-          wert: String(z.heute),
-          unten: z.heute === 0 ? "heute frei" : "bis Feierabend",
-        },
-        { titel: "Diese Woche", wert: String(z.woche), unten: "inklusive überfällig" },
-        {
-          titel: "Offen gesamt",
-          wert: String(z.offen),
-          unten: `${z.geschafft} in sieben Tagen erledigt`,
-        },
-      ].map((k, i) => (
-        <div
-          key={k.titel}
-          className={cn(
-            "eintritt rounded-2xl border bg-flaeche px-4 py-4 md:px-5",
-            k.warnung ? "border-[#E3BDB9]" : "border-linie",
-          )}
-          style={{ animationDelay: `${i * 28}ms` }}
-        >
-          <dt className="mini-label">{k.titel}</dt>
-          <dd
-            className={cn(
-              "zahl mt-2 text-[1.3rem] leading-none font-semibold md:text-[1.6rem]",
-              k.warnung ? "text-[#8A2822]" : "text-tinte",
-            )}
-          >
-            {k.wert}
-          </dd>
-          <div className="mt-1.5 text-[0.65rem] text-grau">{k.unten}</div>
-        </div>
-      ))}
-    </dl>
   );
 }
 
@@ -561,7 +489,7 @@ function AufgabenFormular({
           type="submit"
           className="druckbar flex-1 rounded-full bg-tinte px-5 py-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-grund shadow-karte"
         >
-          Aufgabe anlegen
+          To Do erstellen
         </button>
         <button
           type="button"

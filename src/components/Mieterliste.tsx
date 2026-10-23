@@ -74,8 +74,6 @@ export function Mieterliste({
 
   return (
     <>
-      <Kennzahlen mieter={mieter} />
-
       <Statusband mieter={mieter} aktiv={status} setzen={setStatus} />
 
       {/* ----- Suche ----- */}
@@ -148,60 +146,6 @@ export function Mieterliste({
         )}
       </Schublade>
     </>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Kennzahlen                                                           */
-/* ------------------------------------------------------------------ */
-
-function Kennzahlen({ mieter }: { mieter: Mieter[] }) {
-  const z = useMemo(() => {
-    const offen = mieter.filter((m) => MIETERSTATUS[m.status].offen);
-    const unvollstaendig = offen.filter((m) => !unterlagenstand(m).vollstaendig);
-    return {
-      offen: offen.length,
-      unvollstaendig: unvollstaendig.length,
-      bereit: offen.length - unvollstaendig.length,
-      unterwegs: mieter.filter((m) => m.vertrag?.status === "versendet").length,
-      eingezogen: mieter.filter((m) => m.status === "eingezogen").length,
-    };
-  }, [mieter]);
-
-  return (
-    <dl className="grid grid-cols-2 gap-3 px-6 py-5 md:px-10 lg:grid-cols-4">
-      {[
-        { titel: "Ohne Platz", wert: z.offen, unten: `${z.bereit} davon zuordnungsreif` },
-        {
-          titel: "Unterlagen offen",
-          wert: z.unvollstaendig,
-          unten: "blockiert die Zuordnung",
-          warnung: z.unvollstaendig > 0,
-        },
-        { titel: "Vertrag unterwegs", wert: z.unterwegs, unten: "Rücklauf steht aus" },
-        { titel: "Eingezogen", wert: z.eingezogen, unten: "zahlen Miete" },
-      ].map((k, i) => (
-        <div
-          key={k.titel}
-          className={cn(
-            "eintritt rounded-2xl border bg-flaeche px-4 py-4 md:px-5",
-            k.warnung ? "border-[#E3BDB9]" : "border-linie",
-          )}
-          style={{ animationDelay: `${i * 28}ms` }}
-        >
-          <dt className="mini-label">{k.titel}</dt>
-          <dd
-            className={cn(
-              "zahl mt-2 text-[1.3rem] leading-none font-semibold md:text-[1.6rem]",
-              k.warnung ? "text-[#8A2822]" : "text-tinte",
-            )}
-          >
-            {k.wert}
-          </dd>
-          <div className="mt-1.5 text-[0.65rem] text-grau">{k.unten}</div>
-        </div>
-      ))}
-    </dl>
   );
 }
 

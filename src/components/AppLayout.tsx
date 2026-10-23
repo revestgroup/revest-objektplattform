@@ -32,7 +32,7 @@ const NAVIGATION = [
   { zu: "/dashboard", titel: "Übersicht", kurz: "Start", icon: LayoutDashboard, unten: true },
   { zu: "/ankauf", titel: "Ankauf", kurz: "Ankauf", icon: Search, unten: true },
   { zu: "/projekte", titel: "Projekte", kurz: "Projekte", icon: Building2, unten: true },
-  { zu: "/aufgaben", titel: "Aufgaben", kurz: "Aufgaben", icon: ListChecks, unten: true },
+  { zu: "/aufgaben", titel: "To Do's", kurz: "To Do's", icon: ListChecks, unten: true },
   { zu: "/mietverwaltung", titel: "Mietverwaltung", kurz: "Miete", icon: KeyRound, unten: true },
   { zu: "/karte", titel: "Karte", kurz: "Karte", icon: Map, unten: false },
   { zu: "/auswertung", titel: "Auswertung", kurz: "Zahlen", icon: BarChart3, unten: false },
@@ -50,7 +50,7 @@ export function AppLayout({ children }: { children?: ReactNode }) {
       <Kopfzeile />
       <main
         className={cn(
-          "relative min-w-0 flex-1 pt-14 pb-14 md:pt-0 md:pb-0",
+          "relative min-w-0 flex-1 pt-16 pb-14 md:pt-0 md:pb-0",
           randlos ? "overflow-hidden" : "overflow-y-auto",
         )}
       >
@@ -126,15 +126,15 @@ function Kopfzeile() {
   const [offen, setOffen] = useState(false);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-linie bg-flaeche px-3 pt-[env(safe-area-inset-top)] md:hidden">
+    <header className="fixed inset-x-0 top-0 z-40 flex h-16 items-center justify-between border-b border-linie bg-flaeche px-3 pt-[env(safe-area-inset-top)] md:hidden">
       {/* Linker Platzhalter in Knopfbreite, damit die Marke exakt mittig steht. */}
       <div className="size-9" aria-hidden />
       <img
         src={`${import.meta.env.BASE_URL}logo/revest-wortmarke-schwarz.png`}
         alt="REVEST"
-        className="h-[24px] w-auto"
-        width={148}
-        height={24}
+        className="h-[34px] w-auto"
+        width={209}
+        height={34}
       />
       <div className="relative">
         {nutzer ? (
@@ -143,7 +143,7 @@ function Kopfzeile() {
             onClick={() => setOffen((v) => !v)}
             aria-label="Konto"
             aria-expanded={offen}
-            className="druckbar flex size-9 items-center justify-center rounded-full border border-linie-stark text-[0.65rem] font-semibold tracking-wider text-tinte"
+            className="druckbar flex size-9 items-center justify-center rounded-full bg-tinte text-[0.65rem] font-semibold tracking-wider text-grund"
           >
             {nutzer.initialen}
           </button>

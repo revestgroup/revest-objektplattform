@@ -18,12 +18,10 @@ import { ArrowDownRight, ArrowUpRight, Plus, Trash2, UserMinus, UserPlus } from 
 import { useMemo, useState } from "react";
 
 import { Schublade, Seitenkopf } from "../components/AppLayout";
-import { Auswahlfeld, Bereich, Segmente, Textfeld, Zahlfeld } from "../components/Felder";
 import { Mieterliste } from "../components/Mieterliste";
 import { Vermietungsauswertung } from "../components/Vermietungsauswertung";
-import { MIETERSTATUS, unterlagenstand, type Mieter } from "../lib/mieter";
+import { MIETERSTATUS, unterlagenstand } from "../lib/mieter";
 import { f } from "../lib/objekte";
-import { useObjekte } from "../lib/objekteStore";
 import {
   GARANTIEARTEN,
   GARANTIESTATUS,
@@ -33,7 +31,7 @@ import {
   type Garantiestatus,
   type Mietgarantie,
 } from "../lib/vermietung";
-import { useVermietung, type GarantieEntwurf } from "../lib/vermietungStore";
+import { useVermietung } from "../lib/vermietungStore";
 import { cn } from "../lib/utils";
 
 export const Route = createFileRoute("/mietverwaltung")({ component: MietverwaltungSeite });
@@ -49,14 +47,13 @@ const REITER: { schluessel: Reiter; titel: string }[] = [
 function MietverwaltungSeite() {
   const { garantien, mieter } = useVermietung();
   const [reiter, setReiter] = useState<Reiter>("einheiten");
-  // Das Anlegen liegt über den Reitern, weil der Knopf im Seitenkopf sitzt.
-  // Beim Wechseln geht es zu — ein halb getippter Mieter im Garantieformular
-  // wäre schlimmer als ein Formular, das man neu öffnen muss.
-  const [anlegen, setAnlegen] = useState(false);
+  // Nur Mieter werden hier angelegt. Eine Garantie entsteht aus einem Verkauf,
+  // nicht aus einem Formular in der Verwaltung.
+  const [mieterAnlegen, setMieterAnlegen] = useState(false);
 
   function reiterWaehlen(r: Reiter) {
     setReiter(r);
-    setAnlegen(false);
+    setMieterAnlegen(false);
   }
 
   const ohnePlatz = mieter.filter((m) => MIETERSTATUS[m.status].offen).length;
@@ -70,16 +67,16 @@ function MietverwaltungSeite() {
       <Seitenkopf
         titel="Mietverwaltung"
         aktion={
-          reiter === "auswertung" ? undefined : (
+          reiter === "mieter" ? (
             <button
               type="button"
-              onClick={() => setAnlegen(true)}
+              onClick={() => setMieterAnlegen(true)}
               className="druckbar flex items-center gap-2 rounded-full bg-tinte px-5 py-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-grund shadow-karte"
             >
               <Plus size={14} strokeWidth={2.25} />
-              {reiter === "einheiten" ? "Garantie anlegen" : "Mieter anlegen"}
+              Mieter anlegen
             </button>
-          )
+          ) : undefined
         }
       />
 
@@ -119,9 +116,12 @@ function MietverwaltungSeite() {
       </div>
 
       {reiter === "einheiten" ? (
-        <Garantien anlegenOffen={anlegen} anlegenSchliessen={() => setAnlegen(false)} />
+        <Garantien />
       ) : reiter === "mieter" ? (
-        <Mieterliste anlegenOffen={anlegen} anlegenSchliessen={() => setAnlegen(false)} />
+        <Mieterliste
+          anlegenOffen={mieterAnlegen}
+          anlegenSchliessen={() => setMieterAnlegen(false)}
+        />
       ) : (
         <Vermietungsauswertung />
       )}
@@ -133,13 +133,7 @@ function MietverwaltungSeite() {
 /* Garantien                                                            */
 /* ------------------------------------------------------------------ */
 
-function Garantien({
-  anlegenOffen,
-  anlegenSchliessen,
-}: {
-  anlegenOffen: boolean;
-  anlegenSchliessen: () => void;
-}) {
+function Garantien() {
   const { garantien, mieter, bereit } = useVermietung();
   const [artFilter, setArtFilter] = useState<"" | Garantieart>("");
   const [statusFilter, setStatusFilter] = useState<"" | Garantiestatus>("");
@@ -165,8 +159,6 @@ function Garantien({
 
   return (
     <>
-      <Bilanz garantien={garantien} mieter={mieter} />
-
       {/* ----- Filter ----- */}
       <div className="sticky top-0 z-20 border-b border-linie bg-grund/95 backdrop-blur-sm">
         <div className="scroll-reihe flex gap-2 overflow-x-auto px-6 py-3 md:flex-wrap md:px-10">
@@ -243,89 +235,13 @@ function Garantien({
       )}
 
       <Schublade
-        offen={anlegenOffen || detailId !== null}
-        schliessen={() => {
-          anlegenSchliessen();
-          setDetailId(null);
-        }}
-        titel={anlegenOffen ? "Mietgarantie anlegen" : (gewaehlt?.adresse ?? "Garantie")}
+        offen={detailId !== null}
+        schliessen={() => setDetailId(null)}
+        titel={gewaehlt?.adresse ?? "Garantie"}
       >
-        {anlegenOffen ? (
-          <GarantieFormular
-            onFertig={(id) => {
-              anlegenSchliessen();
-              setDetailId(id);
-            }}
-            onAbbrechen={anlegenSchliessen}
-          />
-        ) : (
-          gewaehlt && <GarantieDetail garantie={gewaehlt} onGeloescht={() => setDetailId(null)} />
-        )}
+        {gewaehlt && <GarantieDetail garantie={gewaehlt} onGeloescht={() => setDetailId(null)} />}
       </Schublade>
     </>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Bilanz über allem                                                    */
-/* ------------------------------------------------------------------ */
-
-function Bilanz({ garantien, mieter }: { garantien: Mietgarantie[]; mieter: Mieter[] }) {
-  const z = useMemo(() => {
-    const laufend = garantien
-      .map((g) => ({ g, k: berechneGarantie(g, mieter) }))
-      .filter(({ k }) => k.status !== "beendet");
-    const garantiert = laufend.reduce((s, { g }) => s + g.garantiemiete, 0);
-    const ist = laufend.reduce((s, { k }) => s + k.istMiete, 0);
-    const freie = laufend.reduce((s, { k }) => s + (k.plaetze - k.belegt), 0);
-    const restverpflichtung = laufend.reduce((s, { k }) => s + k.restverpflichtung, 0);
-    return { anzahl: laufend.length, garantiert, ist, deckung: ist - garantiert, freie, restverpflichtung };
-  }, [garantien, mieter]);
-
-  const unter = z.deckung < 0;
-
-  return (
-    <dl className="grid grid-cols-2 gap-3 px-6 py-5 md:px-10 lg:grid-cols-4">
-      {[
-        {
-          titel: "Laufende Garantien",
-          wert: String(z.anzahl),
-          unten: z.freie === 0 ? "alles belegt" : `${z.freie} Einheiten/Zimmer frei`,
-        },
-        {
-          titel: "Garantiert / Monat",
-          wert: f.eur(z.garantiert),
-          unten: `${f.eurKurz(z.restverpflichtung)} bis Laufzeitende`,
-        },
-        { titel: "Ist-Miete / Monat", wert: f.eur(z.ist), unten: "tatsächlich vereinnahmt" },
-        {
-          titel: "Deckung / Monat",
-          wert: `${unter ? "−" : "+"}${f.eur(Math.abs(z.deckung))}`,
-          unten: unter ? "zahlt Revest zu" : "Überschuss",
-          warnung: unter,
-        },
-      ].map((k, i) => (
-        <div
-          key={k.titel}
-          className={cn(
-            "eintritt rounded-2xl border bg-flaeche px-4 py-4 md:px-5",
-            k.warnung ? "border-[#E3BDB9]" : "border-linie",
-          )}
-          style={{ animationDelay: `${i * 28}ms` }}
-        >
-          <dt className="mini-label">{k.titel}</dt>
-          <dd
-            className={cn(
-              "zahl mt-2 text-[1.3rem] leading-none font-semibold md:text-[1.6rem]",
-              k.warnung ? "text-[#8A2822]" : "text-tinte",
-            )}
-          >
-            {k.wert}
-          </dd>
-          <div className="mt-1.5 text-[0.65rem] text-grau">{k.unten}</div>
-        </div>
-      ))}
-    </dl>
   );
 }
 
@@ -723,237 +639,5 @@ function Platzzeile({ garantie: g, zimmerId }: { garantie: Mietgarantie; zimmerI
         )}
       </div>
     </li>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Anlegen                                                              */
-/* ------------------------------------------------------------------ */
-
-function GarantieFormular({
-  onFertig,
-  onAbbrechen,
-}: {
-  onFertig: (id: string) => void;
-  onAbbrechen: () => void;
-}) {
-  const { anlegen } = useVermietung();
-  const { objekte } = useObjekte();
-
-  const [art, setArt] = useState<Garantieart>("wohnung");
-  const [objektId, setObjektId] = useState("");
-  const [adresse, setAdresse] = useState("");
-  const [einheitTitel, setEinheitTitel] = useState("");
-  const [kaeufer, setKaeufer] = useState("");
-  const [kontakt, setKontakt] = useState("");
-  const [verkaufspreis, setVerkaufspreis] = useState("");
-  const [beginn, setBeginn] = useState(() => new Date().toISOString().slice(0, 10));
-  const [laufzeit, setLaufzeit] = useState("36");
-  const [garantiemiete, setGarantiemiete] = useState("");
-  const [sollmiete, setSollmiete] = useState("");
-  const [anzahlZimmer, setAnzahlZimmer] = useState("4");
-  const [fehler, setFehler] = useState<Record<string, string>>({});
-
-  // Objekt gewählt? Dann Adresse und Einheiten daraus vorbelegen.
-  const objekt = objekte.find((o) => o.id === objektId) ?? null;
-
-  function objektWaehlen(id: string) {
-    setObjektId(id);
-    const o = objekte.find((x) => x.id === id);
-    if (!o) return;
-    setAdresse(`${o.strasse}, ${o.plz} ${o.stadt}`);
-    if (o.vertriebsweg === "wg") {
-      setArt("wg");
-      if (o.wgZimmer) setAnzahlZimmer(String(o.wgZimmer));
-    }
-  }
-
-  function absenden(e: React.FormEvent) {
-    e.preventDefault();
-    const neu: Record<string, string> = {};
-    if (!adresse.trim()) neu.adresse = "Adresse fehlt.";
-    if (!kaeufer.trim()) neu.kaeufer = "Käufer fehlt.";
-    if (!garantiemiete.trim() || Number(garantiemiete) <= 0)
-      neu.garantiemiete = "Garantiemiete fehlt.";
-    setFehler(neu);
-    if (Object.keys(neu).length > 0) return;
-
-    const zahl = (v: string) => (v.trim() === "" ? null : Number(v));
-    const anzahl = Math.max(1, Math.min(12, Number(anzahlZimmer) || 1));
-    const proZimmer = Math.round(Number(garantiemiete) / anzahl);
-
-    const entwurf: GarantieEntwurf = {
-      objektId: objektId || null,
-      einheitId: null,
-      adresse: adresse.trim(),
-      einheitTitel: einheitTitel.trim() || (art === "wg" ? `WG · ${anzahl} Zimmer` : "Wohnung"),
-      art,
-      kaeufer: kaeufer.trim(),
-      kaeuferKontakt: kontakt.trim() || null,
-      verkauftAm: new Date(beginn).toISOString(),
-      verkaufspreis: zahl(verkaufspreis),
-      beginn: new Date(beginn).toISOString(),
-      laufzeitMonate: Number(laufzeit) || 36,
-      garantiemiete: Number(garantiemiete),
-      sollmiete: art === "wohnung" ? (zahl(sollmiete) ?? Number(garantiemiete)) : null,
-      zimmer:
-        art === "wg"
-          ? Array.from({ length: anzahl }, (_, i) => ({
-              id: `z${i + 1}-${Date.now().toString(36)}`,
-              bezeichnung: `Zimmer ${i + 1}`,
-              flaeche: null,
-              // Garantiesumme gleichmäßig verteilt — Timo justiert danach
-              // zimmerweise nach, wenn die Verträge da sind.
-              miete: proZimmer,
-            }))
-          : [],
-      notiz: null,
-    };
-
-    onFertig(anlegen(entwurf).id);
-  }
-
-  return (
-    <form onSubmit={absenden} className="pb-20">
-      <Bereich
-        titel="Einheit"
-      >
-        <Auswahlfeld
-          id="objekt"
-          label="Objekt aus dem Bestand"
-          wert={objektId}
-          setWert={objektWaehlen}
-          leerText="Ohne Objektbezug"
-          optionen={objekte.map((o) => ({
-            wert: o.id,
-            titel: `${o.strasse}, ${o.stadt}`,
-          }))}
-          breit
-        />
-        <Textfeld
-          id="adresse"
-          label="Adresse"
-          wert={adresse}
-          setWert={setAdresse}
-          platzhalter="Zinglerstraße 44, 89073 Ulm"
-          pflicht
-          fehler={fehler.adresse}
-          breit
-        />
-        <Textfeld
-          id="einheit"
-          label="Einheit"
-          wert={einheitTitel}
-          setWert={setEinheitTitel}
-          platzhalter="WE 3 · 2. OG"
-          hinweis={objekt ? `${objekt.einheiten.length} Einheiten am Objekt hinterlegt` : undefined}
-        />
-        <Segmente
-          label="Art der Garantie"
-          wert={art}
-          setWert={setArt}
-          optionen={[
-            { wert: "wohnung", titel: "Wohnung" },
-            { wert: "wg", titel: "WG-Vermietung" },
-          ]}
-        />
-      </Bereich>
-
-      <Bereich titel="Käufer">
-        <Textfeld
-          id="kaeufer"
-          label="Name"
-          wert={kaeufer}
-          setWert={setKaeufer}
-          pflicht
-          fehler={fehler.kaeufer}
-        />
-        <Textfeld
-          id="kontakt"
-          label="Kontakt"
-          wert={kontakt}
-          setWert={setKontakt}
-          platzhalter="E-Mail oder Telefon"
-        />
-        <Zahlfeld
-          id="verkaufspreis"
-          label="Verkaufspreis"
-          wert={verkaufspreis}
-          setWert={setVerkaufspreis}
-          einheit="€"
-        />
-      </Bereich>
-
-      <Bereich titel="Garantie">
-        <div>
-          <label htmlFor="beginn" className="mini-label block">
-            Beginn
-          </label>
-          <input
-            id="beginn"
-            type="date"
-            value={beginn}
-            onChange={(e) => setBeginn(e.target.value)}
-            className="mt-2 w-full border border-linie bg-flaeche px-3 py-2.5 text-[0.82rem] text-tinte focus:border-linie-stark focus:outline-none"
-          />
-        </div>
-        <Auswahlfeld
-          id="laufzeit"
-          label="Laufzeit"
-          wert={laufzeit}
-          setWert={setLaufzeit}
-          optionen={[12, 24, 36, 48, 60].map((m) => ({
-            wert: String(m),
-            titel: `${m} Monate`,
-          }))}
-        />
-        <Zahlfeld
-          id="garantiemiete"
-          label="Garantiemiete je Monat"
-          wert={garantiemiete}
-          setWert={setGarantiemiete}
-          einheit="€"
-          pflicht
-          fehler={fehler.garantiemiete}
-        />
-        {art === "wg" && (
-          <Zahlfeld
-            id="zimmer"
-            label="Anzahl Zimmer"
-            wert={anzahlZimmer}
-            setWert={setAnzahlZimmer}
-          />
-        )}
-      </Bereich>
-
-      {art === "wohnung" && (
-        <Bereich titel="Mietverhältnis">
-          <Zahlfeld
-            id="sollmiete"
-            label="Sollmiete je Monat"
-            wert={sollmiete}
-            setWert={setSollmiete}
-            einheit="€"
-            hinweis="Mieter wird danach im Reiter Mieter zugeordnet."
-          />
-        </Bereich>
-      )}
-
-      <div className="sticky bottom-0 flex gap-3 border-t border-linie bg-grund/95 px-5 py-4 backdrop-blur-sm md:px-7">
-        <button
-          type="submit"
-          className="druckbar flex-1 rounded-full bg-tinte px-5 py-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-grund shadow-karte"
-        >
-          Garantie anlegen
-        </button>
-        <button
-          type="button"
-          onClick={onAbbrechen}
-          className="druckbar rounded-full border border-linie-stark px-5 py-3 text-[0.68rem] font-medium tracking-[0.14em] uppercase text-grau-stark"
-        >
-          Abbrechen
-        </button>
-      </div>
-    </form>
   );
 }
