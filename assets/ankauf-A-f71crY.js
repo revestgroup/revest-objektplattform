@@ -1,1 +1,0 @@
-import{i as e}from"./createLucideIcon-CMHtfDX1.js";import{t}from"./Objektliste-Bcd_suHo.js";import{n}from"./index-TSqQreWS.js";var r=e();function i(){let{objekt:e}=n.useSearch();return(0,r.jsx)(t,{bereich:`ankauf`,oeffne:e})}export{i as component};
