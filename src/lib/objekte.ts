@@ -435,37 +435,28 @@ export interface Aufteilung {
  */
 export type Teilungsstatus = "vorbereitung" | "beim_notar" | "beim_amt" | "eingetragen";
 
-export const TEILUNGSSTATUS: Record<
-  Teilungsstatus,
-  { titel: string; hinweis: string; farbe: string; weich: string; tief: string }
-> = {
+/**
+ * Ohne Farbe, anders als die Ankaufsstufen. Die Stufe eines Objekts muss man
+ * in einer Liste von dreißig auf einen Blick erkennen — die Station einer
+ * Teilungserklärung steht immer allein in ihrem eigenen Reiter. Dort trägt die
+ * Reihenfolge die Aussage, und vier bunte Kästen wären nur Dekoration.
+ */
+export const TEILUNGSSTATUS: Record<Teilungsstatus, { titel: string; hinweis: string }> = {
   vorbereitung: {
     titel: "In Vorbereitung",
     hinweis: "Aufteilungsplan und Abgeschlossenheitsbescheinigung werden erstellt.",
-    farbe: "#A3ABB8",
-    weich: "#EEF0F4",
-    tief: "#525C6B",
   },
   beim_notar: {
     titel: "Beim Notar",
     hinweis: "Der Entwurf liegt zur Beurkundung.",
-    farbe: "#E5A32E",
-    weich: "#FBEBD1",
-    tief: "#8A5A08",
   },
   beim_amt: {
     titel: "Beim Grundbuchamt",
     hinweis: "Eingereicht — jetzt entscheidet die Laufzeit des Amts.",
-    farbe: "#3E7BD6",
-    weich: "#E0EAFA",
-    tief: "#1F4E92",
   },
   eingetragen: {
     titel: "Eingetragen",
     hinweis: "Die Wohnungsgrundbücher sind angelegt. Ab jetzt ist jede Einheit verkäuflich.",
-    farbe: "#17935C",
-    weich: "#DBF2E6",
-    tief: "#0C5E3A",
   },
 };
 

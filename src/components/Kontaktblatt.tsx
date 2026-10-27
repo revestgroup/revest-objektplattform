@@ -13,7 +13,7 @@
  * Eigentümer ist ein verlorener Vorgang. Der Kontakt war das Ergebnis, nicht
  * der Kauf. Das ist der einzige Ort, an dem diese Plattform mahnt.
  */
-import { AlertCircle, Check, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { AlertCircle, Check, Mail, Phone, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import {
@@ -286,6 +286,33 @@ function Kontaktzeile({
           art="email"
         />
       </div>
+
+      {/* Die Nummer steht hier, weil sie beim Telefonieren notiert wird — und
+          genau deshalb wird sie von hier aus auch gewählt. Zwei stille Knöpfe,
+          keine Marke: bei vier Beteiligten wären acht laute Pillen die halbe
+          Seite. Sie erscheinen erst, wenn etwas drinsteht. */}
+      {(kontakt.telefon || kontakt.email) && (
+        <div className="flex flex-wrap gap-2">
+          {kontakt.telefon && (
+            <a
+              href={`tel:${kontakt.telefon.replace(/[^+\d]/g, "")}`}
+              className="druckbar flex items-center gap-1.5 rounded-full border border-linie px-3 py-1.5 text-[0.68rem] text-grau-stark hover:border-linie-stark hover:text-tinte"
+            >
+              <Phone size={11} strokeWidth={2.25} />
+              Anrufen
+            </a>
+          )}
+          {kontakt.email && (
+            <a
+              href={`mailto:${kontakt.email}`}
+              className="druckbar flex items-center gap-1.5 rounded-full border border-linie px-3 py-1.5 text-[0.68rem] text-grau-stark hover:border-linie-stark hover:text-tinte"
+            >
+              <Mail size={11} strokeWidth={2.25} />
+              Schreiben
+            </a>
+          )}
+        </div>
+      )}
 
       <Feld
         label="Gesprächsnotiz"

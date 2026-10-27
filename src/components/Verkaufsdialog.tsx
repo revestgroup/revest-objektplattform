@@ -16,14 +16,18 @@
  * Kontakt des Käufers steht ab hier im Datensatz, also kann die Garantie- oder
  * Vertragsmail später von hier aus gehen.
  */
+import { Link } from "@tanstack/react-router";
+import { ShieldCheck } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { f, type Einheit, type Objekt } from "../lib/objekte";
+import { EINHEITSSTATUS, f, type Einheit, type Einheitsstatus, type Objekt } from "../lib/objekte";
 import { useObjekte } from "../lib/objekteStore";
+import { cn } from "../lib/utils";
 import {
   GARANTIEARTEN,
   LAUFZEITEN,
   LAUFZEIT_STANDARD,
+  berechneGarantie,
   zimmerVorschlag,
   type Garantieart,
 } from "../lib/vermietung";
@@ -290,6 +294,163 @@ export function Verkaufsdialog({
         titel="Verkauf eintragen"
         ton="gruen"
       />
+    </Dialog>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Rücknahme                                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Die Gründe, aus denen ein beurkundeter Verkauf wieder aufgeht. Alle vier
+ * bedeuten etwas anderes für das, was danach passiert — „falsch eingetragen"
+ * ist eine Korrektur, die drei anderen sind ein Rückschlag im Vertrieb.
+ */
+const RUECKNAHMEGRUENDE = [
+  "Käufer ist abgesprungen",
+  "Finanzierung geplatzt",
+  "Rückabwicklung beim Notar",
+  "Falsch eingetragen",
+];
+
+/**
+ * Der Verkauf zurück.
+ *
+ * Ein Verkauf ist ein Vorgang, also ist seine Rücknahme auch einer — bisher
+ * genügte ein Griff ins Status-Dropdown, und Käufer, Kontakt und Verkaufsdatum
+ * blieben an einer Einheit hängen, die wieder im Angebot stand.
+ *
+ * Läuft noch eine Mietgarantie, ist hier Schluss: die Verpflichtung gegenüber
+ * dem Käufer ist ein Vertrag und kein Nebeneffekt eines Dropdowns. Sie wird in
+ * der Mietverwaltung beendet, erst danach geht die Einheit zurück.
+ */
+export function Ruecknahmedialog({
+  objekt,
+  einheit,
+  status,
+  schliessen,
+}: {
+  objekt: Objekt;
+  einheit: Einheit;
+  status: Einheitsstatus;
+  schliessen: () => void;
+}) {
+  const { einheitVerkaufZurueck } = useObjekte();
+  const { garantien, mieter } = useVermietung();
+  const [grund, setGrund] = useState("");
+
+  const garantie = garantien.find((g) => g.einheitId === einheit.id);
+  const laufend =
+    garantie && berechneGarantie(garantie, mieter).status !== "beendet" ? garantie : null;
+
+  return (
+    <Dialog
+      titel="Verkauf zurücknehmen"
+      unterzeile={`${einheit.bezeichnung} · ${objekt.strasse}, ${objekt.stadt}`}
+      schliessen={schliessen}
+    >
+      {laufend ? (
+        <p className="rounded-xl bg-flaeche-hoch px-3.5 py-3 text-[0.74rem] leading-relaxed text-grau-stark">
+          Für diese Einheit läuft eine Mietgarantie über{" "}
+          <span className="zahl">{f.eur(laufend.garantiemiete)}</span> im Monat bis{" "}
+          <span className="zahl">
+            {f.datum(berechneGarantie(laufend, mieter).ende.toISOString())}
+          </span>
+          . Sie wird in der Mietverwaltung beendet, bevor der Verkauf zurückgeht.
+        </p>
+      ) : (
+        <>
+          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-linie bg-linie">
+            <div className="bg-flaeche px-4 py-3.5">
+              <dt className="mini-label !text-[0.52rem]">Entfällt</dt>
+              <dd className="mt-1.5 text-[0.82rem] font-medium text-tinte">
+                {einheit.kaeufer ?? "—"}
+              </dd>
+            </div>
+            <div className="bg-flaeche px-4 py-3.5">
+              <dt className="mini-label !text-[0.52rem]">Neuer Status</dt>
+              <dd className="mt-1.5 text-[0.82rem] font-medium text-tinte">
+                {EINHEITSSTATUS[status].titel}
+              </dd>
+            </div>
+          </dl>
+
+          <p className="mt-3.5 text-[0.72rem] leading-relaxed text-grau">
+            Käufer, Kontakt und Verkaufsdatum werden gelöscht. Der Preis bleibt als
+            geführter Wunschpreis stehen.
+          </p>
+
+          <div className="mt-7 border-t border-linie pt-6">
+            <div className="mini-label">Grund</div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {RUECKNAHMEGRUENDE.map((g) => {
+                const aktiv = grund === g;
+                return (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => setGrund(aktiv ? "" : g)}
+                    aria-pressed={aktiv}
+                    className={cn(
+                      "druckbar rounded-full border px-3.5 py-2 text-[0.7rem] font-medium",
+                      aktiv
+                        ? "border-tinte bg-tinte text-grund hover:bg-tinte"
+                        : "border-linie bg-flaeche text-grau-stark hover:border-linie-stark",
+                    )}
+                  >
+                    {g}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-6">
+              <Textfeld
+                id="ruecknahme-grund"
+                label="Oder eigener Grund"
+                wert={grund}
+                setWert={setGrund}
+                platzhalter="Was passiert ist"
+                zeilen={3}
+                breit
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {laufend ? (
+        // Kein bestätigender Knopf, weil es hier nichts zu bestätigen gibt —
+        // nur den Weg dorthin, wo die Garantie beendet wird.
+        <div className="mt-7 flex flex-wrap items-center justify-end gap-2.5 border-t border-linie pt-5">
+          <button
+            type="button"
+            onClick={schliessen}
+            className="druckbar rounded-full px-4 py-2.5 text-[0.7rem] font-medium text-grau-stark hover:text-tinte"
+          >
+            Schließen
+          </button>
+          <Link
+            to="/mietverwaltung"
+            search={{ garantie: laufend.id }}
+            className="druckbar flex items-center gap-2 rounded-full bg-tinte px-5 py-2.5 text-[0.7rem] font-semibold tracking-[0.1em] text-grund uppercase shadow-karte"
+          >
+            <ShieldCheck size={14} strokeWidth={2.25} />
+            Garantie öffnen
+          </Link>
+        </div>
+      ) : (
+        <Leiste
+          abbrechen={schliessen}
+          bestaetigen={() => {
+            einheitVerkaufZurueck(objekt.id, einheit.id, status, grund);
+            schliessen();
+          }}
+          titel="Verkauf zurücknehmen"
+          ton="still"
+        />
+      )}
     </Dialog>
   );
 }

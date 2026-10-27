@@ -97,17 +97,21 @@ function Teilungsblatt({ objekt, t }: { objekt: Objekt; t: Teilungserklaerung })
                   aria-current={an ? "step" : undefined}
                   className={cn(
                     "druckbar flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left",
-                    an ? "border-transparent shadow-karte" : "border-linie bg-flaeche",
+                    an
+                      ? "border-linie-stark bg-flaeche-hoch shadow-karte"
+                      : "border-linie bg-flaeche",
                   )}
-                  style={an ? { background: st.weich, borderColor: st.farbe } : undefined}
                 >
                   <span
                     aria-hidden
                     className={cn(
                       "flex size-6 shrink-0 items-center justify-center rounded-full text-[0.6rem] font-semibold",
-                      erledigt || an ? "text-white" : "bg-flaeche-hoch text-grau",
+                      an
+                        ? "bg-tinte text-grund"
+                        : erledigt
+                          ? "bg-linie-stark text-flaeche"
+                          : "bg-flaeche-hoch text-grau",
                     )}
-                    style={erledigt || an ? { background: st.farbe } : undefined}
                   >
                     {i + 1}
                   </span>
@@ -115,9 +119,8 @@ function Teilungsblatt({ objekt, t }: { objekt: Objekt; t: Teilungserklaerung })
                     <span
                       className={cn(
                         "block truncate text-[0.78rem] font-medium",
-                        an ? "" : erledigt ? "text-grau-stark" : "text-grau",
+                        an ? "text-tinte" : erledigt ? "text-grau-stark" : "text-grau",
                       )}
-                      style={an ? { color: st.tief } : undefined}
                     >
                       {st.titel}
                     </span>

@@ -178,9 +178,12 @@ export function Verkaufsplanung({ objekt }: { objekt: Objekt }) {
    * Der Rückweg: aus der Planung werden Einheiten.
    *
    * Die Aufteilung wird hier erdacht, verkauft wird sie aber im Reiter
-   * Einheiten — und bisher musste man sie dort ein zweites Mal tippen. Der
-   * Knopf erscheint nur, solange es keine Einheiten gibt; eine bestehende
-   * Aufteilung zu überschreiben hieße, Käufer und Verkäufe wegzuwerfen.
+   * Einheiten — und bisher musste man sie dort ein zweites Mal tippen.
+   *
+   * Zwei Bedingungen hängen daran: Es darf noch keine Einheiten geben, sonst
+   * würde eine bestehende Aufteilung samt Käufern überschrieben. Und das
+   * Objekt muss gekauft sein — vor dem Ankauf gibt es den Einheiten-Reiter
+   * nicht, der Knopf legte also etwas an, das niemand zu sehen bekommt.
    */
   function inEinheiten() {
     const neue = e.posten.map<Einheit>((p, i) => ({
@@ -367,7 +370,7 @@ export function Verkaufsplanung({ objekt }: { objekt: Objekt }) {
               <Copy size={13} strokeWidth={1.75} />
               Aus Einheiten
             </button>
-          ) : (
+          ) : objekt.stufe === "angekauft" ? (
             <button
               type="button"
               onClick={inEinheiten}
@@ -376,7 +379,7 @@ export function Verkaufsplanung({ objekt }: { objekt: Objekt }) {
               <Copy size={13} strokeWidth={1.75} />
               Als Einheiten anlegen
             </button>
-          )}
+          ) : null}
         </div>
       </section>
 

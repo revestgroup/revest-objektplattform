@@ -106,6 +106,17 @@ interface StoreWert {
   einheitenSetzen: (id: string, einheiten: Einheit[]) => void;
   /** Eine Einheit verkaufen. Setzt Status, Käufer, Preis und Datum in einem Zug. */
   einheitVerkaufen: (id: string, einheitId: string, verkauf: Einheitverkauf) => void;
+  /**
+   * Der Verkauf war keiner. Nimmt dieselben vier Angaben wieder weg, die
+   * `einheitVerkaufen` gesetzt hat — sonst bliebe ein Käufer an einer Einheit
+   * hängen, die wieder im Angebot steht.
+   */
+  einheitVerkaufZurueck: (
+    id: string,
+    einheitId: string,
+    status: Einheit["status"],
+    grund: string,
+  ) => void;
   verkaufsplanSetzen: (id: string, plan: Verkaufsplan) => void;
   zuruecksetzen: () => void;
 }
@@ -329,6 +340,30 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
                 `${e?.bezeichnung ?? "Einheit"} verkauft an ${v.kaeufer}${
                   v.preis !== null ? ` für ${f.eur(v.preis)}` : ""
                 }`,
+              ),
+            ],
+          };
+        }),
+
+      einheitVerkaufZurueck: (id, einheitId, status, grund) =>
+        mutieren(id, (o) => {
+          const e = o.einheiten.find((x) => x.id === einheitId);
+          // Der Wunschpreis bleibt stehen: er war vor dem Verkauf der geführte
+          // Preis und ist nach der Rücknahme wieder genau das.
+          return {
+            ...o,
+            einheiten: o.einheiten.map((x) =>
+              x.id === einheitId
+                ? { ...x, status, kaeufer: null, kaeuferKontakt: null, verkauftAm: null }
+                : x,
+            ),
+            verlauf: [
+              ...o.verlauf,
+              eintrag(
+                "status",
+                `Verkauf zurückgenommen: ${e?.bezeichnung ?? "Einheit"}${
+                  e?.kaeufer ? ` (${e.kaeufer})` : ""
+                }${grund.trim() ? ` — ${grund.trim()}` : ""}`,
               ),
             ],
           };

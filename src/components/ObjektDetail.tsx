@@ -10,6 +10,7 @@ import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
   ArrowUpRight,
+  ChevronDown,
   Crosshair,
   Hammer,
   Lock,
@@ -59,7 +60,7 @@ import { Kontaktblatt } from "./Kontaktblatt";
 import { Objektaufgaben } from "./Objektaufgaben";
 import { Fristzeichen, Stufenzeichen } from "./Stufe";
 import { Teilung, TeilungAnstossen } from "./Teilung";
-import { Verkaufsdialog } from "./Verkaufsdialog";
+import { Ruecknahmedialog, Verkaufsdialog } from "./Verkaufsdialog";
 import { Verkaufsplanung } from "./Verkaufsplanung";
 
 type Reiter =
@@ -831,6 +832,10 @@ function Einheiten({ objekt }: { objekt: Objekt }) {
   const { einheitenSetzen } = useObjekte();
   const { garantien, mieter } = useVermietung();
   const [verkauf, setVerkauf] = useState<Einheit | null>(null);
+  const [ruecknahme, setRuecknahme] = useState<{
+    einheit: Einheit;
+    status: Einheitsstatus;
+  } | null>(null);
 
   const summe = useMemo(() => {
     const flaeche = objekt.einheiten.reduce((s, e) => s + e.wohnflaeche, 0);
@@ -843,12 +848,17 @@ function Einheiten({ objekt }: { objekt: Objekt }) {
   /**
    * „Verkauft" ist kein Status, den man setzt, sondern ein Vorgang: es gibt
    * einen Käufer, einen Preis, ein Datum und die Frage nach der Garantie.
-   * Deshalb führt genau dieser eine Eintrag in den Dialog statt direkt in den
-   * Speicher. Alle anderen Wechsel sind reine Statuswechsel.
+   * Deshalb führt dieser Eintrag in den Dialog statt direkt in den Speicher —
+   * und der Weg heraus ebenso, weil dabei ein Käufer verschwindet. Alle
+   * anderen Wechsel sind reine Statuswechsel.
    */
   function statusSetzen(e: Einheit, status: Einheitsstatus) {
     if (status === "verkauft" && e.status !== "verkauft") {
       setVerkauf(e);
+      return;
+    }
+    if (e.status === "verkauft" && status !== "verkauft") {
+      setRuecknahme({ einheit: e, status });
       return;
     }
     einheitenSetzen(
@@ -943,19 +953,37 @@ function Einheiten({ objekt }: { objekt: Objekt }) {
                 <Garantiezeile einheitId={e.id} garantien={garantien} mieter={mieter} />
               </div>
 
-              <select
-                value={e.status}
-                onChange={(ev) => statusSetzen(e, ev.target.value as Einheitsstatus)}
-                aria-label={`Status von ${e.bezeichnung}`}
-                className="shrink-0 border border-linie bg-flaeche px-2.5 py-1.5 text-[0.66rem] text-tinte focus:border-linie-stark focus:outline-none"
-                style={{ color: EINHEITSSTATUS[e.status].farbe }}
-              >
-                {Object.entries(EINHEITSSTATUS).map(([wert, { titel }]) => (
-                  <option key={wert} value={wert} className="text-tinte">
-                    {titel}
-                  </option>
-                ))}
-              </select>
+              {/* Der Status ist die eine Entscheidung, die in dieser Zeile
+                  getroffen wird — und sah bisher aus wie ein Systemfeld. Als
+                  Pille in der Farbe des Status ist sie von weitem lesbar; das
+                  Zeichen rechts sagt, dass sie sich ändern lässt. Innen bleibt
+                  es ein echtes <select>, damit Tastatur und Telefon den Weg
+                  kennen, den sie kennen. */}
+              <div className="relative shrink-0">
+                <select
+                  value={e.status}
+                  onChange={(ev) => statusSetzen(e, ev.target.value as Einheitsstatus)}
+                  aria-label={`Status von ${e.bezeichnung}`}
+                  className="w-full appearance-none rounded-full py-1.5 pr-7 pl-3 text-[0.68rem] font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-linie-stark"
+                  style={{
+                    background: EINHEITSSTATUS[e.status].weich,
+                    color: EINHEITSSTATUS[e.status].tief,
+                  }}
+                >
+                  {Object.entries(EINHEITSSTATUS).map(([wert, { titel }]) => (
+                    <option key={wert} value={wert} className="text-tinte">
+                      {titel}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={12}
+                  strokeWidth={2.25}
+                  aria-hidden
+                  className="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2"
+                  style={{ color: EINHEITSSTATUS[e.status].tief }}
+                />
+              </div>
             </div>
           </li>
         ))}
@@ -983,6 +1011,15 @@ function Einheiten({ objekt }: { objekt: Objekt }) {
           objekt={objekt}
           einheit={verkauf}
           schliessen={() => setVerkauf(null)}
+        />
+      )}
+
+      {ruecknahme && (
+        <Ruecknahmedialog
+          objekt={objekt}
+          einheit={ruecknahme.einheit}
+          status={ruecknahme.status}
+          schliessen={() => setRuecknahme(null)}
         />
       )}
     </div>

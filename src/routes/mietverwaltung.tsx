@@ -8,8 +8,8 @@
  * Zwei Arten werden getrennt behandelt, weil sie unterschiedlich arbeiten:
  * eine Wohnung ist vermietet oder nicht, eine WG ist es zimmerweise.
  *
- * Vier Reiter auf dieselbe Sache: Einheiten zeigt die Plätze und was sie
- * kosten, Mieter zeigt die Menschen und ihre Akten, Auswertung zeigt, was
+ * Vier Reiter auf dieselbe Sache: Garantien zeigt die Verpflichtungen und die
+ * Plätze darin, Mieter zeigt die Menschen und ihre Akten, Auswertung zeigt, was
  * daraus über die Zeit folgt, Archiv zeigt, was vorbei ist. Ein Leerstand und
  * ein Interessent sind zwei Seiten derselben Münze — nur wird hier nichts
  * verkauft, sondern vermietet.
@@ -61,10 +61,10 @@ export const Route = createFileRoute("/mietverwaltung")({
   component: MietverwaltungSeite,
 });
 
-type Reiter = "einheiten" | "mieter" | "auswertung" | "archiv";
+type Reiter = "garantien" | "mieter" | "auswertung" | "archiv";
 
 const REITER: { schluessel: Reiter; titel: string }[] = [
-  { schluessel: "einheiten", titel: "Einheiten" },
+  { schluessel: "garantien", titel: "Garantien" },
   { schluessel: "mieter", titel: "Mieter" },
   { schluessel: "auswertung", titel: "Auswertung" },
   { schluessel: "archiv", titel: "Archiv" },
@@ -73,7 +73,7 @@ const REITER: { schluessel: Reiter; titel: string }[] = [
 function MietverwaltungSeite() {
   const { garantien, mieter } = useVermietung();
   const { garantie: gewuenscht } = Route.useSearch();
-  const [reiter, setReiter] = useState<Reiter>("einheiten");
+  const [reiter, setReiter] = useState<Reiter>("garantien");
   const [mieterAnlegen, setMieterAnlegen] = useState(false);
   const [garantieAnlegen, setGarantieAnlegen] = useState(false);
 
@@ -94,7 +94,7 @@ function MietverwaltungSeite() {
       <Seitenkopf
         titel="Mietverwaltung"
         aktion={
-          reiter === "mieter" || reiter === "einheiten" ? (
+          reiter === "mieter" || reiter === "garantien" ? (
             <button
               type="button"
               onClick={() =>
@@ -116,7 +116,7 @@ function MietverwaltungSeite() {
           // Die Zahl am Reiter ist der Grund hinzuzuschauen: freie Plätze
           // kosten Geld, wartende Mieter können es zurückholen.
           const anzahl =
-            r.schluessel === "einheiten" ? leer : r.schluessel === "mieter" ? ohnePlatz : 0;
+            r.schluessel === "garantien" ? leer : r.schluessel === "mieter" ? ohnePlatz : 0;
           return (
             <button
               key={r.schluessel}
@@ -144,7 +144,7 @@ function MietverwaltungSeite() {
         })}
       </div>
 
-      {reiter === "einheiten" ? (
+      {reiter === "garantien" ? (
         <Garantien
           anlegenOffen={garantieAnlegen}
           anlegenSchliessen={() => setGarantieAnlegen(false)}
