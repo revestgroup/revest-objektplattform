@@ -31,8 +31,16 @@
   --color-flaeche-aktiv: #e7eaef;
   --color-linie: #e6e9ee;
   --color-linie-stark: #ccd2db;
-  --color-grau: #8a93a1;
-  --color-grau-stark: #5b6574;
+  /*
+   * Die zwei Graustufen sind auf Lesbarkeit gerechnet, nicht nach Gefuehl
+   * gewaehlt. Gemessen gegen die dunkelste Flaeche (flaeche-aktiv) erreicht
+   * `grau` 4,53:1 und `grau-stark` 7,53:1 — beides ueber den 4,5:1, die
+   * WCAG AA fuer Text unter 18,66px fordert. Der Vorgaenger #8a93a1 kam nur
+   * auf 2,57:1 und war damit fuer kleine Schrift zu blass.
+   * Beide Werte behalten den blaugrauen Ton des Entwurfs.
+   */
+  --color-grau: #636a74;
+  --color-grau-stark: #424954;
   --color-tinte: #10131a;
 
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;

@@ -134,7 +134,7 @@ function EinstellungenSeite() {
                 key={o.schluessel}
                 className="flex items-baseline gap-3.5 text-[0.78rem] text-grau-stark"
               >
-                <span className="zahl shrink-0 text-[0.62rem] text-linie-stark">
+                <span className="zahl shrink-0 text-[0.62rem] text-grau">
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 {o.titel}

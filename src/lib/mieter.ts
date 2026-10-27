@@ -209,10 +209,17 @@ export const VERTRAGSKANAELE: Record<Vertragskanal, string> = {
 
 export type Vertragsstatus = "entwurf" | "versendet" | "unterschrieben" | "abgelehnt";
 
+/*
+ * Diese Farben stehen nicht nur im Punkt, sondern auch im Text daneben
+ * (`Mieterliste.tsx`, Statuszeile bei 0,8rem). Deshalb sind sie so tief
+ * gewaehlt, dass sie auf Weiss und auf `grund` mindestens 4,5:1 erreichen —
+ * die Entwuerfe #8A93A1, #D9792B und #17935C lagen mit 3,1 / 3,1 / 3,9 noch
+ * darunter und waren als Schrift zu schwach.
+ */
 export const VERTRAGSSTATUS: Record<Vertragsstatus, { titel: string; farbe: string }> = {
-  entwurf: { titel: "Entwurf", farbe: "#8A93A1" },
-  versendet: { titel: "Versendet", farbe: "#D9792B" },
-  unterschrieben: { titel: "Unterschrieben", farbe: "#17935C" },
+  entwurf: { titel: "Entwurf", farbe: "#636A74" },
+  versendet: { titel: "Versendet", farbe: "#A85E21" },
+  unterschrieben: { titel: "Unterschrieben", farbe: "#148151" },
   abgelehnt: { titel: "Abgelehnt", farbe: "#C5453B" },
 };
 
