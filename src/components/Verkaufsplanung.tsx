@@ -23,6 +23,7 @@ import {
   berechneVerkaufsplan,
   f,
   leererVerkaufsplan,
+  type Einheit,
   type Objekt,
   type Verkaufsplan,
   type Verkaufsposten,
@@ -124,7 +125,7 @@ function leererPosten(nummer: number): PostenEingabe {
 /* ------------------------------------------------------------------ */
 
 export function Verkaufsplanung({ objekt }: { objekt: Objekt }) {
-  const { verkaufsplanSetzen } = useObjekte();
+  const { einheitenSetzen, verkaufsplanSetzen } = useObjekte();
   const gespeichert = objekt.verkaufsplan ?? leererVerkaufsplan();
 
   const [e, setE] = useState<PlanEingabe>(() => ausPlan(gespeichert));
@@ -171,6 +172,32 @@ export function Verkaufsplanung({ objekt }: { objekt: Objekt }) {
         alsWg: false,
       })),
     }));
+  }
+
+  /**
+   * Der Rückweg: aus der Planung werden Einheiten.
+   *
+   * Die Aufteilung wird hier erdacht, verkauft wird sie aber im Reiter
+   * Einheiten — und bisher musste man sie dort ein zweites Mal tippen. Der
+   * Knopf erscheint nur, solange es keine Einheiten gibt; eine bestehende
+   * Aufteilung zu überschreiben hieße, Käufer und Verkäufe wegzuwerfen.
+   */
+  function inEinheiten() {
+    const neue = e.posten.map<Einheit>((p, i) => ({
+      id: `${objekt.id}-vp-${i + 1}`,
+      bezeichnung: p.bezeichnung.trim() || `WE ${i + 1}`,
+      geschoss: "",
+      wohnflaeche: z(p.flaeche) ?? 0,
+      zimmer: z(p.zimmer) ?? 0,
+      kaltmiete: z(p.monatsmiete),
+      status: "geplant",
+      kaeufer: null,
+      kaeuferKontakt: null,
+      // Der Wunschpreis ist der geführte Preis, bis ein Verkauf ihn ersetzt.
+      verkaufspreis: z(p.wunschpreis),
+      verkauftAm: null,
+    }));
+    einheitenSetzen(objekt.id, neue);
   }
 
   /**
@@ -331,7 +358,7 @@ export function Verkaufsplanung({ objekt }: { objekt: Objekt }) {
             <Plus size={13} strokeWidth={2} />
             Posten
           </button>
-          {objekt.einheiten.length > 0 && (
+          {objekt.einheiten.length > 0 ? (
             <button
               type="button"
               onClick={ausEinheiten}
@@ -339,6 +366,15 @@ export function Verkaufsplanung({ objekt }: { objekt: Objekt }) {
             >
               <Copy size={13} strokeWidth={1.75} />
               Aus Einheiten
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={inEinheiten}
+              className="druckbar flex items-center gap-2 rounded-full px-3 py-2 text-[0.66rem] tracking-[0.14em] uppercase text-grau hover:text-tinte"
+            >
+              <Copy size={13} strokeWidth={1.75} />
+              Als Einheiten anlegen
             </button>
           )}
         </div>

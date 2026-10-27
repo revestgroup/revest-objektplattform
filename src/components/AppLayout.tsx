@@ -12,7 +12,7 @@ import {
   Settings,
   X,
 } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { useAuth } from "../lib/auth";
 import { cn } from "../lib/utils";
@@ -248,6 +248,14 @@ export function Schublade({
 }) {
   // Erst nach dem Öffnen montieren, damit der Inhalt nicht im Hintergrund lebt.
   const [montiert, setMontiert] = useState(offen);
+  const rolle = useRef<HTMLDivElement>(null);
+
+  // Wechselt der Inhalt, ohne dass die Schublade zugeht — vom Anlegen in den
+  // neuen Datensatz —, bleibt sonst die alte Scrollhöhe stehen und der neue
+  // Inhalt beginnt irgendwo in der Mitte. Der Titel benennt den Inhalt.
+  useEffect(() => {
+    rolle.current?.scrollTo({ top: 0 });
+  }, [titel]);
 
   useEffect(() => {
     if (offen) {
@@ -316,7 +324,7 @@ export function Schublade({
             </button>
           </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div ref={rolle} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <div className="mx-auto w-full max-w-[1240px]">{children}</div>
         </div>
       </div>

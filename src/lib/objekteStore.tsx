@@ -30,7 +30,7 @@ import { MOCK_OBJEKTE } from "./mockDaten";
  * erhöht — ein alter Stand ohne die neuen Felder würde sonst beim Rechnen
  * über halbe Objekte stolpern.
  */
-const SPEICHER = "revest.objekte.v4";
+const SPEICHER = "revest.objekte.v5";
 
 /** Felder, die einen Reload nicht überleben, werden vor dem Speichern geleert. */
 function fuerSpeicher(objekte: Objekt[]) {
@@ -68,6 +68,23 @@ export interface Dealabschluss {
   notar: string | null;
 }
 
+/**
+ * Was beim Verkauf einer Einheit festgehalten wird.
+ *
+ * Dieselbe Idee wie `Dealabschluss`, eine Ebene tiefer: der Verkauf einer
+ * Wohnung ist ein Vorgang, bei dem vier Angaben gleichzeitig entstehen. Wer
+ * nur den Status umschaltet, hat am Ende verkaufte Wohnungen ohne Käufer —
+ * genau das ist bisher passiert, weil `kaeufer` und `verkaufspreis` im Modell
+ * standen, aber von keiner Oberfläche je geschrieben wurden.
+ */
+export interface Einheitverkauf {
+  kaeufer: string;
+  kontakt: string | null;
+  preis: number | null;
+  /** Tag der Beurkundung, als ISO-Datum. */
+  datum: string;
+}
+
 interface StoreWert {
   objekte: Objekt[];
   /** Vor dem ersten Hydrieren rendert die Liste nichts — sonst blitzt der Mock-Stand auf. */
@@ -87,6 +104,8 @@ interface StoreWert {
   dokumenteAnhaengen: (id: string, dokumente: Omit<Dokument, "id" | "hochgeladenAm">[]) => void;
   dokumentLoeschen: (id: string, dokumentId: string) => void;
   einheitenSetzen: (id: string, einheiten: Einheit[]) => void;
+  /** Eine Einheit verkaufen. Setzt Status, Käufer, Preis und Datum in einem Zug. */
+  einheitVerkaufen: (id: string, einheitId: string, verkauf: Einheitverkauf) => void;
   verkaufsplanSetzen: (id: string, plan: Verkaufsplan) => void;
   zuruecksetzen: () => void;
 }
@@ -285,6 +304,35 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
         })),
 
       einheitenSetzen: (id, einheiten) => mutieren(id, (o) => ({ ...o, einheiten })),
+
+      einheitVerkaufen: (id, einheitId, v) =>
+        mutieren(id, (o) => {
+          const e = o.einheiten.find((x) => x.id === einheitId);
+          return {
+            ...o,
+            einheiten: o.einheiten.map((x) =>
+              x.id === einheitId
+                ? {
+                    ...x,
+                    status: "verkauft" as const,
+                    kaeufer: v.kaeufer,
+                    kaeuferKontakt: v.kontakt,
+                    verkaufspreis: v.preis,
+                    verkauftAm: v.datum,
+                  }
+                : x,
+            ),
+            verlauf: [
+              ...o.verlauf,
+              eintrag(
+                "status",
+                `${e?.bezeichnung ?? "Einheit"} verkauft an ${v.kaeufer}${
+                  v.preis !== null ? ` für ${f.eur(v.preis)}` : ""
+                }`,
+              ),
+            ],
+          };
+        }),
 
       // Nur das ausdrückliche Speichern schreibt in den Verlauf — beim Tippen
       // in der Planung wäre das eine Flut aus bedeutungslosen Einträgen.

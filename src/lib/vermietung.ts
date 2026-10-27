@@ -53,6 +53,30 @@ export interface Zimmer {
   miete: number;
 }
 
+/**
+ * Sechs Monate sind der Normalfall, nicht die Regel — deshalb vorgewählt und
+ * nicht festgeschrieben. Zwölf und vierundzwanzig stehen daneben, weil sie beim
+ * Nachverhandeln am häufigsten vorkommen; alles andere wird frei eingetragen.
+ */
+export const LAUFZEIT_STANDARD = 6;
+export const LAUFZEITEN = [6, 12, 24];
+
+/**
+ * Zimmer für eine neue WG. Die Garantiemiete gleichmäßig verteilt ist ein
+ * Startwert, keine Behauptung — er wird im Detail zimmerweise korrigiert. Ohne
+ * ihn stünde die WG leer da und man müsste viermal „Zimmer" drücken.
+ */
+export function zimmerVorschlag(anzahl: number, gesamtmiete: number): Zimmer[] {
+  const stamm = Date.now().toString(36);
+  return Array.from({ length: Math.max(1, anzahl) }, (_, i) => ({
+    id: `z-${stamm}-${i + 1}`,
+    bezeichnung: `Zimmer ${i + 1}`,
+    flaeche: null,
+    // Auf 5 € gerundet: Zimmermieten werden so verhandelt, nicht auf den Cent.
+    miete: Math.round(gesamtmiete / Math.max(1, anzahl) / 5) * 5,
+  }));
+}
+
 export interface Mietgarantie {
   id: string;
   /** Verknüpfung in den Bestand. Die Bezeichnung liegt redundant daneben,
@@ -95,6 +119,13 @@ export interface Garantiekennzahlen {
   ende: Date;
   /** Volle Monate bis zum Ende. Negativ, wenn die Garantie vorbei ist. */
   restMonate: number;
+  /**
+   * Tage bis zum Ende. Bei einer Sechsmonatsgarantie ist der letzte Monat die
+   * entscheidende Zeit, und dort sagt `restMonate: 0` nur „irgendwann in den
+   * naechsten vier Wochen". Fuer die Nachvermietung ist der Unterschied
+   * zwischen drei und dreissig Tagen aber der ganze Unterschied.
+   */
+  restTage: number;
   status: Garantiestatus;
   /** Tatsächlich eingehende Kaltmiete pro Monat. */
   istMiete: number;
@@ -116,6 +147,15 @@ export function ende(g: Mietgarantie): Date {
 /** Die Mieter dieser Garantie — zugeordnet oder eingezogen. */
 export function mieterDerGarantie(g: Mietgarantie, alle: Mieter[]): Mieter[] {
   return alle.filter((m) => m.garantieId === g.id && MIETERSTATUS[m.status].belegt);
+}
+
+/**
+ * Jeder, der dieser Garantie je zugeordnet war — auch wer schon ausgezogen
+ * ist. Fuer die laufende Verwaltung zaehlt nur, wer einen Platz belegt; im
+ * Archiv ist aber genau die Frage „wer wohnte hier?" die interessante.
+ */
+export function mieterJeDerGarantie(g: Mietgarantie, alle: Mieter[]): Mieter[] {
+  return alle.filter((m) => m.garantieId === g.id);
 }
 
 /** Der Mieter eines Zimmers. Null heißt: frei. */
@@ -150,6 +190,8 @@ export function berechneGarantie(
     (bis.getFullYear() - heute.getFullYear()) * 12 + (bis.getMonth() - heute.getMonth()),
   );
   const vorbei = bis.getTime() <= heute.getTime();
+  const TAG = 24 * 60 * 60 * 1000;
+  const restTage = Math.max(0, Math.ceil((bis.getTime() - heute.getTime()) / TAG));
 
   const ist = istMiete(g, alle);
   const plaetze = g.art === "wg" ? g.zimmer.length : 1;
@@ -158,6 +200,7 @@ export function berechneGarantie(
   return {
     ende: bis,
     restMonate,
+    restTage,
     // Drei Monate Vorlauf: so lange braucht eine Nachvermietung in Ulm.
     status: vorbei ? "beendet" : restMonate <= 3 ? "auslaufend" : "aktiv",
     istMiete: ist,

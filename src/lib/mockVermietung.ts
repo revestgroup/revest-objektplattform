@@ -2,8 +2,12 @@
  * Mock-Mietgarantien für Phase 1.
  *
  * Absichtlich kein durchweg gesunder Bestand: eine Wohnung steht leer, eine
- * WG hat ein freies Zimmer, eine Garantie läuft in zwei Monaten aus. Genau
- * diese drei Fälle sind der Grund, warum es diese Seite gibt.
+ * WG hat ein freies Zimmer, eine Garantie läuft im nächsten Monat aus, zwei
+ * sind vorbei. Genau diese Fälle sind der Grund, warum es diese Seite gibt.
+ *
+ * Alle Garantien laufen sechs Monate — so verkauft Revest. Dass die Mieter
+ * teils seit Jahren drin wohnen, ist kein Widerspruch: die Garantie beginnt
+ * mit dem Verkauf an den Käufer, nicht mit dem Mietverhältnis.
  */
 import { JETZT } from "./mockDaten";
 import type { Mietgarantie, Zimmer } from "./vermietung";
@@ -33,10 +37,10 @@ export const MOCK_GARANTIEN: Mietgarantie[] = [
     art: "wohnung",
     kaeufer: "M. Scheible",
     kaeuferKontakt: "m.scheible@gmx.de",
-    verkauftAm: vorMonaten(9),
+    verkauftAm: vorMonaten(2),
     verkaufspreis: 289_000,
-    beginn: vorMonaten(8),
-    laufzeitMonate: 36,
+    beginn: vorMonaten(1),
+    laufzeitMonate: 6,
     garantiemiete: 480,
     sollmiete: 480,
     zimmer: [],
@@ -53,8 +57,9 @@ export const MOCK_GARANTIEN: Mietgarantie[] = [
     kaeuferKontakt: "oezdemir.family@web.de",
     verkauftAm: vorMonaten(5),
     verkaufspreis: 362_000,
+    // Leerstand und Ablauf in zwei Monaten — der teuerste Fall, steht oben.
     beginn: vorMonaten(4),
-    laufzeitMonate: 36,
+    laufzeitMonate: 6,
     garantiemiete: 600,
     // Leerstand: bis der Nachmieter einzieht, zahlt Revest die volle Garantie.
     sollmiete: 598,
@@ -70,10 +75,10 @@ export const MOCK_GARANTIEN: Mietgarantie[] = [
     art: "wg",
     kaeufer: "Dr. A. Haller",
     kaeuferKontakt: "a.haller@haller-steuer.de",
-    verkauftAm: vorMonaten(14),
+    verkauftAm: vorMonaten(3),
     verkaufspreis: 498_000,
-    beginn: vorMonaten(13),
-    laufzeitMonate: 60,
+    beginn: vorMonaten(2),
+    laufzeitMonate: 6,
     garantiemiete: 2_150,
     sollmiete: null,
     zimmer: zimmer("mg-003", [
@@ -95,11 +100,11 @@ export const MOCK_GARANTIEN: Mietgarantie[] = [
     art: "wg",
     kaeufer: "S. Brugger",
     kaeuferKontakt: "0731 2098443",
-    verkauftAm: vorMonaten(36),
+    verkauftAm: vorMonaten(6),
     verkaufspreis: 412_000,
-    beginn: vorMonaten(34),
-    // Läuft in zwei Monaten aus — Anschlussvereinbarung steht an.
-    laufzeitMonate: 36,
+    // Läuft im nächsten Monat aus — Anschlussvereinbarung steht an.
+    beginn: vorMonaten(5),
+    laufzeitMonate: 6,
     garantiemiete: 1_720,
     sollmiete: null,
     zimmer: zimmer("mg-004", [
@@ -108,7 +113,7 @@ export const MOCK_GARANTIEN: Mietgarantie[] = [
       [17, 480],
       [13, 430],
     ]),
-    notiz: "Verlängerung um 24 Monate angeboten. Käufer will erst die Abrechnung sehen.",
+    notiz: "Verlängerung um 6 Monate angeboten. Käufer will erst die Abrechnung sehen.",
   },
   {
     id: "mg-005",
@@ -119,13 +124,31 @@ export const MOCK_GARANTIEN: Mietgarantie[] = [
     art: "wohnung",
     kaeufer: "H. Vogler",
     kaeuferKontakt: "h.vogler@t-online.de",
-    verkauftAm: vorMonaten(42),
+    verkauftAm: vorMonaten(11),
     verkaufspreis: 268_000,
-    beginn: vorMonaten(40),
-    laufzeitMonate: 36,
+    beginn: vorMonaten(10),
+    laufzeitMonate: 6,
     garantiemiete: 520,
     sollmiete: 520,
     zimmer: [],
     notiz: "Garantie ausgelaufen, Käufer verwaltet selbst weiter. Mieter unverändert.",
+  },
+  {
+    id: "mg-006",
+    objektId: null,
+    einheitId: null,
+    adresse: "Wagnerstraße 7, 89231 Neu-Ulm",
+    einheitTitel: "WE 2 · 1. OG links",
+    art: "wohnung",
+    kaeufer: "T. Lindenmaier",
+    kaeuferKontakt: "t.lindenmaier@gmx.net",
+    verkauftAm: vorMonaten(22),
+    verkaufspreis: 241_000,
+    beginn: vorMonaten(21),
+    laufzeitMonate: 6,
+    garantiemiete: 465,
+    sollmiete: 465,
+    zimmer: [],
+    notiz: "Mieterin zum Ende der Garantie ausgezogen. Käufer hat selbst nachvermietet.",
   },
 ];

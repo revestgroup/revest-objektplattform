@@ -6,6 +6,7 @@
  * als Gedächtnis. Alles in einer einzigen langen Seite wäre schneller gebaut,
  * aber unbenutzbar.
  */
+import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -16,6 +17,7 @@ import {
   Pencil,
   Plus,
   Send,
+  ShieldCheck,
   Trash2,
   X,
 } from "lucide-react";
@@ -48,6 +50,8 @@ import {
 import { useAufgaben } from "../lib/aufgabenStore";
 import { useObjekte } from "../lib/objekteStore";
 import { cn } from "../lib/utils";
+import { berechneGarantie } from "../lib/vermietung";
+import { useVermietung } from "../lib/vermietungStore";
 import { Bildergalerie, Bildflaeche, istQuelle } from "./Bilder";
 import { DealKnoepfe } from "./Deal";
 import { Dokumentenablage } from "./Dokumente";
@@ -55,6 +59,7 @@ import { Kontaktblatt } from "./Kontaktblatt";
 import { Objektaufgaben } from "./Objektaufgaben";
 import { Fristzeichen, Stufenzeichen } from "./Stufe";
 import { Teilung, TeilungAnstossen } from "./Teilung";
+import { Verkaufsdialog } from "./Verkaufsdialog";
 import { Verkaufsplanung } from "./Verkaufsplanung";
 
 type Reiter =
@@ -824,6 +829,8 @@ const ERGEBNIS_TON: Record<Angebotsergebnis, { background: string; color: string
 
 function Einheiten({ objekt }: { objekt: Objekt }) {
   const { einheitenSetzen } = useObjekte();
+  const { garantien, mieter } = useVermietung();
+  const [verkauf, setVerkauf] = useState<Einheit | null>(null);
 
   const summe = useMemo(() => {
     const flaeche = objekt.einheiten.reduce((s, e) => s + e.wohnflaeche, 0);
@@ -833,10 +840,20 @@ function Einheiten({ objekt }: { objekt: Objekt }) {
     return { flaeche, miete, verkauft: verkauft.length, erloes };
   }, [objekt.einheiten]);
 
-  function statusSetzen(id: string, status: Einheitsstatus) {
+  /**
+   * „Verkauft" ist kein Status, den man setzt, sondern ein Vorgang: es gibt
+   * einen Käufer, einen Preis, ein Datum und die Frage nach der Garantie.
+   * Deshalb führt genau dieser eine Eintrag in den Dialog statt direkt in den
+   * Speicher. Alle anderen Wechsel sind reine Statuswechsel.
+   */
+  function statusSetzen(e: Einheit, status: Einheitsstatus) {
+    if (status === "verkauft" && e.status !== "verkauft") {
+      setVerkauf(e);
+      return;
+    }
     einheitenSetzen(
       objekt.id,
-      objekt.einheiten.map((e) => (e.id === id ? { ...e, status } : e)),
+      objekt.einheiten.map((x) => (x.id === e.id ? { ...x, status } : x)),
     );
   }
 
@@ -851,7 +868,9 @@ function Einheiten({ objekt }: { objekt: Objekt }) {
       kaltmiete: null,
       status: "geplant",
       kaeufer: null,
+      kaeuferKontakt: null,
       verkaufspreis: null,
+      verkauftAm: null,
     };
     einheitenSetzen(objekt.id, [...objekt.einheiten, neu]);
   }
@@ -921,11 +940,12 @@ function Einheiten({ objekt }: { objekt: Objekt }) {
                     {e.verkaufspreis && <span className="zahl">· {f.eur(e.verkaufspreis)}</span>}
                   </div>
                 )}
+                <Garantiezeile einheitId={e.id} garantien={garantien} mieter={mieter} />
               </div>
 
               <select
                 value={e.status}
-                onChange={(ev) => statusSetzen(e.id, ev.target.value as Einheitsstatus)}
+                onChange={(ev) => statusSetzen(e, ev.target.value as Einheitsstatus)}
                 aria-label={`Status von ${e.bezeichnung}`}
                 className="shrink-0 border border-linie bg-flaeche px-2.5 py-1.5 text-[0.66rem] text-tinte focus:border-linie-stark focus:outline-none"
                 style={{ color: EINHEITSSTATUS[e.status].farbe }}
@@ -957,7 +977,59 @@ function Einheiten({ objekt }: { objekt: Objekt }) {
           </span>
         )}
       </div>
+
+      {verkauf && (
+        <Verkaufsdialog
+          objekt={objekt}
+          einheit={verkauf}
+          schliessen={() => setVerkauf(null)}
+        />
+      )}
     </div>
+  );
+}
+
+/**
+ * Der Rückweg in die Mietverwaltung.
+ *
+ * Was eine verkaufte Einheit Revest noch kostet, gehört an die Einheit — sonst
+ * muss man den Reiter wechseln, um zu sehen, ob hier eine Verpflichtung hängt.
+ * Eine ausgelaufene Garantie bleibt als Satz stehen, aber ohne Weg: dort gibt
+ * es nichts mehr zu verwalten, nur noch nachzusehen.
+ */
+function Garantiezeile({
+  einheitId,
+  garantien,
+  mieter,
+}: {
+  einheitId: string;
+  garantien: ReturnType<typeof useVermietung>["garantien"];
+  mieter: ReturnType<typeof useVermietung>["mieter"];
+}) {
+  const g = garantien.find((x) => x.einheitId === einheitId);
+  if (!g) return null;
+
+  const k = berechneGarantie(g, mieter);
+
+  if (k.status === "beendet") {
+    return (
+      <div className="mt-1.5 flex items-center gap-1.5 text-[0.68rem] text-grau">
+        <ShieldCheck size={11} strokeWidth={2} className="shrink-0" />
+        Mietgarantie ausgelaufen am <span className="zahl">{f.datum(k.ende.toISOString())}</span>
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      to="/mietverwaltung"
+      search={{ garantie: g.id }}
+      className="druckbar mt-1.5 flex items-center gap-1.5 text-[0.68rem] text-grau-stark hover:text-tinte"
+    >
+      <ShieldCheck size={11} strokeWidth={2} className="shrink-0" />
+      Mietgarantie bis <span className="zahl">{f.datum(k.ende.toISOString())}</span>
+      <span className="zahl">· {f.eur(g.garantiemiete)}/Mon.</span>
+    </Link>
   );
 }
 

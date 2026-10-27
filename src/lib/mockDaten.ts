@@ -65,7 +65,9 @@ function einheiten(
     kaltmiete: miete,
     status,
     kaeufer: kaeufer ?? null,
+    kaeuferKontakt: null,
     verkaufspreis: preis ?? null,
+    verkauftAm: status === "verkauft" ? tage(-60) : null,
   }));
 }
 
@@ -227,7 +229,9 @@ export const MOCK_OBJEKTE: Objekt[] = [
         kaltmiete: 1_540,
         status: "eigenbestand",
         kaeufer: null,
+        kaeuferKontakt: null,
         verkaufspreis: null,
+        verkauftAm: null,
       },
       {
         id: "e001-g2",
@@ -238,7 +242,9 @@ export const MOCK_OBJEKTE: Objekt[] = [
         kaltmiete: 1_210,
         status: "eigenbestand",
         kaeufer: null,
+        kaeuferKontakt: null,
         verkaufspreis: null,
+        verkauftAm: null,
       },
     ],
     angebote: ang("obj-001", [

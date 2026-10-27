@@ -162,8 +162,14 @@ export interface Einheit {
   zimmer: number;
   kaltmiete: number | null;
   status: Einheitsstatus;
+
+  /** Ab `verkauft` gesetzt. Vorher weiß niemand, wer kauft. */
   kaeufer: string | null;
+  /** E-Mail oder Telefon. Der Weg, auf dem der Käufer später angeschrieben wird. */
+  kaeuferKontakt: string | null;
   verkaufspreis: number | null;
+  /** Tag der Beurkundung. Startpunkt jeder Frist, die am Verkauf hängt. */
+  verkauftAm: string | null;
 }
 
 /* ------------------------------------------------------------------ */

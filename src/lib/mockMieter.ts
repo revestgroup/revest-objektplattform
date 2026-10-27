@@ -415,6 +415,37 @@ export const MOCK_MIETER: Mieter[] = [
     angelegtAm: vorMonaten(41),
   },
 
+  /* ---- Ausgezogen, Garantie vorbei: Wagnerstraße 7, WE 2 ---- */
+  {
+    id: "mt-016",
+    name: "Elena Fuchs",
+    email: "elena.fuchs@posteo.de",
+    telefon: "0176 44120873",
+    geburtsdatum: "1994-02-14",
+    beruf: "Logopädin",
+    arbeitgeber: "Praxis am Rathaus",
+    nettoeinkommen: 2_180,
+    status: "ausgezogen",
+    quelle: "portal",
+    garantieId: "mg-006",
+    zimmerId: null,
+    miete: 465,
+    einzugAm: vorMonaten(21),
+    auszugAm: vorMonaten(15),
+    buerge: null,
+    unterlagen: vollstaendig("mt-016"),
+    vertrag: {
+      id: "vv-016",
+      kanal: "email",
+      status: "unterschrieben",
+      versendetAm: vorMonaten(22),
+      unterschriebenAm: vorMonaten(21),
+      anbieterId: null,
+    },
+    notiz: "Zum Ende der Garantie ausgezogen, Wohnung übergeben.",
+    angelegtAm: vorMonaten(22),
+  },
+
   /* ---- Vertrag raus, noch nicht eingezogen: Brückenstraße 2, WE 2 ---- */
   {
     id: "mt-011",
