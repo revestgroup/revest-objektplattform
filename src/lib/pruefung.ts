@@ -7,7 +7,7 @@
  * niemand aus Versehen ein Angebot abgibt, ohne die Teilungserklärung gesehen
  * zu haben.
  */
-import type { Ankaufsstufe, Objekt } from "./objekte";
+import type { Ankaufsstufe, Dokument, Objekt } from "./objekte";
 
 export type Unterlagenstatus = "fehlt" | "angefordert" | "liegt_vor";
 export type Punktstatus = "offen" | "ok" | "kritisch";
@@ -91,8 +91,48 @@ export function pruefpunkteFuer(o: Objekt): Pruefposten[] {
   return PRUEFPUNKTE.filter((p) => istWeg(o) || !p.nurWeg);
 }
 
+/**
+ * Woran man eine Datei als Unterlage erkennt. Der Name wird vorher klein
+ * geschrieben und von Umlauten befreit („Teilungserklärung“ → „teilungserklaerung“).
+ */
+const DATEIMUSTER: Record<string, RegExp> = {
+  grundbuch: /grundbuch/,
+  teilungserklaerung: /teilungserkl/,
+  aufteilungsplan: /aufteilungsplan/,
+  weg_protokolle: /weg.?protokoll|eigentuemerversammlung/,
+  wirtschaftsplan: /wirtschaftsplan/,
+  hausgeldabrechnung: /hausgeld/,
+  ruecklagennachweis: /ruecklage/,
+  energieausweis: /energieausweis/,
+  grundriss: /grundriss/,
+  mietvertrag: /mietvertrag|mieterliste|mietaufstellung/,
+  mietaufstellung: /mietaufstellung|mieterliste/,
+  nebenkostenabrechnung: /nebenkosten|betriebskosten/,
+  bauplaene: /bauplan|bauplaene|bauzeichnung/,
+};
+
+function dateiname(n: string): string {
+  return n.toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss");
+}
+
+/**
+ * Die Datei zu einer Unterlage: von Hand zugeordnet, sonst die erste, deren
+ * Name passt. Von Hand gesetzt schlägt immer die Automatik — auch „keine Datei“.
+ */
+export function zugeordneteDatei(o: Objekt, id: string): Dokument | null {
+  const gesetzt = o.pruefung?.unterlagen?.[id];
+  if (gesetzt && gesetzt.dokumentId !== undefined) {
+    return o.dokumente.find((d) => d.id === gesetzt.dokumentId) ?? null;
+  }
+  const muster = DATEIMUSTER[id];
+  return muster ? (o.dokumente.find((d) => muster.test(dateiname(d.name))) ?? null) : null;
+}
+
+/** Ohne eigenen Eintrag „liegt vor“, sobald eine passende Datei da ist. */
 export function unterlagenstatus(o: Objekt, id: string): Unterlagenstatus {
-  return o.pruefung?.unterlagen?.[id]?.status ?? "fehlt";
+  const gesetzt = o.pruefung?.unterlagen?.[id]?.status;
+  if (gesetzt) return gesetzt;
+  return zugeordneteDatei(o, id) ? "liegt_vor" : "fehlt";
 }
 
 /**

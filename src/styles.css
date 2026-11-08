@@ -261,6 +261,30 @@ body {
   display: none;
 }
 
+/* Pipeline: am Rechner eine sichtbare, schmale Scrollleiste — sonst ahnt
+   niemand, dass rechts noch Spalten stehen. Am Telefon wie überall unsichtbar. */
+.scroll-pipeline {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-linie-stark, #ccd2db) transparent;
+}
+.scroll-pipeline::-webkit-scrollbar {
+  height: 8px;
+}
+.scroll-pipeline::-webkit-scrollbar-thumb {
+  background: #ccd2db;
+  border-radius: 999px;
+}
+@media (max-width: 767px) {
+  .scroll-pipeline {
+    scrollbar-width: none;
+  }
+  .scroll-pipeline::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* ---------- MapLibre an das Design angleichen ---------- */
 
 .maplibregl-ctrl-attrib {

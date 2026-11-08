@@ -43,55 +43,10 @@ function zahl(s: string): number | null {
 }
 
 /* ------------------------------------------------------------------ */
-/* Die Knöpfe im Objektkopf                                             */
-/* ------------------------------------------------------------------ */
-
-/**
- * Grün heißt Geld, und Grün ist die einzige Farbe, die in dieser Oberfläche
- * etwas Positives behauptet. Die Absage daneben ist absichtlich still: sie
- * muss erreichbar sein, aber nicht einladen.
- */
-export function DealKnoepfe({ objekt }: { objekt: Objekt }) {
-  const [dialog, setDialog] = useState<"deal" | "absage" | null>(null);
-
-  if (objekt.stufe === "angekauft") return null;
-
-  return (
-    <>
-      {/* Die Farbe steht inline, weil `.druckbar:hover` ungelayert ist und
-          jede Tailwind-Hintergrundklasse schlägt — grün muss grün bleiben. */}
-      <button
-        type="button"
-        onClick={() => setDialog("deal")}
-        style={{ backgroundColor: "#17935C" }}
-        className="druckbar flex items-center gap-2 rounded-full px-5 py-2.5 text-[0.7rem] font-semibold tracking-[0.1em] uppercase text-white shadow-karte"
-      >
-        <Handshake size={14} strokeWidth={2.25} />
-        Deal — Objekt ankaufen
-      </button>
-
-      {objekt.stufe !== "abgesagt" && (
-        <button
-          type="button"
-          onClick={() => setDialog("absage")}
-          className="druckbar flex items-center gap-2 rounded-full border border-linie px-4 py-2.5 text-[0.7rem] font-medium text-grau-stark hover:border-linie-stark hover:text-tinte"
-        >
-          <X size={13} strokeWidth={2} />
-          No Deal
-        </button>
-      )}
-
-      {dialog === "deal" && <DealDialog objekt={objekt} schliessen={() => setDialog(null)} />}
-      {dialog === "absage" && <AbsageDialog objekt={objekt} schliessen={() => setDialog(null)} />}
-    </>
-  );
-}
-
-/* ------------------------------------------------------------------ */
 /* Deal                                                                 */
 /* ------------------------------------------------------------------ */
 
-function DealDialog({ objekt, schliessen }: { objekt: Objekt; schliessen: () => void }) {
+export function DealDialog({ objekt, schliessen }: { objekt: Objekt; schliessen: () => void }) {
   const { objekte, dealAbschliessen } = useObjekte();
   const wohnung = istEinzelwohnung(objekt);
   const vergeben = andereKuerzel(objekte, objekt.id);
@@ -345,7 +300,7 @@ const GRUENDE = [
   "Lage passt nicht",
 ];
 
-function AbsageDialog({ objekt, schliessen }: { objekt: Objekt; schliessen: () => void }) {
+export function AbsageDialog({ objekt, schliessen }: { objekt: Objekt; schliessen: () => void }) {
   const { absagen } = useObjekte();
   const [grund, setGrund] = useState("");
 

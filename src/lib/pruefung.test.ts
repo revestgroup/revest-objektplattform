@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 import { MOCK_OBJEKTE } from "./mockDaten";
 import type { Objekt } from "./objekte";
-import { pruefpunkteFuer, pruefstand, unterlagenFuer, warnungFuer } from "./pruefung";
+import { pruefpunkteFuer, pruefstand, unterlagenFuer, warnungFuer, zugeordneteDatei } from "./pruefung";
 
 const etw = (teil: Partial<Objekt> = {}): Objekt => ({
   ...MOCK_OBJEKTE.find((o) => o.objektart === "etw")!,
@@ -52,5 +52,15 @@ describe("Objektprüfung", () => {
     expect(warnungFuer(etw(), "angebot")?.offenePflicht.length).toBeGreaterThan(0);
     expect(warnungFuer(etw(), "angekauft")).not.toBeNull();
     expect(warnungFuer(etw({ stufe: "angebot" }), "angebot")).toBeNull();
+  });
+
+  test("Dateien werden über den Namen zugeordnet, von Hand gesetzt gewinnt", () => {
+    const dok = (id: string, name: string) => ({ id, name, ordner: "", groesseKb: 1, hochgeladenAm: "2026-11-01" });
+    const o = etw({ dokumente: [dok("d1", "Grundbuchauszug_Eselsberg.pdf"), dok("d2", "WEG_Protokoll_2025.pdf")] });
+    expect(pruefstand(o).erledigt).toBe(3);
+    expect(zugeordneteDatei(o, "weg_protokolle")?.id).toBe("d2");
+    const vonHand = etw({ ...o, pruefung: { unterlagen: { grundbuch: { status: "fehlt", dokumentId: null } } } });
+    expect(zugeordneteDatei(vonHand, "grundbuch")).toBeNull();
+    expect(pruefstand(vonHand).erledigt).toBe(2);
   });
 });

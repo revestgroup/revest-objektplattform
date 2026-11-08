@@ -9,7 +9,6 @@ import { STUFEN, type Ankaufsstufe, type Objekt } from "../lib/objekte";
 import { useObjekte } from "../lib/objekteStore";
 import {
   AMPEL_FARBE,
-  PUNKTSTATUS,
   UNTERLAGENSTATUS,
   pruefpunkteFuer,
   pruefstand,
@@ -17,6 +16,7 @@ import {
   unterlagenFuer,
   unterlagenstatus,
   warnungFuer,
+  zugeordneteDatei,
   type Pruefstand,
   type Pruefung,
   type Punktstatus,
@@ -29,7 +29,16 @@ import { Dialog } from "./Dialog";
 /* Abzeichen                                                            */
 /* ------------------------------------------------------------------ */
 
-export function Pruefzeichen({ objekt, className }: { objekt: Objekt; className?: string }) {
+export function Pruefzeichen({
+  objekt,
+  className,
+  kurz,
+}: {
+  objekt: Objekt;
+  className?: string;
+  /** Nur „x/18“ — wenn die Überschrift daneben schon „Checkliste Ankauf“ sagt. */
+  kurz?: boolean;
+}) {
   const s = pruefstand(objekt);
   const t = AMPEL_FARBE[s.ampel];
   return (
@@ -48,7 +57,8 @@ export function Pruefzeichen({ objekt, className }: { objekt: Objekt; className?
       style={{ background: t.weich, color: t.tief }}
     >
       <span aria-hidden className="size-[7px] rounded-full" style={{ background: t.farbe }} />
-      Prüfung {s.erledigt}/{s.gesamt}
+      {kurz ? "" : "Checkliste "}
+      {s.erledigt}/{s.gesamt}
     </span>
   );
 }
@@ -57,53 +67,68 @@ export function Pruefzeichen({ objekt, className }: { objekt: Objekt; className?
 /* Reiter                                                               */
 /* ------------------------------------------------------------------ */
 
-function Wahl<T extends string>({
-  wert,
-  setWert,
-  optionen,
+const HAKEN =
+  "druckbar flex size-5 shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors duration-150";
+
+function Haken({
+  an,
+  kritisch,
+  beiKlick,
   titel,
 }: {
-  wert: T;
-  setWert: (v: T) => void;
-  optionen: { wert: T; titel: string; ton: "grau" | "gelb" | "gruen" | "rot" }[];
+  an: boolean;
+  kritisch?: boolean;
+  beiKlick: () => void;
   titel: string;
 }) {
-  const TON = {
-    grau: "bg-tinte text-grund",
-    gelb: "bg-[#FAE8CD] text-[#8A5608]",
-    gruen: "bg-[#DBF2E6] text-[#0C5E3A]",
-    rot: "bg-[#FBE2E2] text-[#9A2727]",
-  };
   return (
-    <div
-      role="radiogroup"
+    <button
+      type="button"
+      onClick={beiKlick}
       aria-label={titel}
-      className="flex shrink-0 rounded-full bg-flaeche-hoch p-0.5"
+      aria-pressed={an}
+      className={cn(
+        HAKEN,
+        kritisch
+          ? "border-[#CF4848] bg-[#CF4848]"
+          : an
+            ? "border-[#17935C] bg-[#17935C]"
+            : "border-linie-stark bg-flaeche hover:border-grau",
+      )}
     >
-      {optionen.map((o) => (
-        <button
-          key={o.wert}
-          type="button"
-          role="radio"
-          aria-checked={wert === o.wert}
-          onClick={() => setWert(o.wert)}
-          className={cn(
-            "druckbar rounded-full px-2.5 py-1 text-[0.64rem] font-medium whitespace-nowrap",
-            wert === o.wert ? TON[o.ton] : "text-grau hover:text-grau-stark",
-          )}
-        >
-          {o.titel}
-        </button>
-      ))}
-    </div>
+      <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+        <path
+          d="M2.5 6.2l2.3 2.3 4.7-4.9"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
   );
 }
 
+const UNTERLAGE_TON: Record<Unterlagenstatus, string> = {
+  fehlt: "bg-[#FBE2E2] text-[#9A2727] font-semibold",
+  angefordert: "bg-[#FBEBD1] text-[#8A5A08] font-semibold",
+  liegt_vor: "bg-[#DBF2E6] text-[#0C5E3A] font-semibold",
+};
+
+/**
+ * Checkliste Ankauf — alles auf einen Blick: links die Unterlagen, rechts die
+ * Prüfpunkte, durchnummeriert, eine Zeile je Punkt. Dateien, deren Name den
+ * Unterlagentyp trägt, sind automatisch zugeordnet; von Hand gesetzt gewinnt.
+ */
 export function Pruefblatt({ objekt }: { objekt: Objekt }) {
   const { aendern } = useObjekte();
   const p: Pruefung = objekt.pruefung ?? {};
   const s = pruefstand(objekt);
-  const t = AMPEL_FARBE[s.ampel];
+  const unterlagen = unterlagenFuer(objekt);
+  const punkte = pruefpunkteFuer(objekt);
+  const uErledigt = unterlagen.filter((u) => unterlagenstatus(objekt, u.id) === "liegt_vor").length;
+  const pErledigt = punkte.filter((pp) => punktstatus(objekt, pp.id) === "ok").length;
 
   function unterlage(id: string, status: Unterlagenstatus, dokumentId?: string | null) {
     const alt = p.unterlagen?.[id];
@@ -112,9 +137,15 @@ export function Pruefblatt({ objekt }: { objekt: Objekt }) {
         ...p,
         unterlagen: {
           ...p.unterlagen,
+          // Die Automatik festhalten: wer den Status setzt, behält die erkannte Datei.
           [id]: {
             status,
-            dokumentId: dokumentId === undefined ? (alt?.dokumentId ?? null) : dokumentId,
+            dokumentId:
+              dokumentId !== undefined
+                ? dokumentId
+                : alt?.dokumentId !== undefined
+                  ? alt.dokumentId
+                  : (zugeordneteDatei(objekt, id)?.id ?? null),
           },
         },
       },
@@ -130,7 +161,7 @@ export function Pruefblatt({ objekt }: { objekt: Objekt }) {
           ...p.punkte,
           [id]: {
             status: teil.status ?? alt?.status ?? punktstatus(objekt, id),
-            notiz: teil.notiz ?? alt?.notiz ?? null,
+            notiz: teil.notiz !== undefined ? teil.notiz : (alt?.notiz ?? null),
           },
         },
       },
@@ -138,91 +169,127 @@ export function Pruefblatt({ objekt }: { objekt: Objekt }) {
   }
 
   return (
-    <div className="flex flex-col gap-9 px-6 py-8 md:px-9">
-      {/* ----- Stand ----- */}
-      <div
-        className="flex flex-wrap items-center gap-4 rounded-2xl border px-4 py-4"
-        style={{ borderColor: t.weich, background: `${t.weich}80` }}
-      >
-        <span
-          aria-hidden
-          className="size-4 shrink-0 rounded-full"
-          style={{ background: t.farbe }}
-        />
-        <div className="min-w-0 flex-1">
-          <div className="zahl text-[1.05rem] font-semibold text-tinte">
+    <div className="flex flex-col gap-3.5 px-4 py-5 md:px-7">
+      {/* ----- Kopf ----- */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-baseline gap-3.5">
+          <h2 className="headline text-[1.25rem]">Checkliste Ankauf</h2>
+          <span className="zahl text-[0.8rem] text-grau-stark">
             {s.erledigt} von {s.gesamt} erledigt
-          </div>
-          <div className="mt-0.5 text-[0.7rem]" style={{ color: t.tief }}>
-            {s.kritisch.length > 0
-              ? `Kritisch: ${s.kritisch.join(", ")}`
-              : s.offenePflicht.length > 0
-                ? `${s.offenePflicht.length} Pflichtpunkte offen`
-                : "Alle Pflichtpunkte geprüft"}
-          </div>
+          </span>
+          {s.kritisch.length > 0 && (
+            <span className="text-[0.74rem] font-semibold text-[#9A2727]">
+              {s.kritisch.length} kritisch
+            </span>
+          )}
+        </div>
+        <div className="h-1.5 w-full max-w-[20rem] overflow-hidden rounded-full bg-linie">
+          <div
+            className="h-1.5 rounded-full bg-[#17935C] transition-[width] duration-300"
+            style={{ width: `${Math.round((s.erledigt / s.gesamt) * 100)}%` }}
+          />
         </div>
       </div>
 
-      {/* ----- Unterlagen ----- */}
-      <section>
-        <div className="mini-label">Unterlagen</div>
-        <ul className="mt-3 divide-y divide-linie overflow-hidden rounded-2xl border border-linie bg-flaeche">
-          {unterlagenFuer(objekt).map((u) => {
+      <div className="grid items-start gap-3.5 lg:grid-cols-2">
+        {/* ----- Unterlagen ----- */}
+        <section className="overflow-hidden rounded-2xl border border-linie bg-flaeche">
+          <div className="flex justify-between px-3 pt-3 pb-2 text-[0.6rem] font-semibold tracking-[0.18em] uppercase text-grau">
+            <span>Unterlagen</span>
+            <span className="zahl">
+              {uErledigt} / {unterlagen.length}
+            </span>
+          </div>
+          {unterlagen.map((u, i) => {
             const status = unterlagenstatus(objekt, u.id);
-            const dokumentId = p.unterlagen?.[u.id]?.dokumentId ?? "";
+            const datei = zugeordneteDatei(objekt, u.id);
             return (
-              <li
+              <div
                 key={u.id}
-                className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-4"
+                className="grid min-h-8 grid-cols-[1.4rem_1.5rem_minmax(0,1fr)_auto] items-center gap-x-2 border-t border-linie px-3 py-1 text-[0.8rem]"
               >
-                <span className="min-w-0 flex-1 text-[0.78rem] text-tinte">
-                  {u.titel}
+                <span className="zahl text-right text-[0.68rem] text-grau">{i + 1}</span>
+                <Haken
+                  an={status === "liegt_vor"}
+                  titel={`${u.titel} liegt vor`}
+                  beiKlick={() => unterlage(u.id, status === "liegt_vor" ? "fehlt" : "liegt_vor")}
+                />
+                <span className="flex min-w-0 items-baseline gap-1.5">
+                  <span
+                    className={cn(
+                      "truncate",
+                      status === "liegt_vor" ? "text-grau-stark" : "text-tinte",
+                    )}
+                  >
+                    {u.titel}
+                  </span>
                   {u.pflicht && (
-                    <span className="ml-1.5 text-[0.58rem] tracking-[0.14em] uppercase text-grau">
-                      Pflicht
+                    <span className="shrink-0 text-[0.54rem] font-semibold tracking-[0.12em] text-[#8A5A08]">
+                      PFLICHT
                     </span>
                   )}
+                  {/* Dateiname als schlichte Auswahl: zeigt die Zuordnung und lässt sie ändern. */}
+                  {objekt.dokumente.length > 0 && (status === "liegt_vor" || datei) && (
+                    <select
+                      value={datei?.id ?? ""}
+                      onChange={(e) =>
+                        unterlage(
+                          u.id,
+                          e.target.value ? "liegt_vor" : status,
+                          e.target.value || null,
+                        )
+                      }
+                      aria-label={`Datei für ${u.titel}`}
+                      title="Zugeordnete Datei"
+                      className="min-w-0 max-w-[12rem] cursor-pointer truncate appearance-none bg-transparent text-[0.66rem] text-grau hover:text-grau-stark focus:outline-none"
+                    >
+                      <option value="">keine Datei</option>
+                      {objekt.dokumente.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </span>
-                {objekt.dokumente.length > 0 && (
-                  <select
-                    value={dokumentId}
-                    onChange={(e) =>
-                      unterlage(u.id, e.target.value ? "liegt_vor" : status, e.target.value || null)
-                    }
-                    aria-label={`Datei für ${u.titel}`}
-                    className="min-w-0 rounded-lg border border-linie bg-grund px-2 py-1 text-[0.68rem] text-grau-stark focus:border-linie-stark focus:outline-none sm:w-48"
-                  >
-                    <option value="">— keine Datei —</option>
-                    {objekt.dokumente.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                <Wahl
-                  titel={u.titel}
-                  wert={status}
-                  setWert={(v) => unterlage(u.id, v)}
-                  optionen={[
-                    { wert: "fehlt", titel: UNTERLAGENSTATUS.fehlt, ton: "rot" },
-                    { wert: "angefordert", titel: UNTERLAGENSTATUS.angefordert, ton: "gelb" },
-                    { wert: "liegt_vor", titel: UNTERLAGENSTATUS.liegt_vor, ton: "gruen" },
-                  ]}
-                />
-              </li>
+                <span
+                  role="radiogroup"
+                  aria-label={u.titel}
+                  className="flex rounded-full bg-flaeche-hoch p-0.5"
+                >
+                  {(["fehlt", "angefordert", "liegt_vor"] as Unterlagenstatus[]).map((st) => (
+                    <button
+                      key={st}
+                      type="button"
+                      role="radio"
+                      aria-checked={status === st}
+                      onClick={() => unterlage(u.id, st)}
+                      className={cn(
+                        "druckbar rounded-full px-2 py-0.5 text-[0.62rem] whitespace-nowrap",
+                        status === st ? UNTERLAGE_TON[st] : "text-grau hover:text-grau-stark",
+                      )}
+                    >
+                      {UNTERLAGENSTATUS[st]}
+                    </button>
+                  ))}
+                </span>
+              </div>
             );
           })}
-        </ul>
-      </section>
+        </section>
 
-      {/* ----- Prüfpunkte ----- */}
-      <section>
-        <div className="mini-label">Prüfpunkte</div>
-        <ul className="mt-3 divide-y divide-linie overflow-hidden rounded-2xl border border-linie bg-flaeche">
-          {pruefpunkteFuer(objekt).map((pp) => (
+        {/* ----- Prüfpunkte ----- */}
+        <section className="overflow-hidden rounded-2xl border border-linie bg-flaeche">
+          <div className="flex justify-between px-3 pt-3 pb-2 text-[0.6rem] font-semibold tracking-[0.18em] uppercase text-grau">
+            <span>Prüfpunkte</span>
+            <span className="zahl">
+              {pErledigt} / {punkte.length}
+            </span>
+          </div>
+          {punkte.map((pp, i) => (
             <Pruefpunktzeile
               key={pp.id}
+              nr={unterlagen.length + i + 1}
               titel={pp.titel}
               status={punktstatus(objekt, pp.id)}
               notiz={p.punkte?.[pp.id]?.notiz ?? ""}
@@ -230,19 +297,24 @@ export function Pruefblatt({ objekt }: { objekt: Objekt }) {
               setNotiz={(v) => punkt(pp.id, { notiz: v })}
             />
           ))}
-        </ul>
-      </section>
+          <p className="px-3 pt-2 pb-3 text-[0.64rem] text-grau">
+            Haken = geprüft und ok · Dreieck = kritisch (Haken wird rot, Warnung beim Ankauf)
+          </p>
+        </section>
+      </div>
     </div>
   );
 }
 
 function Pruefpunktzeile({
+  nr,
   titel,
   status,
   notiz,
   setStatus,
   setNotiz,
 }: {
+  nr: number;
   titel: string;
   status: Punktstatus;
   notiz: string;
@@ -250,31 +322,45 @@ function Pruefpunktzeile({
   setNotiz: (v: string | null) => void;
 }) {
   const [text, setText] = useState(notiz);
+  const kritisch = status === "kritisch";
   return (
-    <li className="flex flex-col gap-2 px-4 py-3">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-        <span className="min-w-0 flex-1 text-[0.78rem] text-tinte">{titel}</span>
-        <Wahl
-          titel={titel}
-          wert={status}
-          setWert={setStatus}
-          optionen={[
-            { wert: "offen", titel: PUNKTSTATUS.offen, ton: "grau" },
-            { wert: "ok", titel: PUNKTSTATUS.ok, ton: "gruen" },
-            { wert: "kritisch", titel: PUNKTSTATUS.kritisch, ton: "rot" },
-          ]}
-        />
-      </div>
+    <div className="grid min-h-8 grid-cols-[1.4rem_1.5rem_minmax(0,1fr)_1.75rem_minmax(0,0.9fr)] items-center gap-x-2 border-t border-linie px-3 py-1 text-[0.8rem]">
+      <span className="zahl text-right text-[0.68rem] text-grau">{nr}</span>
+      <Haken
+        an={status === "ok"}
+        kritisch={kritisch}
+        titel={`${titel} geprüft`}
+        beiKlick={() => setStatus(status === "ok" ? "offen" : "ok")}
+      />
+      <span
+        title={titel}
+        className={cn("truncate", status === "ok" ? "text-grau-stark" : "text-tinte")}
+      >
+        {titel}
+      </span>
+      <button
+        type="button"
+        onClick={() => setStatus(kritisch ? "offen" : "kritisch")}
+        aria-label={`${titel} als kritisch markieren`}
+        aria-pressed={kritisch}
+        title="Als kritisch markieren"
+        className={cn(
+          "druckbar flex size-6 items-center justify-center rounded-full",
+          kritisch ? "bg-[#FBE2E2] text-[#9A2727]" : "text-linie-stark hover:text-grau",
+        )}
+      >
+        <AlertTriangle size={13} strokeWidth={1.75} />
+      </button>
       <input
         value={text}
         onChange={(e) => setText(e.target.value)}
         // Gespeichert beim Verlassen — sonst schreibt jeder Buchstabe einen Stand.
         onBlur={() => text !== notiz && setNotiz(text.trim() || null)}
-        placeholder="Notiz …"
+        placeholder="Notiz"
         aria-label={`Notiz zu ${titel}`}
-        className="w-full rounded-lg border border-transparent bg-flaeche-hoch px-2.5 py-1.5 text-[0.72rem] text-grau-stark placeholder:text-grau focus:border-linie focus:bg-grund focus:outline-none"
+        className="h-6 w-full min-w-0 rounded-md bg-flaeche-hoch px-2 text-[0.72rem] text-grau-stark placeholder:text-grau focus:bg-grund focus:outline focus:outline-1 focus:outline-linie-stark"
       />
-    </li>
+    </div>
   );
 }
 

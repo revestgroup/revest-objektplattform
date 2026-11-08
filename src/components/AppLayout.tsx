@@ -2,7 +2,9 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BarChart3,
   Building2,
+  ChevronDown,
   ChevronLeft,
+  ChevronUp,
   KeyRound,
   LayoutDashboard,
   ListChecks,
@@ -326,6 +328,132 @@ export function Schublade({
         </div>
         <div ref={rolle} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <div className="mx-auto w-full max-w-[1240px]">{children}</div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Fenster — ein Objekt öffnet groß über der Liste, wie in monday        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Großes Fenster über der Pipeline: 92 % breit, höchstens 1440 px, die Liste
+ * dahinter abgedunkelt und unverändert — nach dem Schließen steht sie an
+ * derselben Stelle. Am Telefon füllt es den Schirm.
+ *
+ * Esc schließt, außer ein Dialog liegt darüber (der schließt dann zuerst).
+ * J/K oder die Pfeile oben rechts blättern zum Nachbarn, ohne zu schließen.
+ */
+export function Fenster({
+  offen,
+  schliessen,
+  titel,
+  vorher,
+  nachher,
+  children,
+}: {
+  offen: boolean;
+  schliessen: () => void;
+  titel: string;
+  /** Fehlt, wenn es keinen Nachbarn gibt — dann ist der Pfeil grau. */
+  vorher?: () => void;
+  nachher?: () => void;
+  children: ReactNode;
+}) {
+  const rolle = useRef<HTMLDivElement>(null);
+
+  // Beim Blättern oben anfangen — sonst beginnt das nächste Objekt mitten im Text.
+  useEffect(() => {
+    rolle.current?.scrollTo({ top: 0 });
+  }, [titel]);
+
+  useEffect(() => {
+    if (!offen) return;
+    const beiTaste = (e: KeyboardEvent) => {
+      // Ein Dialog darüber hat Vorrang; er bringt seinen eigenen Esc mit.
+      if (document.querySelector(".schleier")) return;
+      const ziel = e.target;
+      const tippt =
+        ziel instanceof Element && ziel.closest("input, textarea, select, [contenteditable=true]");
+      if (e.key === "Escape") schliessen();
+      else if (!tippt && (e.key === "j" || e.key === "J") && nachher) nachher();
+      else if (!tippt && (e.key === "k" || e.key === "K") && vorher) vorher();
+    };
+    window.addEventListener("keydown", beiTaste);
+    return () => window.removeEventListener("keydown", beiTaste);
+  }, [offen, schliessen, vorher, nachher]);
+
+  // Die Seite dahinter scrollt nicht mit, solange das Fenster offen ist.
+  useEffect(() => {
+    if (!offen) return;
+    const alt = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = alt;
+    };
+  }, [offen]);
+
+  if (!offen) return null;
+
+  const pfeil =
+    "druckbar flex size-8 shrink-0 items-center justify-center rounded-full text-grau hover:text-tinte disabled:opacity-30 disabled:hover:text-grau";
+
+  return (
+    <>
+      <div
+        onClick={schliessen}
+        aria-hidden
+        className="eintritt fixed inset-0 z-40 bg-tinte/40 backdrop-blur-[2px]"
+      />
+      <div
+        role="dialog"
+        aria-label={titel}
+        className="eintritt fixed inset-0 z-50 flex flex-col overflow-hidden bg-grund shadow-schwebe md:inset-x-0 md:top-6 md:bottom-6 md:mx-auto md:w-[92vw] md:max-w-[1440px] md:rounded-3xl"
+      >
+        <div className="flex h-12 shrink-0 items-center gap-2 border-b border-linie bg-flaeche px-3 pt-[env(safe-area-inset-top)] md:px-5">
+          <button
+            type="button"
+            onClick={schliessen}
+            className="druckbar flex shrink-0 items-center gap-1 rounded-full py-1.5 pr-3 pl-1.5 text-[0.72rem] text-grau-stark md:hidden"
+          >
+            <ChevronLeft size={16} strokeWidth={2} />
+            Zurück
+          </button>
+          <div className="mini-label min-w-0 flex-1 truncate">{titel}</div>
+          <button
+            type="button"
+            onClick={vorher}
+            disabled={!vorher}
+            aria-label="Vorheriges Objekt (K)"
+            title="Vorheriges Objekt (K)"
+            className={pfeil}
+          >
+            <ChevronUp size={16} strokeWidth={2} />
+          </button>
+          <button
+            type="button"
+            onClick={nachher}
+            disabled={!nachher}
+            aria-label="Nächstes Objekt (J)"
+            title="Nächstes Objekt (J)"
+            className={pfeil}
+          >
+            <ChevronDown size={16} strokeWidth={2} />
+          </button>
+          <button
+            type="button"
+            onClick={schliessen}
+            aria-label="Schließen (Esc)"
+            title="Schließen (Esc)"
+            className={cn(pfeil, "hidden md:flex")}
+          >
+            <X size={17} strokeWidth={1.75} />
+          </button>
+        </div>
+        <div ref={rolle} className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          {children}
         </div>
       </div>
     </>

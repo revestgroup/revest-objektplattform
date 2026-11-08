@@ -62,22 +62,21 @@ import { useAufgaben } from "../lib/aufgabenStore";
 import { useEinstellungen } from "../lib/einstellungenStore";
 import { SZENARIEN, SZENARIO_TITEL, berechneEtw, etwEingabe } from "../lib/kalkulationEtw";
 import { pruefstand } from "../lib/pruefung";
-import { ueberfaelligeUmmeldungen } from "../lib/ummeldungen";
 import { useObjekte } from "../lib/objekteStore";
 import { cn } from "../lib/utils";
 import { berechneGarantie } from "../lib/vermietung";
 import { useVermietung } from "../lib/vermietungStore";
 import { Bildergalerie, Bildflaeche, istQuelle } from "./Bilder";
-import { DealKnoepfe } from "./Deal";
 import { Dateiliste, Dokumentenablage, Einsortieren } from "./Dokumente";
-import { Kontaktblatt } from "./Kontaktblatt";
+import { Kontaktkacheln } from "./Kontaktkacheln";
 import { Objektaufgaben } from "./Objektaufgaben";
 import { Fristzeichen, Stufenzeichen } from "./Stufe";
 import { Teilung, TeilungAnstossen } from "./Teilung";
 import { Ruecknahmedialog, Verkaufsdialog } from "./Verkaufsdialog";
 import { Verkaufsplanung } from "./Verkaufsplanung";
 import { KalkulationEtwBlatt } from "./KalkulationEtw";
-import { Pruefblatt, Pruefzeichen, useStufenwechsel } from "./Pruefung";
+import { Pruefblatt, Pruefzeichen } from "./Pruefung";
+import { Stufenleiste } from "./Stufenleiste";
 import { Ummeldungsblatt } from "./Ummeldungen";
 
 type Reiter =
@@ -112,7 +111,6 @@ const ANKAUF_REITER: Reiter[] = [
   "aufgaben",
   "kontakt",
   "verkauf",
-  "kosten",
   "dokumente",
   "verlauf",
 ];
@@ -146,10 +144,10 @@ function reiterTitel(r: Reiter, projekt: boolean): string {
 
 const REITER_TITEL: Record<Reiter, string> = {
   uebersicht: "Übersicht",
-  pruefung: "Prüfung",
+  pruefung: "Checkliste Ankauf",
   ummeldungen: "Ummeldungen",
   aufgaben: "Aufgaben",
-  kontakt: "Kontakt",
+  kontakt: "Kontakte",
   verkauf: "Kalkulation",
   kosten: "Kosten",
   teilung: "Teilung",
@@ -189,22 +187,23 @@ export function ObjektDetail({
   const zahlen = useMemo<Record<Reiter, number | null>>(
     () => ({
       uebersicht: null,
-      // Was noch zu klären ist — offene Pflichtpunkte und kritische.
+      // Nur Offenes zählt: was noch zu tun ist, dazu die Zahl der Dateien.
       pruefung: (() => {
         const s = pruefstand(objekt);
-        return s.offenePflicht.length + s.kritisch.length;
+        return s.gesamt - s.erledigt;
       })(),
-      // Die überfälligen — der Rest ist Routine.
-      ummeldungen: ueberfaelligeUmmeldungen(objekt).length,
+      ummeldungen: (objekt.ummeldungen ?? []).filter(
+        (u) => u.status !== "bestaetigt" && u.status !== "entfaellt",
+      ).length,
       aufgaben: aufgaben.filter((a) => a.objektId === objekt.id && !a.erledigtAm).length,
-      kontakt: objekt.kontakte.length,
-      verkauf: objekt.verkaufsplan?.posten.length ?? 0,
+      kontakt: null,
+      verkauf: null,
       kosten: null,
       teilung: null,
-      sanierung: objekt.sanierung.length,
-      einheiten: objekt.einheiten.length,
+      sanierung: objekt.sanierung.filter((p) => p.status !== "abgenommen").length,
+      einheiten: null,
       dokumente: objekt.dokumente.length,
-      verlauf: objekt.verlauf.length,
+      verlauf: null,
     }),
     [objekt, aufgaben],
   );
@@ -212,85 +211,80 @@ export function ObjektDetail({
   return (
     <div className="flex min-h-full flex-col">
       {/* ----- Kopf ----- */}
-      {/* Was beim Öffnen sofort zählt: Bild, Bezeichnung, Adresse, Fläche,
-          Angebotspreis, Stufe. Der Rest steht im Steckbrief darunter. */}
-      <div className="border-b border-linie px-6 py-7 md:px-9">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-          <div className="h-32 w-full shrink-0 overflow-hidden rounded-xl bg-flaeche-hoch sm:h-28 sm:w-44">
+      {/* Kopf, Stufenleiste und Reiter stehen fest; nur der Inhalt darunter
+          scrollt. Deshalb so kompakt: Bild, Bezeichnung, Adresse, Fläche,
+          Preis und Stufe in einem Block, die Knöpfe in derselben Zeile. */}
+      <div className="sticky top-0 z-20 bg-grund">
+      <div className="border-b border-linie px-4 py-4 md:px-7">
+        <div className="flex items-start gap-4">
+          <div className="hidden h-[4.5rem] w-24 shrink-0 overflow-hidden rounded-xl bg-flaeche-hoch sm:block">
             <Bildflaeche eintrag={objekt.bilder[0] ?? "Kein Bild"} />
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <Stufenzeichen stufe={objekt.stufe} gross />
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Stufenzeichen stufe={objekt.stufe} />
               {objekt.kuerzel && <Marke>{objekt.kuerzel}</Marke>}
               <Fristzeichen objekt={objekt} />
               {objekt.denkmalschutz && <Marke>Denkmal</Marke>}
               {objekt.erbbaurecht && <Marke>Erbbaurecht</Marke>}
             </div>
-
-            <h1 className="headline mt-3 text-[1.5rem] md:text-[1.9rem]">
+            <h1 className="headline mt-1.5 truncate text-[1.2rem] md:text-[1.45rem]">
               {objekt.bezeichnung?.trim() || objekt.strasse}
             </h1>
-
-            <div className="mt-2 flex items-center gap-2 text-[0.78rem] text-grau">
-              <MapPin size={13} strokeWidth={1.75} className="shrink-0" />
-              <span className="truncate">
-                {objekt.strasse}, {objekt.plz} {objekt.stadt} · {objekt.stadtteil}
+            <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-[0.74rem] text-grau">
+              <span className="flex min-w-0 items-center gap-1.5">
+                <MapPin size={12} strokeWidth={1.75} className="shrink-0" />
+                <span className="truncate">
+                  {objekt.strasse}, {objekt.plz} {objekt.stadt} · {objekt.stadtteil}
+                </span>
               </span>
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
-              <span className="zahl text-[1.15rem] font-semibold text-tinte">
-                {f.eur(objekt.kaufpreis)}
-              </span>
-              <span className="zahl text-[0.82rem] text-grau-stark">{f.qm(objekt.wohnflaeche)}</span>
-              {verwertung && <span className="text-[0.72rem] text-grau">{verwertung}</span>}
+              <span className="zahl font-semibold text-tinte">{f.eur(objekt.kaufpreis)}</span>
+              <span className="zahl text-grau-stark">{f.qm(objekt.wohnflaeche)}</span>
+              {verwertung && <span>{verwertung}</span>}
             </div>
           </div>
-        </div>
 
-        {/* Der Deal steht über dem Bearbeiten, weil er die Entscheidung ist
-            und nicht die Pflege. Nach dem Kauf verschwindet er wieder. */}
-        <div className="mt-5 flex flex-wrap gap-2">
-          <DealKnoepfe objekt={objekt} />
-        </div>
-
-        <div className="mt-2.5 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={onBearbeiten}
-            className="druckbar flex items-center gap-2 rounded-full border border-linie-stark px-4 py-2 text-[0.66rem] font-medium tracking-[0.14em] uppercase text-tinte"
-          >
-            <Pencil size={12} strokeWidth={2} />
-            Bearbeiten
-          </button>
-          {onAufKarte && (
+          <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+            {projekt && <TeilungAnstossen objekt={objekt} />}
+            {onAufKarte && (
+              <button
+                type="button"
+                onClick={onAufKarte}
+                aria-label="Auf der Karte"
+                title="Auf der Karte"
+                className="druckbar flex size-8 items-center justify-center rounded-full border border-linie text-grau-stark"
+              >
+                <Crosshair size={13} strokeWidth={2} />
+              </button>
+            )}
             <button
               type="button"
-              onClick={onAufKarte}
-              className="druckbar flex items-center gap-2 rounded-full border border-linie px-4 py-2 text-[0.66rem] font-medium tracking-[0.14em] uppercase text-grau-stark"
+              onClick={onBearbeiten}
+              className="druckbar flex h-8 items-center gap-1.5 rounded-full border border-linie-stark px-3 text-[0.62rem] font-medium tracking-[0.12em] uppercase text-tinte"
             >
-              <Crosshair size={12} strokeWidth={2} />
-              Auf der Karte
+              <Pencil size={11} strokeWidth={2} />
+              Bearbeiten
             </button>
-          )}
-          {projekt && <TeilungAnstossen objekt={objekt} />}
+          </div>
         </div>
 
         {/* Eine Absage ohne Begründung ist in zwei Jahren wertlos — hier steht
             sie dort, wo sie gelesen wird, und nicht nur im Verlauf. */}
         {objekt.stufe === "abgesagt" && objekt.absagegrund && (
-          <p className="mt-4 rounded-xl border border-[#E3BDB9] bg-[#F8DEDC] px-3.5 py-2.5 text-[0.74rem] leading-relaxed text-[#8A2822]">
+          <p className="mt-3 rounded-xl border border-[#E3BDB9] bg-[#F8DEDC] px-3.5 py-2 text-[0.72rem] leading-relaxed text-[#8A2822]">
             No Deal: {objekt.absagegrund}
           </p>
         )}
       </div>
 
+      {/* Im Ankauf die Stufenleiste; ein Projekt ist gekauft und braucht keine. */}
+      {!projekt && <Stufenleiste objekt={objekt} zurCheckliste={() => setReiter("pruefung")} />}
+
       {/* ----- Reiter ----- */}
       {/* Zehn Reiter passen auf dem Telefon nicht nebeneinander — also wischen
           statt umbrechen, sonst wandert der Inhalt nach unten. */}
-      <div className="scroll-reihe sticky top-0 z-10 flex shrink-0 gap-1 overflow-x-auto border-b border-linie bg-grund/95 px-6 backdrop-blur-sm md:px-9">
+      <div className="scroll-reihe flex shrink-0 gap-1 overflow-x-auto border-b border-linie bg-grund px-4 md:px-7">
         {reiterliste.map((r) => {
           const aktiv = r === sichtbar;
           const anzahl = zahlen[r];
@@ -332,6 +326,7 @@ export function ObjektDetail({
           );
         })}
       </div>
+      </div>
 
       <div className="flex-1">
         {sichtbar === "uebersicht" && (
@@ -340,7 +335,17 @@ export function ObjektDetail({
         {sichtbar === "pruefung" && <Pruefblatt objekt={objekt} />}
         {sichtbar === "ummeldungen" && <Ummeldungsblatt objekt={objekt} />}
         {sichtbar === "aufgaben" && <Objektaufgaben objekt={objekt} />}
-        {sichtbar === "kontakt" && <Kontaktblatt objekt={objekt} />}
+        {sichtbar === "kontakt" && (
+          <div className="px-4 py-5 md:px-7">
+            <div className="mb-3.5 flex items-baseline gap-3.5">
+              <h2 className="headline text-[1.25rem]">Kontakte</h2>
+              <span className="text-[0.8rem] text-grau-stark">
+                {objekt.kontakte.filter((k) => k.name.trim()).length} Beteiligte
+              </span>
+            </div>
+            <Kontaktkacheln objekt={objekt} />
+          </div>
+        )}
         {sichtbar === "verkauf" &&
           (projekt ? <Verkaufsplanung objekt={objekt} /> : <Kalkulation objekt={objekt} />)}
         {sichtbar === "teilung" && <Teilung objekt={objekt} />}
@@ -428,13 +433,10 @@ function Uebersicht({
   kennzahlen: ReturnType<typeof berechneKennzahlen>;
   zuReiter: (r: Reiter) => void;
 }) {
-  const wechsel = useStufenwechsel(() => zuReiter("pruefung"));
-
   return (
     <div className="divide-y divide-linie">
-      {wechsel.dialog}
       <div className="grid gap-px bg-linie lg:grid-cols-3">
-        <KontaktSpalte objekt={objekt} zuReiter={zuReiter} />
+        <KontaktSpalte objekt={objekt} />
         <NotizSpalte objekt={objekt} />
         <SteckbriefSpalte objekt={objekt} kennzahlen={kennzahlen} zuReiter={zuReiter} />
       </div>
@@ -445,36 +447,6 @@ function Uebersicht({
         </div>
       )}
 
-      {/* Stufenwechsel am Ende: erst lesen, dann entscheiden. */}
-      <div className="px-6 py-9 md:px-9">
-        <div className="mini-label">Stufe wechseln</div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {STUFEN_REIHENFOLGE.map((st) => {
-            const aktiv = st === objekt.stufe;
-            return (
-              <button
-                key={st}
-                type="button"
-                onClick={() => wechsel.setze(objekt, st)}
-                aria-pressed={aktiv}
-                className={cn(
-                  "druckbar flex items-center gap-2 rounded-full border px-3.5 py-2 text-[0.66rem] font-medium whitespace-nowrap",
-                  aktiv
-                    ? "border-tinte bg-tinte text-grund"
-                    : "border-linie bg-flaeche text-grau-stark",
-                )}
-              >
-                <span
-                  aria-hidden
-                  className="size-[7px] shrink-0 rounded-full"
-                  style={{ background: aktiv ? "#ffffff" : STUFEN[st].farbe }}
-                />
-                {STUFEN[st].titel}
-              </button>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 }
@@ -491,7 +463,7 @@ function gmailLink(an: string, betreff: string): string {
   return `https://mail.google.com/mail/?${q.toString()}`;
 }
 
-function KontaktSpalte({ objekt, zuReiter }: { objekt: Objekt; zuReiter: (r: Reiter) => void }) {
+function KontaktSpalte({ objekt }: { objekt: Objekt }) {
   const kontakte = objekt.kontakte
     .filter((k) => k.name.trim() !== "")
     .sort((a, b) => ROLLEN_FOLGE.indexOf(a.rolle) - ROLLEN_FOLGE.indexOf(b.rolle));
@@ -503,44 +475,10 @@ function KontaktSpalte({ objekt, zuReiter }: { objekt: Objekt; zuReiter: (r: Rei
     <section className="bg-grund px-6 py-8 md:px-9">
       <div className="mini-label">Kontakt &amp; Mail</div>
 
-      {kontakte.length === 0 ? (
-        <p className="mt-4 text-[0.76rem] text-grau">Noch kein Ansprechpartner hinterlegt.</p>
-      ) : (
-        <ul className="mt-4 flex flex-col gap-2.5">
-          {kontakte.map((k) => (
-            <li key={k.id} className="rounded-xl border border-linie bg-flaeche px-3.5 py-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="min-w-0 truncate text-[0.8rem] font-medium text-tinte">{k.name}</span>
-                <span className="shrink-0 text-[0.6rem] tracking-[0.14em] uppercase text-grau">
-                  {KONTAKTROLLEN[k.rolle]}
-                </span>
-              </div>
-              {(k.telefon || k.email) && (
-                <div className="mt-2 flex flex-col gap-1">
-                  {k.telefon && (
-                    <a
-                      href={`tel:${k.telefon.replace(/\s+/g, "")}`}
-                      className="flex items-center gap-2 text-[0.74rem] text-grau-stark hover:text-tinte"
-                    >
-                      <Phone size={12} strokeWidth={1.75} className="shrink-0" />
-                      <span className="zahl">{k.telefon}</span>
-                    </a>
-                  )}
-                  {k.email && (
-                    <a
-                      href={`mailto:${k.email}`}
-                      className="flex min-w-0 items-center gap-2 text-[0.74rem] text-grau-stark hover:text-tinte"
-                    >
-                      <Mail size={12} strokeWidth={1.75} className="shrink-0" />
-                      <span className="truncate">{k.email}</span>
-                    </a>
-                  )}
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      {/* Dieselben Kacheln wie im Reiter „Kontakte“, nur untereinander. */}
+      <div className="mt-4">
+        <Kontaktkacheln objekt={objekt} einspaltig />
+      </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
         <a
@@ -552,14 +490,6 @@ function KontaktSpalte({ objekt, zuReiter }: { objekt: Objekt; zuReiter: (r: Rei
           <Mail size={12} strokeWidth={2} />
           E-Mail schreiben
         </a>
-        <button
-          type="button"
-          onClick={() => zuReiter("kontakt")}
-          className="druckbar flex items-center gap-2 rounded-full border border-linie px-4 py-2 text-[0.66rem] font-medium tracking-[0.12em] uppercase text-grau-stark"
-        >
-          <Pencil size={11} strokeWidth={2} />
-          Kontakte
-        </button>
       </div>
       {!empfaenger && kontakte.length > 0 && (
         <p className="mt-2 text-[0.64rem] text-grau">Keine E-Mail-Adresse hinterlegt — der Entwurf öffnet ohne Empfänger.</p>
@@ -680,8 +610,8 @@ function SteckbriefSpalte({
           onClick={() => zuReiter("pruefung")}
           className="druckbar mb-6 flex w-full items-center justify-between gap-3 rounded-xl border border-linie bg-flaeche px-3.5 py-2.5 text-left"
         >
-          <span className="mini-label">Prüfung</span>
-          <Pruefzeichen objekt={objekt} />
+          <span className="mini-label">Checkliste Ankauf</span>
+          <Pruefzeichen objekt={objekt} kurz />
         </button>
       )}
       <div className="mini-label">Steckbrief</div>

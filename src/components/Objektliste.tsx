@@ -27,7 +27,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Columns3, LayoutGrid, Plus, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-import { Schublade, Seitenkopf } from "./AppLayout";
+import { Fenster, Seitenkopf } from "./AppLayout";
 import type { NeuesDokument } from "./Dokumente";
 import { ObjektDetail, ObjektKachel } from "./ObjektDetail";
 import { ObjektFormular } from "./ObjektFormular";
@@ -144,13 +144,16 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
   // Das offene Objekt steht in der Adresse (`?objekt=`): so schließt „Zurück“
   // im Browser das Objekt, Neuladen behält es offen, und ein Link führt direkt
   // hin. Anlegen bleibt ohne Adresse — es gibt noch nichts zu verlinken.
-  function wechsle(neu: Modus) {
+  // `ersetzen` beim Blättern im Fenster: so schließt „Zurück“ das Fenster,
+  // statt sich durch jedes angesehene Objekt zurückzuarbeiten.
+  function wechsle(neu: Modus, ersetzen = false) {
     setModus(neu);
     const id = neu.art === "detail" || neu.art === "bearbeiten" ? neu.id : undefined;
     if (id !== oeffne) {
       void navigate({
         to: bereich === "ankauf" ? "/ankauf" : "/projekte",
         search: id ? { objekt: id } : {},
+        replace: ersetzen,
       });
     }
   }
@@ -261,6 +264,17 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
   }
 
   const gefiltert = stufen.size > 0 || stadt !== "" || suche.trim() !== "";
+
+  // Blättern im Fenster: die Nachbarn derselben Stufe, in der Reihenfolge der Liste.
+  const nachbarn = useMemo(() => {
+    if (modus.art !== "detail" || !gewaehlt) return { vorher: null, nachher: null };
+    const gleiche = liste.filter((o) => o.stufe === gewaehlt.stufe);
+    const i = gleiche.findIndex((o) => o.id === gewaehlt.id);
+    return {
+      vorher: i > 0 ? gleiche[i - 1].id : null,
+      nachher: i >= 0 && i < gleiche.length - 1 ? gleiche[i + 1].id : null,
+    };
+  }, [modus, gewaehlt, liste]);
 
   return (
     <>
@@ -461,9 +475,13 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
         </>
       )}
 
-      <Schublade
+      <Fenster
         offen={modus.art !== "zu"}
         schliessen={() => wechsle({ art: "zu" })}
+        vorher={nachbarn.vorher ? () => wechsle({ art: "detail", id: nachbarn.vorher! }, true) : undefined}
+        nachher={
+          nachbarn.nachher ? () => wechsle({ art: "detail", id: nachbarn.nachher! }, true) : undefined
+        }
         titel={
           modus.art === "anlegen"
             ? "Objekt anlegen"
@@ -488,7 +506,7 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
             onBearbeiten={() => wechsle({ art: "bearbeiten", id: gewaehlt.id })}
           />
         )}
-      </Schublade>
+      </Fenster>
     </>
   );
 }

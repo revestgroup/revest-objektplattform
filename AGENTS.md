@@ -30,12 +30,12 @@ Das ist Absicht — das Design wird erst final gemacht, dann kommt das Backend.
 Schmale Kacheln bekommen `f.eurKurz` („2,45 Mio €"), nicht `f.eur`. Ausgeschrieben
 läuft ein Millionenbetrag auf dem Telefon über den Rand.
 
-## Objektansicht ist breit
+## Objektfenster
 
-Die „Schublade“ (`Schublade` in `AppLayout.tsx`) öffnet vollflächig mit einer Inhaltsbreite
-bis 1240 px. Die Übersicht eines Objekts steht ab `lg:` in drei Spalten (Kontakt & Mail,
-Notizen, Steckbrief + Kalkulation), darunter untereinander. Das geöffnete Objekt steht in der
-Adresse (`?objekt=`), damit Zurück, Neuladen und Links funktionieren.
+Ein Objekt öffnet als großes Fenster über der Liste (`Fenster` in `AppLayout.tsx`): 92 % breit,
+höchstens 1440 px, am Telefon Vollbild. Esc, X oder Klick daneben schließen; J/K blättern in
+derselben Stufe. Das offene Objekt steht in `?objekt=`. Kopf, Stufenleiste und Reiter stehen
+fest (sticky), nur der Inhalt scrollt. Die Übersicht steht ab `lg:` in drei Spalten.
 
 ## Kalkulation ETW
 

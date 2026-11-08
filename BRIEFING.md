@@ -41,7 +41,7 @@ Lies zuerst `AGENTS.md` und halte dich an die Design-Regeln (deutsche Benennung,
 | 3. Objektprüfung | erledigt | `aufgabe-3/pruefung` |
 | 4. Ummeldungen | erledigt | `aufgabe-4/ummeldungen` |
 | 4b. Ankauf-Eingang | offen, nach Feinschliff 1 | |
-| Feinschliff 1 · A Ankauf | offen | |
+| Feinschliff 1 · A Ankauf | erledigt | `feinschliff/a-ankauf` |
 | Feinschliff 1 · B Kalkulation | offen | |
 | Feinschliff 1 · C Projekte | offen | |
 | Feinschliff 1 · D Kontaktregister | offen | |
