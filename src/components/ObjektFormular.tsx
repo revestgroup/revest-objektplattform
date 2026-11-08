@@ -119,7 +119,7 @@ function zaehle(...werte: string[]): number {
   return werte.filter((w) => w.trim() !== "").length;
 }
 
-function leerZustand(): FormularZustand {
+function leerZustand(stufe: Ankaufsstufe = "neu"): FormularZustand {
   return {
     bezeichnung: "",
     strasse: "",
@@ -130,7 +130,7 @@ function leerZustand(): FormularZustand {
     breite: "",
     objektart: "mfh",
     zustand: "vermietet",
-    stufe: "neu",
+    stufe,
     kaufpreis: "",
     ankaufslimit: "",
     wohnflaeche: "",
@@ -227,16 +227,19 @@ const QUELLEN = [
 
 export function ObjektFormular({
   bestehend,
+  startStufe,
   onSpeichern,
   onAbbrechen,
 }: {
   /** Gesetzt heißt: bearbeiten statt anlegen. */
   bestehend?: Objekt;
+  /** Beim Anlegen: mit welcher Stufe das Formular aufgeht (Projekte: „Gekauft“). */
+  startStufe?: Ankaufsstufe;
   onSpeichern: (entwurf: ObjektEntwurf, dokumente: NeuesDokument[]) => void;
   onAbbrechen: () => void;
 }) {
   const [v, setV] = useState<FormularZustand>(() =>
-    bestehend ? ausObjekt(bestehend) : leerZustand(),
+    bestehend ? ausObjekt(bestehend) : leerZustand(startStufe),
   );
   const [bilder, setBilder] = useState<string[]>(bestehend?.bilder ?? []);
   const [dokumente, setDokumente] = useState<NeuesDokument[]>([]);
@@ -323,8 +326,7 @@ export function ObjektFormular({
       erbbaurecht: v.erbbaurecht,
       quelle: s(v.quelle),
       vertriebsweg: v.objektart === "etw" ? v.vertriebsweg : null,
-      wgZimmer:
-        v.objektart === "etw" && v.vertriebsweg === "wg" ? z(v.wgZimmer) : null,
+      wgZimmer: v.objektart === "etw" && v.vertriebsweg === "wg" ? z(v.wgZimmer) : null,
       notiz: s(v.notiz),
       // Ab „Gekauft“ ist das Kürzel Pflicht — leer gelassen gilt der Vorschlag.
       kuerzel: s(v.kuerzel) ?? (v.stufe === "angekauft" ? vorschlag : null),
@@ -341,9 +343,7 @@ export function ObjektFormular({
       kontakte: bestehend?.kontakte ?? [],
       angebote: bestehend?.angebote ?? [],
       sanierung: bestehend?.sanierung ?? [],
-      fristBis: v.fristStarten
-        ? new Date(Date.now() + 48 * 3_600_000).toISOString()
-        : null,
+      fristBis: v.fristStarten ? new Date(Date.now() + 48 * 3_600_000).toISOString() : null,
     };
   }, [v, bilder, bundesland, bestehend, vorschlag]);
 
@@ -388,9 +388,7 @@ export function ObjektFormular({
       <div className="eintritt mx-auto w-full max-w-3xl flex-1">
         <div id="formular-lage" />
 
-        <Bereich
-          titel="Lage"
-        >
+        <Bereich titel="Lage">
           <Textfeld
             id="strasse"
             label="Straße und Hausnummer"
@@ -553,9 +551,7 @@ export function ObjektFormular({
             stehen im Objekt unter „Übersicht" und „Verkaufsplanung" — beim
             Anlegen kennt man den Kaufpreis und die Ist-Miete, alles andere
             wäre geraten und würde später als Wahrheit gelesen. */}
-        <Bereich
-          titel="Preis und Miete"
-        >
+        <Bereich titel="Preis und Miete">
           <Zahlfeld
             id="kaufpreis"
             label="Kaufpreis"
@@ -601,9 +597,7 @@ export function ObjektFormular({
           Die Quelle bleibt: sie ist keine Person, sondern die Antwort auf
           „woher wissen wir davon?“ — und die kennt man beim Anlegen.
         */}
-        <Bereich
-          titel="Herkunft"
-        >
+        <Bereich titel="Herkunft">
           <Auswahlfeld
             id="quelle"
             label="Quelle"
@@ -727,11 +721,7 @@ export function ObjektFormular({
             an={v.denkmalschutz}
             setAn={(x) => setze("denkmalschutz", x)}
           />
-          <Schalter
-            label="Erbbaurecht"
-            an={v.erbbaurecht}
-            setAn={(x) => setze("erbbaurecht", x)}
-          />
+          <Schalter label="Erbbaurecht" an={v.erbbaurecht} setAn={(x) => setze("erbbaurecht", x)} />
         </Klappbereich>
 
         {/*
@@ -829,11 +819,7 @@ export function ObjektFormular({
           </Huelle>
         </Klappbereich>
 
-        <Klappbereich
-          titel="Unterlagen"
-          gefuellt={dokumente.length}
-          spalten={1}
-        >
+        <Klappbereich titel="Unterlagen" gefuellt={dokumente.length} spalten={1}>
           <Dokumentenfeld
             dokumente={dokumente}
             setDokumente={setDokumente}
@@ -847,6 +833,7 @@ export function ObjektFormular({
         geprueft={geprueft}
         anzahlFehler={Object.keys(fehler).length}
         bearbeiten={Boolean(bestehend)}
+        projekt={startStufe === "angekauft"}
         onAbbrechen={onAbbrechen}
       />
     </form>
@@ -867,12 +854,14 @@ function Fussleiste({
   geprueft,
   anzahlFehler,
   bearbeiten,
+  projekt,
   onAbbrechen,
 }: {
   gueltig: boolean;
   geprueft: boolean;
   anzahlFehler: number;
   bearbeiten: boolean;
+  projekt?: boolean;
   onAbbrechen: () => void;
 }) {
   return (
@@ -895,7 +884,7 @@ function Fussleiste({
           type="submit"
           className="druckbar rounded-full bg-tinte px-6 py-3 text-[0.68rem] font-semibold tracking-[0.16em] uppercase text-grund shadow-karte hover:bg-grau-stark"
         >
-          {bearbeiten ? "Änderungen speichern" : "Objekt anlegen"}
+          {bearbeiten ? "Änderungen speichern" : projekt ? "Projekt anlegen" : "Objekt anlegen"}
         </button>
       </div>
     </div>

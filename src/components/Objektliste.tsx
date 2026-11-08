@@ -245,7 +245,13 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
       wechsle({ art: "detail", id: modus.id });
       return;
     }
-    const neu = anlegen(entwurf);
+    // Ein direkt angelegtes Projekt braucht ein Kaufdatum — sonst fehlt es in
+    // der Pipeline-Spalte „Gekauft“ und in der Übersicht.
+    const neu = anlegen(
+      entwurf.stufe === "angekauft" && !entwurf.angekauftAm
+        ? { ...entwurf, angekauftAm: new Date().toISOString().slice(0, 10) }
+        : entwurf,
+    );
     if (dokumente.length > 0) dokumenteAnhaengen(neu.id, dokumente);
     wechsle({ art: "detail", id: neu.id });
   }
@@ -288,18 +294,17 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
       <Seitenkopf
         titel={b.titel}
         aktion={
-          // Angelegt wird im Ankauf. Ein Objekt entsteht nicht als Projekt —
-          // es wird eines, wenn der Kauf durch ist.
-          bereich === "ankauf" ? (
-            <button
-              type="button"
-              onClick={() => wechsle({ art: "anlegen" })}
-              className="druckbar flex items-center gap-2 rounded-full bg-tinte px-5 py-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-grund shadow-karte"
-            >
-              <Plus size={14} strokeWidth={2.25} />
-              Objekt anlegen
-            </button>
-          ) : undefined
+          // Normal entsteht ein Projekt aus dem Ankauf, wenn der Kauf durch ist.
+          // Für Bestand, der nie durch die Pipeline lief, lässt es sich auch
+          // direkt als Projekt anlegen — das Formular steht dann auf „Gekauft“.
+          <button
+            type="button"
+            onClick={() => wechsle({ art: "anlegen" })}
+            className="druckbar flex items-center gap-2 rounded-full bg-tinte px-5 py-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-grund shadow-karte"
+          >
+            <Plus size={14} strokeWidth={2.25} />
+            {bereich === "ankauf" ? "Objekt anlegen" : "Projekt anlegen"}
+          </button>
         }
       />
 
@@ -536,14 +541,20 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
         }
         titel={
           modus.art === "anlegen"
-            ? "Objekt anlegen"
+            ? bereich === "projekte"
+              ? "Projekt anlegen"
+              : "Objekt anlegen"
             : modus.art === "bearbeiten"
               ? "Objekt bearbeiten"
               : (gewaehlt?.strasse ?? "Objekt")
         }
       >
         {modus.art === "anlegen" && (
-          <ObjektFormular onSpeichern={speichern} onAbbrechen={() => wechsle({ art: "zu" })} />
+          <ObjektFormular
+            startStufe={bereich === "projekte" ? "angekauft" : undefined}
+            onSpeichern={speichern}
+            onAbbrechen={() => wechsle({ art: "zu" })}
+          />
         )}
         {modus.art === "bearbeiten" && gewaehlt && (
           <ObjektFormular
