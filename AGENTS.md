@@ -73,6 +73,13 @@ Weiterleiten (→ Qonto / Projekt / Ablage) verschiebt nach „Erledigt“ und v
 als „wartet“ — die echte Übergabe kommt mit Phase 2. Seitliches Ziehen für breite Boards:
 `useSeitlichScroll` in `components/SeitlichScroll.tsx` (auch die Pipeline nutzt ihn).
 
+## Mail to Board
+
+`src/lib/mailToBoard.ts` (Tests daneben) liest eingefügten Mailtext und rohe .eml (MIME,
+RFC 2047, quoted-printable/base64, Anhänge) und erkennt das Objekt über Kürzel oder Adresse.
+Dialog `components/MailToBoard.tsx`, Karte über `mailAufnehmen` im Backoffice-Speicher.
+`BOARD_ADRESSE` ist bis Phase 2 ein Platzhalter.
+
 ## Ankauf-Eingang
 
 `src/lib/eingang.ts` + `eingangStore.tsx` (Tests daneben), Ansicht `components/Eingang.tsx`,

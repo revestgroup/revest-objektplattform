@@ -14,6 +14,7 @@ import {
   type Spalte,
   type Weiterleitung,
 } from "./backoffice";
+import type { Mail } from "./mailToBoard";
 import { MOCK_BACKOFFICE } from "./mockBackoffice";
 
 const SPEICHER = "revest.backoffice.v1";
@@ -31,6 +32,8 @@ interface StoreWert {
   dateienAufnehmen: (dateien: File[]) => void;
   /** Reines To-do ohne Datei. */
   todoAnlegen: (titel: string) => Backofficekarte;
+  /** Mail to Board: eine Karte im Posteingang, Anhang als Datei, Text als Notiz. */
+  mailAufnehmen: (mail: Mail, objektId: string | null) => Backofficekarte;
   aendern: (id: string, teil: Partial<Backofficekarte>) => void;
   verschieben: (id: string, spalte: Spalte) => void;
   weiterleiten: (id: string, ziel: Weiterleitung, details: string) => void;
@@ -105,6 +108,51 @@ export function BackofficeProvider({ children }: { children: ReactNode }) {
           verlauf: [{ zeitpunkt: jetzt, text: `Hochgeladen: ${d.name}` }],
         }));
         setKarten((alt) => [...neu, ...alt]);
+      },
+
+      mailAufnehmen: (mail, objektId) => {
+        const jetzt = new Date().toISOString();
+        const [erster, ...weitere] = mail.anhaenge;
+        const von = mail.absender
+          ? `${mail.absender}${mail.absenderEmail ? ` <${mail.absenderEmail}>` : ""}`
+          : mail.absenderEmail;
+        const k: Backofficekarte = {
+          id: neueKartenId(),
+          titel: mail.betreff ?? (mail.absender ? `Mail von ${mail.absender}` : "Mail"),
+          spalte: "posteingang",
+          art: artAusName(`${mail.betreff ?? ""} ${mail.anhaenge.map((a) => a.name).join(" ")}`),
+          quelle: "mail",
+          eingangAm: mail.datum ?? jetzt,
+          datei: erster
+            ? {
+                name: erster.name,
+                typ: erster.typ,
+                groesseKb: erster.inhalt ? Math.max(1, Math.round(erster.inhalt.length / 1024)) : 1,
+                vorschau: erster.inhalt
+                  ? URL.createObjectURL(
+                      new Blob([erster.inhalt as BlobPart], { type: erster.typ || undefined }),
+                    )
+                  : null,
+              }
+            : null,
+          objektId,
+          gesellschaft: null,
+          faelligAm: null,
+          notizen:
+            [
+              von ? `Von: ${von}` : null,
+              mail.text || null,
+              weitere.length ? `Weitere Anhänge: ${weitere.map((a) => a.name).join(", ")}` : null,
+            ]
+              .filter(Boolean)
+              .join("\n\n") || null,
+          checkliste: [],
+          zugewiesen: null,
+          uebergabe: null,
+          verlauf: [{ zeitpunkt: jetzt, text: `Per Mail eingegangen${von ? ` von ${von}` : ""}` }],
+        };
+        setKarten((alt) => [k, ...alt]);
+        return k;
       },
 
       todoAnlegen: (titel) => {

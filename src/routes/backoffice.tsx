@@ -7,14 +7,26 @@
  * landet dann vermerkt in „Erledigt“.
  *
  * Dateien auf den Posteingang ziehen = je Datei eine Karte. „+ Karte“ für
- * reine To-dos. Eine Karte öffnet im großen Fenster wie ein Objekt.
+ * reine To-dos. „Mail“ (Mail to Board) macht aus Mailtext oder .eml eine
+ * Karte; eine aufs Board gezogene .eml öffnet denselben Dialog. Eine Karte öffnet im großen Fenster wie ein Objekt.
  */
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { CalendarClock, CheckSquare, FileText, ListPlus, Plus, Trash2, Upload } from "lucide-react";
+import {
+  CalendarClock,
+  CheckSquare,
+  FileText,
+  ListPlus,
+  Mail as MailZeichen,
+  Plus,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 
 import { Fenster, Seitenkopf } from "../components/AppLayout";
 import { Dialog } from "../components/Dialog";
+import { MailToBoardDialog, emlDateiLesen, istEml } from "../components/MailToBoard";
+import type { Mail } from "../lib/mailToBoard";
 import { useSeitlichScroll } from "../components/SeitlichScroll";
 import { useAufgaben } from "../lib/aufgabenStore";
 import { useAuth } from "../lib/auth";
@@ -73,6 +85,8 @@ function BackofficeSeite() {
   const [weiter, setWeiter] = useState<{ id: string; ziel: Weiterleitung } | null>(null);
   const [neuerTitel, setNeuerTitel] = useState<string | null>(null);
   const dateiRef = useRef<HTMLInputElement>(null);
+  // Mail to Board: offen mit optional schon gelesener .eml.
+  const [mailDialog, setMailDialog] = useState<{ vorab: Mail | null } | null>(null);
 
   const sichtbar = useMemo(
     () =>
@@ -98,7 +112,13 @@ function BackofficeSeite() {
     setUeber(null);
     // Dateien vom Rechner: nur auf den Posteingang, je Datei eine Karte.
     if (e.dataTransfer.files.length > 0 && !zieht) {
-      if (ziel === "posteingang") dateienAufnehmen(Array.from(e.dataTransfer.files));
+      if (ziel !== "posteingang") return;
+      const dateien = Array.from(e.dataTransfer.files);
+      // Eine .eml ist eine Mail, keine Datei: sie geht durch Mail to Board.
+      const mails = dateien.filter(istEml);
+      const rest = dateien.filter((d) => !istEml(d));
+      if (rest.length) dateienAufnehmen(rest);
+      if (mails[0]) void emlDateiLesen(mails[0]).then((m) => setMailDialog({ vorab: m }));
       return;
     }
     if (!zieht) return;
@@ -133,6 +153,14 @@ function BackofficeSeite() {
             >
               <Upload size={14} strokeWidth={2} />
               Dateien
+            </button>
+            <button
+              type="button"
+              onClick={() => setMailDialog({ vorab: null })}
+              className="druckbar flex items-center gap-2 rounded-full border border-linie-stark px-4 py-2.5 text-[0.7rem] font-semibold tracking-[0.1em] uppercase text-tinte"
+            >
+              <MailZeichen size={14} strokeWidth={2} />
+              Mail
             </button>
             <button
               type="button"
@@ -331,6 +359,17 @@ function BackofficeSeite() {
           />
         )}
       </Fenster>
+
+      {mailDialog && (
+        <MailToBoardDialog
+          vorab={mailDialog.vorab}
+          schliessen={() => setMailDialog(null)}
+          angelegt={(id) => {
+            setMailDialog(null);
+            oeffnen(id);
+          }}
+        />
+      )}
 
       {weiter && (
         <Weiterleitendialog id={weiter.id} ziel={weiter.ziel} schliessen={() => setWeiter(null)} />
