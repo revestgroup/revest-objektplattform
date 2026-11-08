@@ -12,6 +12,7 @@ import {
   Map,
   Search,
   Settings,
+  Users,
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -25,15 +26,16 @@ import { cn } from "../lib/utils";
  * Stufe gehören.
  *
  * `kurz` ist die Beschriftung in der Unterleiste — dort zählt jeder Buchstabe.
- * `unten` entscheidet, ob der Punkt auf dem Telefon in die Leiste kommt: fünf
- * sind das Maximum, bei dem ein Ziel auf 375px noch breiter als ein Daumen
- * ist. Die Karte ist nicht dabei, weil sie als Kachel in der Übersicht liegt —
+ * `unten` entscheidet, ob der Punkt auf dem Telefon in die Leiste kommt: sechs
+ * sind das Maximum — auf 375 px bleibt jedes Ziel gut 60 px breit, also
+ * breiter als ein Daumen. Die Karte ist nicht dabei, weil sie als Kachel in der Übersicht liegt —
  * sie beantwortet nur „wo?“, und das ist selten die erste Frage des Tages.
  */
 const NAVIGATION = [
   { zu: "/dashboard", titel: "Übersicht", kurz: "Start", icon: LayoutDashboard, unten: true },
   { zu: "/ankauf", titel: "Ankauf", kurz: "Ankauf", icon: Search, unten: true },
   { zu: "/projekte", titel: "Projekte", kurz: "Projekte", icon: Building2, unten: true },
+  { zu: "/kontakte", titel: "Kontakte", kurz: "Kontakte", icon: Users, unten: true },
   { zu: "/aufgaben", titel: "To Do's", kurz: "To Do's", icon: ListChecks, unten: true },
   { zu: "/mietverwaltung", titel: "Mietverwaltung", kurz: "Miete", icon: KeyRound, unten: true },
   { zu: "/karte", titel: "Karte", kurz: "Karte", icon: Map, unten: false },

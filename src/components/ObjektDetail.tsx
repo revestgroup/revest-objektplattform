@@ -62,7 +62,7 @@ import { useEinstellungen } from "../lib/einstellungenStore";
 import { SZENARIEN, SZENARIO_TITEL, berechneEtw, etwEingabe } from "../lib/kalkulationEtw";
 import { pruefstand } from "../lib/pruefung";
 import { useObjekte } from "../lib/objekteStore";
-import { cn } from "../lib/utils";
+import { cn, gmailLink } from "../lib/utils";
 import { useVermietung } from "../lib/vermietungStore";
 import { Bildergalerie, Bildflaeche, istQuelle } from "./Bilder";
 import { Dateiliste, Dokumentenablage, Einsortieren } from "./Dokumente";
@@ -476,15 +476,6 @@ const ROLLEN_FOLGE: Kontakt["rolle"][] = [
   "handwerker",
   "sonst",
 ];
-
-/**
- * Gmail-Entwurf statt `mailto:`: Revest arbeitet in Google Workspace, und
- * `mailto:` öffnet auf vielen Rechnern ein Mailprogramm, das niemand nutzt.
- */
-function gmailLink(an: string, betreff: string): string {
-  const q = new URLSearchParams({ view: "cm", fs: "1", to: an, su: betreff });
-  return `https://mail.google.com/mail/?${q.toString()}`;
-}
 
 function KontaktSpalte({ objekt }: { objekt: Objekt }) {
   const kontakte = objekt.kontakte

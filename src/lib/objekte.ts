@@ -635,6 +635,13 @@ export interface Kontakt {
    * Einzige, was vom Vorgang übrig bleibt.
    */
   notiz: string | null;
+  /**
+   * Verweis ins Kontaktregister. Name, Telefon und E-Mail hier sind eine
+   * Kopie, die das Register aktuell hält — so lesen Pipeline, Suche und
+   * Deal-Dialog weiter direkt am Objekt. Fehlt bei älteren Ständen; beim
+   * Laden wird nachgetragen.
+   */
+  kontaktId?: string | null;
 }
 
 /** Der Eigentümer, falls einer hinterlegt ist. Für Liste, Suche und Übersicht. */

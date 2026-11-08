@@ -44,7 +44,7 @@ Lies zuerst `AGENTS.md` und halte dich an die Design-Regeln (deutsche Benennung,
 | Feinschliff 1 · A Ankauf | erledigt | `feinschliff/a-ankauf` |
 | Feinschliff 1 · B Kalkulation | erledigt | `feinschliff/b-kalkulation` |
 | Feinschliff 1 · C Projekte | erledigt | `feinschliff/c-projekte` |
-| Feinschliff 1 · D Kontaktregister | offen | |
+| Feinschliff 1 · D Kontaktregister | erledigt (CSV-Import aus monday: Phase 2) | `feinschliff/d-kontakte` |
 | Feinschliff 1 · E Backoffice | offen | |
 
 Aufgaben 0–4 sind seit 08.11.2026 in `main`. Feinschliff-Blöcke je eigener Branch ab `main`, nach Test gemergt.

@@ -16,6 +16,7 @@ import { Route as AuswertungRouteImport } from './routes/auswertung'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as EinstellungenRouteImport } from './routes/einstellungen'
 import { Route as KarteRouteImport } from './routes/karte'
+import { Route as KontakteRouteImport } from './routes/kontakte'
 import { Route as LeadsRouteImport } from './routes/leads'
 import { Route as MietverwaltungRouteImport } from './routes/mietverwaltung'
 import { Route as ObjekteRouteImport } from './routes/objekte'
@@ -56,6 +57,11 @@ const KarteRoute = KarteRouteImport.update({
   path: '/karte',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KontakteRoute = KontakteRouteImport.update({
+  id: '/kontakte',
+  path: '/kontakte',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LeadsRoute = LeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
@@ -85,6 +91,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/einstellungen': typeof EinstellungenRoute
   '/karte': typeof KarteRoute
+  '/kontakte': typeof KontakteRoute
   '/leads': typeof LeadsRoute
   '/mietverwaltung': typeof MietverwaltungRoute
   '/objekte': typeof ObjekteRoute
@@ -98,6 +105,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/einstellungen': typeof EinstellungenRoute
   '/karte': typeof KarteRoute
+  '/kontakte': typeof KontakteRoute
   '/leads': typeof LeadsRoute
   '/mietverwaltung': typeof MietverwaltungRoute
   '/objekte': typeof ObjekteRoute
@@ -112,6 +120,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/einstellungen': typeof EinstellungenRoute
   '/karte': typeof KarteRoute
+  '/kontakte': typeof KontakteRoute
   '/leads': typeof LeadsRoute
   '/mietverwaltung': typeof MietverwaltungRoute
   '/objekte': typeof ObjekteRoute
@@ -127,6 +136,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/einstellungen'
     | '/karte'
+    | '/kontakte'
     | '/leads'
     | '/mietverwaltung'
     | '/objekte'
@@ -140,6 +150,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/einstellungen'
     | '/karte'
+    | '/kontakte'
     | '/leads'
     | '/mietverwaltung'
     | '/objekte'
@@ -153,6 +164,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/einstellungen'
     | '/karte'
+    | '/kontakte'
     | '/leads'
     | '/mietverwaltung'
     | '/objekte'
@@ -167,6 +179,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   EinstellungenRoute: typeof EinstellungenRoute
   KarteRoute: typeof KarteRoute
+  KontakteRoute: typeof KontakteRoute
   LeadsRoute: typeof LeadsRoute
   MietverwaltungRoute: typeof MietverwaltungRoute
   ObjekteRoute: typeof ObjekteRoute
@@ -224,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KarteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/kontakte': {
+      id: '/kontakte'
+      path: '/kontakte'
+      fullPath: '/kontakte'
+      preLoaderRoute: typeof KontakteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/leads': {
       id: '/leads'
       path: '/leads'
@@ -263,6 +283,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   EinstellungenRoute: EinstellungenRoute,
   KarteRoute: KarteRoute,
+  KontakteRoute: KontakteRoute,
   LeadsRoute: LeadsRoute,
   MietverwaltungRoute: MietverwaltungRoute,
   ObjekteRoute: ObjekteRoute,

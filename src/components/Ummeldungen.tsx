@@ -16,6 +16,18 @@ import {
   type Ummeldung,
 } from "../lib/ummeldungen";
 import { cn } from "../lib/utils";
+import { anzeigename } from "../lib/kontakte";
+
+/** Welche Kategorien im Register als Anbieter in Frage kommen. */
+const ANBIETER_KATEGORIEN: Record<Ummeldung["art"], string[]> = {
+  hausverwaltung: ["Hausverwaltung"],
+  gas: ["Versorger"],
+  strom: ["Versorger"],
+  wasser: ["Versorger"],
+  versicherung: ["Versicherung"],
+  schornsteinfeger: ["Handwerker / Dienstleister"],
+  grundbesitzabgaben: ["Amt / Behörde"],
+};
 
 const TON: Record<Ummeldestatus, string> = {
   offen: "bg-tinte text-grund",
@@ -172,7 +184,10 @@ function Eintrag({
   u: Ummeldung;
   art: (typeof UMMELDEARTEN)[number];
 }) {
-  const { ummeldungSetzen } = useObjekte();
+  const { ummeldungSetzen, register } = useObjekte();
+  const vorschlaege = register
+    .filter((r) => r.kategorien.some((k) => ANBIETER_KATEGORIEN[u.art].includes(k)))
+    .map((r) => anzeigename(r));
   const setze = (teil: Partial<Ummeldung>) => ummeldungSetzen(objekt.id, u.id, teil);
   const ueberfaellig = istUeberfaellig(objekt, u);
   const dateien = objekt.dokumente.filter((d) => liegtIn(d.ordner, art.ordner)).length;
@@ -243,6 +258,8 @@ function Eintrag({
           wert={u.anbieter}
           setWert={(v) => setze({ anbieter: v })}
           breit
+          vorschlaege={vorschlaege}
+          listeId={`anbieter-${u.id}`}
         />
         {art.zaehler && (
           <>
@@ -276,12 +293,17 @@ function Feld({
   setWert,
   breit,
   ohneLabel,
+  vorschlaege,
+  listeId,
 }: {
   label: string;
   wert: string | null | undefined;
   setWert: (v: string | null) => void;
   breit?: boolean;
   ohneLabel?: boolean;
+  /** Vorschläge aus dem Kontaktregister; frei tippen bleibt möglich. */
+  vorschlaege?: string[];
+  listeId?: string;
 }) {
   const [text, setText] = useState(wert ?? "");
   return (
@@ -296,8 +318,16 @@ function Feld({
         onBlur={() => text !== (wert ?? "") && setWert(text.trim() || null)}
         placeholder={ohneLabel ? "Notiz …" : undefined}
         aria-label={label}
+        list={vorschlaege?.length ? listeId : undefined}
         className="w-full rounded-lg border border-linie bg-grund px-2.5 py-1.5 text-[0.72rem] text-grau-stark placeholder:text-grau focus:border-linie-stark focus:outline-none"
       />
+      {vorschlaege?.length ? (
+        <datalist id={listeId}>
+          {vorschlaege.map((v) => (
+            <option key={v} value={v} />
+          ))}
+        </datalist>
+      ) : null}
     </label>
   );
 }

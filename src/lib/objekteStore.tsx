@@ -15,6 +15,7 @@ import type { ReactNode } from "react";
 
 import type {
   Aufteilung,
+  Kontakt,
   Dokument,
   Einheit,
   Gesellschaft,
@@ -33,6 +34,15 @@ import {
   stufeUmstellen,
 } from "./objekte";
 import { MOCK_OBJEKTE } from "./mockDaten";
+import { MOCK_KONTAKTE } from "./mockKontakte";
+import {
+  STANDARD_KATEGORIEN,
+  kopienAktualisieren,
+  neueKontaktId,
+  registerAbgleichen,
+  type Kategorie,
+  type Kontaktdatensatz,
+} from "./kontakte";
 import {
   mitAbmeldungen,
   mitUmmeldungen,
@@ -166,7 +176,25 @@ interface StoreWert {
   verkaufsplanSetzen: (id: string, plan: Verkaufsplan) => void;
   ummeldungSetzen: (id: string, ummeldungId: string, teil: Partial<Ummeldung>) => void;
   zuruecksetzen: () => void;
+
+  /* ----- Kontaktregister ----- */
+  register: Kontaktdatensatz[];
+  kategorien: Kategorie[];
+  /** Anlegen oder ändern; die Kopien an allen Objekten ziehen nach. */
+  kontaktSpeichern: (k: Kontaktdatensatz) => void;
+  kontaktNotiz: (kontaktId: string, text: string) => void;
+  /** Nur ohne verknüpfte Objekte — sonst bliebe ein Verweis ins Leere. */
+  kontaktLoeschen: (kontaktId: string) => void;
+  /** Einen Register-Kontakt mit einer Rolle an ein Objekt hängen. */
+  kontaktVerknuepfen: (objektId: string, kontaktId: string, rolle: Kontakt["rolle"]) => void;
+  kategorienSetzen: (k: Kategorie[]) => void;
 }
+
+const SPEICHER_REGISTER = "revest.kontakte.v1";
+const SPEICHER_KATEGORIEN = "revest.kontaktkategorien.v1";
+
+/** Mock-Stand: Objekte und Register, schon miteinander abgeglichen. */
+const START = registerAbgleichen(MOCK_OBJEKTE, MOCK_KONTAKTE);
 
 const Kontext = createContext<StoreWert | null>(null);
 
@@ -181,18 +209,54 @@ function eintrag(art: Verlaufseintrag["art"], text: string, vonHand?: boolean): 
 }
 
 export function ObjekteProvider({ children }: { children: ReactNode }) {
-  const [objekte, setObjekte] = useState<Objekt[]>(MOCK_OBJEKTE);
+  const [objekte, setObjekte] = useState<Objekt[]>(START.objekte);
+  const [register, setRegister] = useState<Kontaktdatensatz[]>(START.register);
+  const [kategorien, setKategorien] = useState<Kategorie[]>(STANDARD_KATEGORIEN);
   const [bereit, setBereit] = useState(false);
 
   useEffect(() => {
     try {
       const roh = localStorage.getItem(SPEICHER);
-      if (roh) setObjekte(ausSpeicher(JSON.parse(roh) as Objekt[]));
+      const rohR = localStorage.getItem(SPEICHER_REGISTER);
+      const rohK = localStorage.getItem(SPEICHER_KATEGORIEN);
+      // Gespeicherte Objekte ohne Register (Stand vor Feinschliff D): ihre
+      // Kontakte werden jetzt übernommen, Dubletten zusammengeführt.
+      const obj = roh ? ausSpeicher(JSON.parse(roh) as Objekt[]) : START.objekte;
+      const reg = rohR ? (JSON.parse(rohR) as Kontaktdatensatz[]) : MOCK_KONTAKTE;
+      const abgeglichen = registerAbgleichen(obj, reg);
+      setObjekte(abgeglichen.objekte);
+      setRegister(abgeglichen.register);
+      if (rohK) setKategorien(JSON.parse(rohK) as Kategorie[]);
     } catch {
       // Beschädigter Stand: lieber mit den Mock-Daten weiterarbeiten.
     }
     setBereit(true);
   }, []);
+
+  useEffect(() => {
+    if (!bereit) return;
+    try {
+      localStorage.setItem(SPEICHER_REGISTER, JSON.stringify(register));
+      localStorage.setItem(SPEICHER_KATEGORIEN, JSON.stringify(kategorien));
+    } catch {
+      // siehe unten
+    }
+  }, [register, kategorien, bereit]);
+
+  // Ein Kontakt, der am Objekt neu eingetragen wurde, kommt ins Register —
+  // oder findet dort seinen Zwilling. An einer Stelle statt an jedem Formular.
+  useEffect(() => {
+    if (!bereit) return;
+    const offen = objekte.some((o) =>
+      o.kontakte.some(
+        (k) => k.name.trim() && (!k.kontaktId || !register.some((r) => r.id === k.kontaktId)),
+      ),
+    );
+    if (!offen) return;
+    const r = registerAbgleichen(objekte, register);
+    setRegister(r.register);
+    setObjekte(r.objekte);
+  }, [objekte, register, bereit]);
 
   useEffect(() => {
     if (!bereit) return;
@@ -484,9 +548,71 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
           ],
         })),
 
-      zuruecksetzen: () => setObjekte(MOCK_OBJEKTE),
+      zuruecksetzen: () => {
+        setObjekte(START.objekte);
+        setRegister(START.register);
+      },
+
+      register,
+      kategorien,
+
+      kontaktSpeichern: (k) => {
+        const neu = register.some((r) => r.id === k.id)
+          ? register.map((r) => (r.id === k.id ? k : r))
+          : [...register, k];
+        setRegister(neu);
+        setObjekte((alt) => alt.map((o) => kopienAktualisieren(o, neu)));
+      },
+
+      kontaktNotiz: (kontaktId, text) =>
+        setRegister((alt) =>
+          alt.map((r) =>
+            r.id === kontaktId
+              ? {
+                  ...r,
+                  notizen: [
+                    ...r.notizen,
+                    { id: neueKontaktId(), zeitpunkt: new Date().toISOString(), text },
+                  ],
+                }
+              : r,
+          ),
+        ),
+
+      kontaktLoeschen: (kontaktId) => {
+        if (objekte.some((o) => o.kontakte.some((k) => k.kontaktId === kontaktId))) return;
+        setRegister((alt) => alt.filter((r) => r.id !== kontaktId));
+      },
+
+      kontaktVerknuepfen: (objektId, kontaktId, rolle) => {
+        const r = register.find((x) => x.id === kontaktId);
+        if (!r) return;
+        mutieren(objektId, (o) =>
+          kopienAktualisieren(
+            {
+              ...o,
+              kontakte: [
+                ...o.kontakte,
+                {
+                  id: neueId("kon"),
+                  rolle,
+                  name: "",
+                  telefon: null,
+                  email: null,
+                  notiz: null,
+                  kontaktId,
+                },
+              ],
+              verlauf: [...o.verlauf, eintrag("notiz", "Kontakte gepflegt", false)],
+            },
+            register,
+          ),
+        );
+      },
+
+      kategorienSetzen: (k) => setKategorien(k),
     }),
-    [objekte, bereit, mutieren],
+    [objekte, register, kategorien, bereit, mutieren],
   );
 
   return <Kontext.Provider value={wert}>{children}</Kontext.Provider>;

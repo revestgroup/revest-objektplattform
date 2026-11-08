@@ -58,6 +58,14 @@ beim Wechsel nach „Angebot abgegeben“ oder „Gekauft“.
 Objektspeicher, sobald `besitzuebergangAm` gesetzt ist — kein Aufrufer muss daran denken.
 Abmeldungen entstehen in `einheitVerkaufen`, unberührte verschwinden bei der Rücknahme.
 
+## Kontaktregister
+
+`src/lib/kontakte.ts` (Tests daneben), Seite `routes/kontakte.tsx`. Ein Kontakt ist ein
+Datensatz im Register; am Objekt steht eine Verknüpfung (`Kontakt.kontaktId`, Rolle, Notiz)
+mit einer Kopie von Name, Telefon, E-Mail. Stammdaten nur über `kontaktSpeichern` ändern —
+das zieht alle Kopien nach. Neue Kontakte am Objekt ohne `kontaktId` übernimmt der
+Objektspeicher automatisch ins Register (Dubletten über E-Mail, Telefon, Name).
+
 ## Anlegemaske
 
 Offen stehen nur Lage, Objekt, Preis und Miete, Bilder, Notiz. Alles weitere liegt in
