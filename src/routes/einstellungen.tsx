@@ -126,17 +126,19 @@ function EinstellungenSeite() {
         {/* ----- Ordner ----- */}
         <section className="px-4 py-7 sm:px-6 md:px-10 md:py-10">
           <h2 className="mini-label">Ordnerstruktur</h2>
-          {/* Zehn umrandete Kästchen waren zwanzig Linien für eine Liste, die
-              nur gelesen wird. Jetzt trägt die Nummer die Ordnung. */}
-          <ol className="mt-5 grid gap-x-10 gap-y-3 sm:grid-cols-2 lg:max-w-2xl">
-            {DOKUMENT_ORDNER.map((o, i) => (
+          {/* So wie im Google Drive: Hauptordner mit eingerückten Unterordnern.
+              Die Nummer kommt aus dem Drive-Namen und trägt die Ordnung. */}
+          <ol className="mt-5 flex flex-col gap-y-3 lg:max-w-2xl">
+            {DOKUMENT_ORDNER.map((o) => (
               <li
                 key={o.schluessel}
-                className="flex items-baseline gap-3.5 text-[0.78rem] text-grau-stark"
+                className={cn(
+                  "flex items-baseline gap-3.5 text-[0.78rem]",
+                  o.tiefe === 0 ? "text-tinte" : "text-grau-stark",
+                )}
+                style={{ paddingLeft: `${o.tiefe * 1.5}rem` }}
               >
-                <span className="zahl shrink-0 text-[0.62rem] text-grau">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
+                <span className="zahl shrink-0 text-[0.62rem] text-grau">{o.nummer}</span>
                 {o.titel}
               </li>
             ))}

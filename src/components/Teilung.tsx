@@ -37,7 +37,10 @@ const UNTERLAGEN = [
 ];
 
 /** Die beiden Ordner, in denen Teilungsunterlagen liegen. */
-const ORDNER = ["02_grundbuch", "04_plaene"] as const;
+const ORDNER = [
+  "01_Unterlagen/01_Unterlagen zum Objekt",
+  "01_Unterlagen/03_Notar_Grundbuchsachen",
+] as const;
 
 export function Teilung({ objekt }: { objekt: Objekt }) {
   // Ohne Teilung ist der Reiter gesperrt — sichtbar wird dieser Fall nur,

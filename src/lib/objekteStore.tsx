@@ -22,7 +22,7 @@ import type {
   Verkaufsplan,
   Verlaufseintrag,
 } from "./objekte";
-import { TEILUNGSSTATUS, f } from "./objekte";
+import { TEILUNGSSTATUS, f, ordnerUmziehen } from "./objekte";
 import { MOCK_OBJEKTE } from "./mockDaten";
 
 /**
@@ -31,6 +31,18 @@ import { MOCK_OBJEKTE } from "./mockDaten";
  * über halbe Objekte stolpern.
  */
 const SPEICHER = "revest.objekte.v6";
+
+/**
+ * Gespeicherte Stände an die aktuelle Form anpassen, statt sie über eine neue
+ * Version zu verwerfen: Dokumente aus der alten flachen Ablage ziehen in die
+ * Drive-Ordner um.
+ */
+function ausSpeicher(objekte: Objekt[]): Objekt[] {
+  return objekte.map((o) => ({
+    ...o,
+    dokumente: (o.dokumente ?? []).map((d) => ({ ...d, ordner: ordnerUmziehen(d.ordner) })),
+  }));
+}
 
 /** Felder, die einen Reload nicht überleben, werden vor dem Speichern geleert. */
 function fuerSpeicher(objekte: Objekt[]) {
@@ -140,7 +152,7 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const roh = localStorage.getItem(SPEICHER);
-      if (roh) setObjekte(JSON.parse(roh) as Objekt[]);
+      if (roh) setObjekte(ausSpeicher(JSON.parse(roh) as Objekt[]));
     } catch {
       // Beschädigter Stand: lieber mit den Mock-Daten weiterarbeiten.
     }

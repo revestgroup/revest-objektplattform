@@ -28,7 +28,7 @@ export const MOCK_AUFGABEN: Aufgabe[] = [
   {
     id: "auf-002",
     titel: "Teilungserklärung anfordern",
-    beschreibung: "Fehlt noch im Ordner 02_recht. Ohne sie keine Aufteilung.",
+    beschreibung: "Fehlt noch im Ordner 03_Notar_Grundbuchsachen. Ohne sie keine Aufteilung.",
     objektId: "obj-001",
     art: "unterlagen",
     dringlichkeit: "hoch",

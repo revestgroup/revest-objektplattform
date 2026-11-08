@@ -1,9 +1,9 @@
 /**
  * Dokumentenablage je Objekt.
  *
- * Die zehn Ordner stehen fest, weil sie später 1:1 im Google Drive angelegt
- * werden. Deshalb kann hier nichts umbenannt oder neu erfunden werden —
- * jede Datei landet in genau einem der zehn Ordner.
+ * Die Ordner sind die bestehende Google-Drive-Struktur samt Unterordnern.
+ * Deshalb kann hier nichts umbenannt oder neu erfunden werden — jede Datei
+ * landet in genau einem Ordner, auf Wunsch auch direkt in einem Elternordner.
  *
  * Phase 1 speichert keine Dateien. Was hochgeladen wird, erscheint als
  * Eintrag mit Name und Größe; der Inhalt bleibt im Browser der Sitzung.
@@ -11,7 +11,16 @@
 import { ChevronDown, FileText, FolderOpen, Trash2, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 
-import { DOKUMENT_ORDNER, ORDNER_BEISPIELE, f, type Dokument } from "../lib/objekte";
+import {
+  DOKUMENT_ORDNER,
+  ORDNER_BEISPIELE,
+  STANDARD_ORDNER,
+  f,
+  liegtIn,
+  ordnerVon,
+  type Dokument,
+  type Dokumentordner,
+} from "../lib/objekte";
 import { cn } from "../lib/utils";
 
 export interface NeuesDokument {
@@ -31,15 +40,21 @@ export function Dokumentenablage({
   /** Fehlt der Handler, ist die Ablage nur lesbar. */
   onLoeschen?: (id: string) => void;
   /**
-   * Beschränkt die Ansicht auf einzelne Ordner. Gedacht für Reiter, die nur
-   * einen Teilvorgang zeigen — die Teilungserklärung braucht nicht zehn
-   * Ordner, von denen neun sie nichts angehen.
+   * Beschränkt die Ansicht auf einzelne Ordner (samt ihren Unterordnern).
+   * Gedacht für Reiter, die nur einen Teilvorgang zeigen — die Teilungs-
+   * erklärung braucht nicht die ganze Ablage.
    */
   nurOrdner?: readonly string[];
 }) {
   // Ordner mit Inhalt stehen offen, leere bleiben zu — spart Scrollen.
+  // Offen heißt auch: jeder Elternordner auf dem Weg dorthin.
   const [offen, setOffen] = useState<Set<string>>(
-    () => new Set(dokumente.map((d) => d.ordner)),
+    () =>
+      new Set(
+        DOKUMENT_ORDNER.filter((o) => dokumente.some((d) => liegtIn(d.ordner, o.schluessel))).map(
+          (o) => o.schluessel,
+        ),
+      ),
   );
 
   function umschalten(schluessel: string) {
@@ -53,49 +68,65 @@ export function Dokumentenablage({
 
   return (
     <div className="divide-y divide-linie overflow-hidden rounded-2xl border border-linie bg-flaeche">
-      {/* Die Nummer kommt aus der festen Reihenfolge, nicht aus der gefilterten
-          Ansicht: Ordner 02 heißt überall 02, auch wenn er allein steht. */}
-      {DOKUMENT_ORDNER.map((ordner, i) => ({ ordner, nummer: i + 1 }))
-        .filter(({ ordner }) => !nurOrdner || nurOrdner.includes(ordner.schluessel))
-        .map(({ ordner, nummer }) => {
-          const inhalt = dokumente.filter((d) => d.ordner === ordner.schluessel);
-          return (
-            <Ordner
-              key={ordner.schluessel}
-              nummer={nummer}
-              schluessel={ordner.schluessel}
-              titel={ordner.titel}
-              dokumente={inhalt}
-              offen={offen.has(ordner.schluessel)}
-              umschalten={() => umschalten(ordner.schluessel)}
-              onHochladen={onHochladen}
-              onLoeschen={onLoeschen}
-            />
-          );
-        })}
+      {sichtbareOrdner(nurOrdner, offen).map(({ ordner, einzug }) => (
+        <Ordner
+          key={ordner.schluessel}
+          ordner={ordner}
+          einzug={einzug}
+          dokumente={dokumente.filter((d) => d.ordner === ordner.schluessel)}
+          gesamt={dokumente.filter((d) => liegtIn(d.ordner, ordner.schluessel)).length}
+          offen={offen.has(ordner.schluessel)}
+          umschalten={() => umschalten(ordner.schluessel)}
+          onHochladen={onHochladen}
+          onLoeschen={onLoeschen}
+        />
+      ))}
     </div>
   );
 }
 
+/**
+ * Welche Ordner gerade zu sehen sind: Unterordner nur, wenn alle Eltern
+ * offen stehen. Bei `nurOrdner` zählt der gewählte Ordner als Wurzel — der
+ * Einzug beginnt dort bei null, egal wie tief er im Drive liegt.
+ */
+function sichtbareOrdner(nurOrdner: readonly string[] | undefined, offen: Set<string>) {
+  const wurzeln = nurOrdner ?? DOKUMENT_ORDNER.filter((o) => o.tiefe === 0).map((o) => o.schluessel);
+  return DOKUMENT_ORDNER.flatMap((ordner) => {
+    const wurzel = wurzeln.find((w) => liegtIn(ordner.schluessel, w));
+    if (!wurzel) return [];
+    // Jeder Vorfahr zwischen Wurzel und Ordner muss offen sein.
+    let eltern = ordner.eltern;
+    while (eltern && liegtIn(eltern, wurzel)) {
+      if (!offen.has(eltern)) return [];
+      eltern = ordnerVon(eltern)?.eltern ?? null;
+    }
+    return [{ ordner, einzug: ordner.tiefe - (ordnerVon(wurzel)?.tiefe ?? 0) }];
+  });
+}
+
 function Ordner({
-  nummer,
-  schluessel,
-  titel,
+  ordner,
+  einzug,
   dokumente,
+  gesamt,
   offen,
   umschalten,
   onHochladen,
   onLoeschen,
 }: {
-  nummer: number;
-  schluessel: string;
-  titel: string;
+  ordner: Dokumentordner;
+  einzug: number;
+  /** Dateien direkt in diesem Ordner. */
   dokumente: Dokument[];
+  /** Dateien hier und in allen Unterordnern — steht in der Zeile. */
+  gesamt: number;
   offen: boolean;
   umschalten: () => void;
   onHochladen: (neue: NeuesDokument[]) => void;
   onLoeschen?: (id: string) => void;
 }) {
+  const { schluessel, nummer, titel, hatUnterordner } = ordner;
   const eingabeRef = useRef<HTMLInputElement>(null);
   const [ueber, setUeber] = useState(false);
 
@@ -115,11 +146,13 @@ function Ordner({
     <div
       onDragOver={(e) => {
         e.preventDefault();
+        e.stopPropagation();
         setUeber(true);
       }}
       onDragLeave={() => setUeber(false)}
       onDrop={(e) => {
         e.preventDefault();
+        e.stopPropagation();
         setUeber(false);
         uebernehmen(e.dataTransfer.files);
       }}
@@ -131,6 +164,7 @@ function Ordner({
           onClick={umschalten}
           aria-expanded={offen}
           className="druckbar flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left"
+          style={{ paddingLeft: `${1 + einzug * 1.25}rem` }}
         >
           <ChevronDown
             size={14}
@@ -141,12 +175,12 @@ function Ordner({
             )}
           />
           <span className="zahl shrink-0 text-[0.62rem] tracking-wider text-grau">
-            {String(nummer).padStart(2, "0")}
+            {nummer}
           </span>
           <span
             className={cn(
               "min-w-0 flex-1 truncate text-[0.8rem]",
-              dokumente.length > 0 ? "text-tinte" : "text-grau",
+              gesamt > 0 ? "text-tinte" : "text-grau",
             )}
           >
             {titel}
@@ -154,10 +188,10 @@ function Ordner({
           <span
             className={cn(
               "zahl shrink-0 text-[0.68rem] tabular-nums",
-              dokumente.length > 0 ? "text-grau-stark" : "text-linie-stark",
+              gesamt > 0 ? "text-grau-stark" : "text-linie-stark",
             )}
           >
-            {dokumente.length}
+            {gesamt}
           </span>
         </button>
 
@@ -182,8 +216,13 @@ function Ordner({
         />
       </div>
 
-      {offen && (
-        <div className="px-4 pb-4 pl-[2.6rem]">
+      {/* Ein Elternordner zeigt nur seine eigenen Dateien — die Unterordner
+          stehen ohnehin direkt darunter. Leer bleibt er dann stumm. */}
+      {offen && (dokumente.length > 0 || !hatUnterordner) && (
+        <div
+          className="px-4 pb-4"
+          style={{ paddingLeft: `${2.6 + einzug * 1.25}rem` }}
+        >
           {dokumente.length === 0 ? (
             <button
               type="button"
@@ -250,7 +289,7 @@ export function Dokumentenfeld({
   setDokumente: (d: NeuesDokument[]) => void;
 }) {
   const eingabeRef = useRef<HTMLInputElement>(null);
-  const [ziel, setZiel] = useState<string>(DOKUMENT_ORDNER[0].schluessel);
+  const [ziel, setZiel] = useState<string>(STANDARD_ORDNER);
   const [ueber, setUeber] = useState(false);
 
   function uebernehmen(dateien: FileList | null) {
@@ -281,9 +320,11 @@ export function Dokumentenfeld({
           aria-label="Zielordner"
           className="w-full border border-linie bg-flaeche px-3 py-2.5 text-[0.78rem] text-tinte focus:border-linie-stark focus:outline-none sm:w-auto sm:flex-1"
         >
-          {DOKUMENT_ORDNER.map((o, i) => (
+          {/* <option> kennt kein Padding — der Einzug kommt aus geschützten Leerzeichen. */}
+          {DOKUMENT_ORDNER.map((o) => (
             <option key={o.schluessel} value={o.schluessel}>
-              {String(i + 1).padStart(2, "0")} · {o.titel}
+              {"\u00a0\u00a0\u00a0".repeat(o.tiefe)}
+              {o.nummer} · {o.titel}
             </option>
           ))}
         </select>
@@ -330,7 +371,7 @@ export function Dokumentenfeld({
                   {d.name}
                 </span>
                 <span className="shrink-0 text-[0.6rem] tracking-wider uppercase text-grau">
-                  {DOKUMENT_ORDNER.find((o) => o.schluessel === d.ordner)?.titel}
+                  {ordnerVon(d.ordner)?.titel}
                 </span>
                 <button
                   type="button"

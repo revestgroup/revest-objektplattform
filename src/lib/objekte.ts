@@ -702,35 +702,150 @@ export interface Objekt {
 /* ------------------------------------------------------------------ */
 
 /**
- * Diese Struktur wird später 1:1 als Ordner im Google Drive angelegt.
- * Deshalb steht sie schon jetzt fest — damit später nichts umziehen muss.
+ * Die Ablage ist die bestehende Google-Drive-Struktur — die Plattform passt
+ * sich an, nicht umgekehrt. Namen stehen exakt so wie im Drive, damit der
+ * Schlüssel eines Ordners (sein Pfad) später direkt dort auffindbar ist.
  */
-export const DOKUMENT_ORDNER = [
-  { schluessel: "01_expose", titel: "Exposé & Angebot" },
-  { schluessel: "02_grundbuch", titel: "Grundbuch & Recht" },
-  { schluessel: "03_kaufvertrag", titel: "Kaufvertrag & Notar" },
-  { schluessel: "04_plaene", titel: "Pläne & Bau" },
-  { schluessel: "05_miete", titel: "Mietverhältnisse" },
-  { schluessel: "06_hausverwaltung", titel: "Hausverwaltung" },
-  { schluessel: "07_energie", titel: "Energie & Technik" },
-  { schluessel: "08_sanierung", titel: "Sanierung" },
-  { schluessel: "09_fotos", titel: "Fotos" },
-  { schluessel: "10_vertrieb", titel: "Vertrieb" },
-] as const;
+interface OrdnerKnoten {
+  name: string;
+  unterordner?: readonly OrdnerKnoten[];
+}
+
+const ORDNER_BAUM: readonly OrdnerKnoten[] = [
+  {
+    name: "01_Unterlagen",
+    unterordner: [
+      { name: "01_Unterlagen zum Objekt" },
+      {
+        name: "02_Bewirtschaftung",
+        unterordner: [
+          { name: "00_Hausverwaltung" },
+          { name: "01_Gas" },
+          { name: "02_Strom" },
+          { name: "03_Wasser_Stadtwerke" },
+          { name: "04_Versicherung" },
+          { name: "05_Schornsteinfeger" },
+          { name: "06_Grundbesitzabgaben_Stadt" },
+        ],
+      },
+      { name: "03_Notar_Grundbuchsachen" },
+      { name: "04_Finanzierung_Bank" },
+    ],
+  },
+  { name: "02_Kalkulation" },
+  { name: "03_Renovierung" },
+  {
+    name: "04_Bilder",
+    unterordner: [
+      { name: "01_Ankauf - vor Renovierung" },
+      { name: "02_Renovierungsphase" },
+      { name: "03_nach Staging" },
+    ],
+  },
+  {
+    name: "05_Verkauf",
+    unterordner: [{ name: "00_Vertrieb" }, { name: "01_Notar" }],
+  },
+];
+
+export interface Dokumentordner {
+  /** Drive-Pfad, z. B. "01_Unterlagen/02_Bewirtschaftung/01_Gas". Steht in `Dokument.ordner`. */
+  schluessel: string;
+  /** Nummer aus dem Drive-Namen: "01". */
+  nummer: string;
+  /** Lesbarer Name ohne Nummer: "Wasser Stadtwerke". */
+  titel: string;
+  /** 0 = Hauptordner. */
+  tiefe: number;
+  eltern: string | null;
+  hatUnterordner: boolean;
+}
+
+function abflachen(knoten: readonly OrdnerKnoten[], eltern: string | null, tiefe: number): Dokumentordner[] {
+  return knoten.flatMap((k) => {
+    const schluessel = eltern ? `${eltern}/${k.name}` : k.name;
+    const [nummer, ...rest] = k.name.split("_");
+    return [
+      {
+        schluessel,
+        nummer,
+        titel: rest.join(" "),
+        tiefe,
+        eltern,
+        hatUnterordner: !!k.unterordner?.length,
+      },
+      ...abflachen(k.unterordner ?? [], schluessel, tiefe + 1),
+    ];
+  });
+}
+
+/** Alle Ordner in Drive-Reihenfolge, jeder Unterordner direkt unter seinem Elternordner. */
+export const DOKUMENT_ORDNER: readonly Dokumentordner[] = abflachen(ORDNER_BAUM, null, 0);
+
+/** Wohin eine Datei ohne bewusste Wahl wandert. */
+export const STANDARD_ORDNER = "01_Unterlagen/01_Unterlagen zum Objekt";
+
+export function ordnerVon(schluessel: string): Dokumentordner | undefined {
+  return DOKUMENT_ORDNER.find((o) => o.schluessel === schluessel);
+}
+
+/** Liegt `schluessel` in `vorfahr` (oder ist es selbst)? */
+export function liegtIn(schluessel: string, vorfahr: string): boolean {
+  return schluessel === vorfahr || schluessel.startsWith(`${vorfahr}/`);
+}
+
+/**
+ * Die zehn flachen Ordner aus der ersten Fassung. Gespeicherte Dokumente
+ * tragen sie noch — beim Laden werden sie hierüber umgezogen.
+ */
+const ALTE_ORDNER: Record<string, string> = {
+  "01_expose": "01_Unterlagen/01_Unterlagen zum Objekt",
+  "02_grundbuch": "01_Unterlagen/03_Notar_Grundbuchsachen",
+  "03_kaufvertrag": "01_Unterlagen/03_Notar_Grundbuchsachen",
+  "04_plaene": "01_Unterlagen/01_Unterlagen zum Objekt",
+  "05_miete": "01_Unterlagen/01_Unterlagen zum Objekt",
+  "06_hausverwaltung": "01_Unterlagen/02_Bewirtschaftung/00_Hausverwaltung",
+  "07_energie": "01_Unterlagen/01_Unterlagen zum Objekt",
+  "08_sanierung": "03_Renovierung",
+  "09_fotos": "04_Bilder/01_Ankauf - vor Renovierung",
+  "10_vertrieb": "05_Verkauf/00_Vertrieb",
+};
+
+/** Alter oder unbekannter Ordner → gültiger Pfad. Unbekanntes landet im Standardordner. */
+export function ordnerUmziehen(schluessel: string): string {
+  if (ordnerVon(schluessel)) return schluessel;
+  return ALTE_ORDNER[schluessel] ?? STANDARD_ORDNER;
+}
 
 /** Typische Unterlagen je Ordner — als Hinweis in der Upload-Maske. */
 export const ORDNER_BEISPIELE: Record<string, string> = {
-  "01_expose": "Exposé, Angebotsschreiben, Objektbeschreibung",
-  "02_grundbuch": "Grundbuchauszug, Teilungserklärung, Baulastenverzeichnis, Flurkarte",
-  "03_kaufvertrag": "Kaufvertragsentwurf, Notartermin, Auflassungsvormerkung",
-  "04_plaene": "Grundrisse, Schnitte, Baupläne, Statik, Baugenehmigung",
-  "05_miete": "Mietverträge, Mieterliste, Mietaufstellung, Kündigungen",
-  "06_hausverwaltung":
-    "WEG-Protokolle, Hausgeldabrechnung, Wirtschaftsplan, Verwaltervertrag, Rücklagennachweis",
-  "07_energie": "Energieausweis, Heizungsprotokoll, Schornsteinfeger, Wartungsverträge",
-  "08_sanierung": "Kostenvoranschläge, Handwerkerangebote, Baufortschritt, Abnahmen",
-  "09_fotos": "Außenaufnahmen, Innenaufnahmen, Drohne, Bestandsdoku",
-  "10_vertrieb": "Verkaufsexposé, Reservierungen, Übergabe an AUVERO",
+  "01_Unterlagen": "Sammelordner — besser direkt in einen der Unterordner",
+  "01_Unterlagen/01_Unterlagen zum Objekt":
+    "Exposé, Grundrisse, Energieausweis, Teilungserklärung, Mieterliste, Mietverträge",
+  "01_Unterlagen/02_Bewirtschaftung": "Verträge und Abrechnungen rund um den laufenden Betrieb",
+  "01_Unterlagen/02_Bewirtschaftung/00_Hausverwaltung":
+    "Verwaltervertrag, WEG-Protokolle, Wirtschaftsplan, Hausgeldabrechnung, Rücklagennachweis",
+  "01_Unterlagen/02_Bewirtschaftung/01_Gas": "Gasvertrag, Ummeldung, Zählerstände, Abrechnungen",
+  "01_Unterlagen/02_Bewirtschaftung/02_Strom": "Stromvertrag, Ummeldung, Zählerstände, Abrechnungen",
+  "01_Unterlagen/02_Bewirtschaftung/03_Wasser_Stadtwerke":
+    "Wasser und Abwasser, Ummeldung, Zählerstände, Bescheide der Stadtwerke",
+  "01_Unterlagen/02_Bewirtschaftung/04_Versicherung":
+    "Gebäudeversicherung, Haftpflicht, Policen und Schadensmeldungen",
+  "01_Unterlagen/02_Bewirtschaftung/05_Schornsteinfeger": "Feuerstättenbescheid, Messprotokolle",
+  "01_Unterlagen/02_Bewirtschaftung/06_Grundbesitzabgaben_Stadt":
+    "Grundsteuerbescheid, Abgabenbescheide der Stadt",
+  "01_Unterlagen/03_Notar_Grundbuchsachen":
+    "Grundbuchauszug, Kaufvertrag, Notartermin, Auflassungsvormerkung, Eintragungsnachricht",
+  "01_Unterlagen/04_Finanzierung_Bank": "Finanzierungszusage, Darlehensvertrag, Grundschuld",
+  "02_Kalkulation": "Ankaufskalkulation, Verkaufsplanung, Wirtschaftlichkeitsrechnung",
+  "03_Renovierung": "Kostenvoranschläge, Handwerkerangebote, Baufortschritt, Abnahmen",
+  "04_Bilder": "Sammelordner — besser direkt in einen der Unterordner",
+  "04_Bilder/01_Ankauf - vor Renovierung": "Bestandsfotos bei Besichtigung und Übergabe",
+  "04_Bilder/02_Renovierungsphase": "Baufortschritt, Gewerke, Mängel",
+  "04_Bilder/03_nach Staging": "Vermarktungsfotos nach Fertigstellung und Staging",
+  "05_Verkauf": "Sammelordner — besser direkt in einen der Unterordner",
+  "05_Verkauf/00_Vertrieb": "Verkaufsexposé, Reservierungen, Übergabe an AUVERO",
+  "05_Verkauf/01_Notar": "Kaufvertragsentwürfe und Urkunden für den Verkauf",
 };
 
 /* ------------------------------------------------------------------ */
