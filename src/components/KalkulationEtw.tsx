@@ -16,7 +16,6 @@ import { useEinstellungen } from "../lib/einstellungenStore";
 import {
   AUFWERTUNGSKATALOG,
   KATALOG_PREISE,
-  MARKTQUELLEN,
   SZENARIEN,
   SZENARIO_TITEL,
   berechneEtw,
@@ -495,28 +494,6 @@ export function KalkulationEtwBlatt({ objekt }: { objekt: Objekt }) {
             </div>
           </Karte>
 
-          <Karte titel="8. Marktwert-Einschätzung (Eigennutzer)">
-            {MARKTQUELLEN.map((q) => {
-              const w = kalk.marktwerte?.[q.id] ?? null;
-              return (
-                <Zeile
-                  key={q.id}
-                  label={q.titel}
-                  einheit="€"
-                  ergebnis={
-                    w && eingabe.wohnflaeche ? `${GANZ.format(w / eingabe.wohnflaeche)} €/m²` : "–"
-                  }
-                >
-                  <Eingabe
-                    label={q.titel}
-                    art="betrag"
-                    wert={w}
-                    setWert={(v) => setze({ marktwerte: { ...kalk.marktwerte, [q.id]: v } })}
-                  />
-                </Zeile>
-              );
-            })}
-          </Karte>
         </div>
 
         {/* ----- Ergebnis rechts, bleibt beim Scrollen stehen ----- */}

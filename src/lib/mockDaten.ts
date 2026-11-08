@@ -433,7 +433,6 @@ export const MOCK_OBJEKTE: Objekt[] = [
     },
     kalkulationEtw: {
       verkauf: { worst: 449_000, mid: 479_000, best: 499_000 },
-      marktwerte: { pricehubble: 468_000, eigene: 485_000 },
       katalog: {
         tagessatz_3_pers_a_30_h: 3,
         entsorgung_klein: 1,

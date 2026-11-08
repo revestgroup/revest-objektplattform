@@ -703,20 +703,11 @@ export interface EtwKalkulation {
   homeStaging?: number | null;
   verkauf?: Partial<Record<Szenario, number | null>>;
   abzugQm?: number | null;
-  marktwerte?: Partial<Record<Marktquelle, number | null>>;
   /** Menge je Position; bei Ja/Nein steht 1 für Ja. */
   katalog?: Record<string, number>;
   /** Je Objekt abweichende Preise. */
   preise?: Record<string, number>;
 }
-
-export type Marktquelle = "pricehubble" | "proprate" | "interhyp" | "eigene";
-export const MARKTQUELLEN: { id: Marktquelle; titel: string }[] = [
-  { id: "pricehubble", titel: "Pricehubble" },
-  { id: "proprate", titel: "PropRate" },
-  { id: "interhyp", titel: "Interhyp" },
-  { id: "eigene", titel: "Eigene Einschätzung" },
-];
 
 /** Alle Eingaben aufgelöst — das, womit gerechnet wird. */
 export interface EtwEingabe {

@@ -26,7 +26,7 @@ und deren Standardwerte in den Einstellungen gepflegt werden.
 | Vermarktung | Home Staging € | 0 | |
 | Verkauf | Verkaufspreis Worst / Mid / Best € | – | drei Szenarien |
 | Verkauf | Abzug Stellplatz / Garage € | 0 | Anteil von Stellplatz, Garage oder TG am Verkaufspreis. Wird nur für den €/m²-Wert abgezogen, damit dieser nur die Wohnfläche misst. Hinweis anzeigen, wenn im Steckbrief ein Stellplatz/TG eingetragen ist und der Abzug 0 ist. |
-| Marktwert | Pricehubble, PropRate, Interhyp, eigene Einschätzung € | – | je mit €/m² |
+| ~~Marktwert~~ | ~~Pricehubble, PropRate, Interhyp, eigene Einschätzung €~~ | – | entfällt (Timo, 08.11.2026) |
 
 ## 2. Rechnung
 
