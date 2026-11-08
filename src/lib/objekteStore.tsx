@@ -33,6 +33,12 @@ import {
   stufeUmstellen,
 } from "./objekte";
 import { MOCK_OBJEKTE } from "./mockDaten";
+import {
+  mitAbmeldungen,
+  mitUmmeldungen,
+  ohneOffeneAbmeldungen,
+  type Ummeldung,
+} from "./ummeldungen";
 
 /**
  * Versionierter Schlüssel. Ändert sich die Form von `Objekt`, wird die Zahl
@@ -57,11 +63,11 @@ function ausSpeicher(objekte: Objekt[]): Objekt[] {
       kuerzel = kuerzelVorschlag(o.strasse, vergeben);
       vergeben.push(kuerzel);
     }
-    return {
+    return mitUmmeldungen({
       ...o,
       kuerzel,
       dokumente: (o.dokumente ?? []).map((d) => ({ ...d, ordner: ordnerUmziehen(d.ordner) })),
-    };
+    });
   });
 }
 
@@ -158,6 +164,7 @@ interface StoreWert {
     grund: string,
   ) => void;
   verkaufsplanSetzen: (id: string, plan: Verkaufsplan) => void;
+  ummeldungSetzen: (id: string, ummeldungId: string, teil: Partial<Ummeldung>) => void;
   zuruecksetzen: () => void;
 }
 
@@ -169,11 +176,7 @@ function neueId(praefix: string) {
   return `${praefix}-${zaehler.toString(36)}`;
 }
 
-function eintrag(
-  art: Verlaufseintrag["art"],
-  text: string,
-  vonHand?: boolean,
-): Verlaufseintrag {
+function eintrag(art: Verlaufseintrag["art"], text: string, vonHand?: boolean): Verlaufseintrag {
   return { id: neueId("v"), zeitpunkt: new Date().toISOString(), art, text, vonHand };
 }
 
@@ -201,9 +204,12 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
   }, [objekte, bereit]);
 
   /** Einzige Stelle, die ein Objekt verändert. Hält den Verlauf automatisch mit. */
+  // Nach jeder Änderung: ist ein Besitzübergang neu eingetragen — im Deal,
+  // im Formular oder im Reiter —, entstehen die Ummeldungen. An einer Stelle,
+  // damit kein Weg sie vergisst.
   const mutieren = useCallback(
     (id: string, bauen: (o: Objekt) => Objekt) =>
-      setObjekte((alt) => alt.map((o) => (o.id === id ? bauen(o) : o))),
+      setObjekte((alt) => alt.map((o) => (o.id === id ? mitUmmeldungen(bauen(o)) : o))),
     [],
   );
 
@@ -231,9 +237,7 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
         mutieren(id, (o) => ({
           ...o,
           ...teil,
-          verlauf: verlaufstext
-            ? [...o.verlauf, eintrag("notiz", verlaufstext, false)]
-            : o.verlauf,
+          verlauf: verlaufstext ? [...o.verlauf, eintrag("notiz", verlaufstext, false)] : o.verlauf,
         })),
 
       loeschen: (id) => setObjekte((alt) => alt.filter((o) => o.id !== id)),
@@ -398,30 +402,34 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
       einheitVerkaufen: (id, einheitId, v) =>
         mutieren(id, (o) => {
           const e = o.einheiten.find((x) => x.id === einheitId);
-          return {
-            ...o,
-            einheiten: o.einheiten.map((x) =>
-              x.id === einheitId
-                ? {
-                    ...x,
-                    status: "verkauft" as const,
-                    kaeufer: v.kaeufer,
-                    kaeuferKontakt: v.kontakt,
-                    verkaufspreis: v.preis,
-                    verkauftAm: v.datum,
-                  }
-                : x,
-            ),
-            verlauf: [
-              ...o.verlauf,
-              eintrag(
-                "status",
-                `${e?.bezeichnung ?? "Einheit"} verkauft an ${v.kaeufer}${
-                  v.preis !== null ? ` für ${f.eur(v.preis)}` : ""
-                }`,
+          // Mit dem Verkauf entstehen die Abmeldungen an den Käufer.
+          return mitAbmeldungen(
+            {
+              ...o,
+              einheiten: o.einheiten.map((x) =>
+                x.id === einheitId
+                  ? {
+                      ...x,
+                      status: "verkauft" as const,
+                      kaeufer: v.kaeufer,
+                      kaeuferKontakt: v.kontakt,
+                      verkaufspreis: v.preis,
+                      verkauftAm: v.datum,
+                    }
+                  : x,
               ),
-            ],
-          };
+              verlauf: [
+                ...o.verlauf,
+                eintrag(
+                  "status",
+                  `${e?.bezeichnung ?? "Einheit"} verkauft an ${v.kaeufer}${
+                    v.preis !== null ? ` für ${f.eur(v.preis)}` : ""
+                  }`,
+                ),
+              ],
+            },
+            einheitId,
+          );
         }),
 
       einheitVerkaufZurueck: (id, einheitId, status, grund) =>
@@ -429,24 +437,35 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
           const e = o.einheiten.find((x) => x.id === einheitId);
           // Der Wunschpreis bleibt stehen: er war vor dem Verkauf der geführte
           // Preis und ist nach der Rücknahme wieder genau das.
-          return {
-            ...o,
-            einheiten: o.einheiten.map((x) =>
-              x.id === einheitId
-                ? { ...x, status, kaeufer: null, kaeuferKontakt: null, verkauftAm: null }
-                : x,
-            ),
-            verlauf: [
-              ...o.verlauf,
-              eintrag(
-                "status",
-                `Verkauf zurückgenommen: ${e?.bezeichnung ?? "Einheit"}${
-                  e?.kaeufer ? ` (${e.kaeufer})` : ""
-                }${grund.trim() ? ` — ${grund.trim()}` : ""}`,
+          return ohneOffeneAbmeldungen(
+            {
+              ...o,
+              einheiten: o.einheiten.map((x) =>
+                x.id === einheitId
+                  ? { ...x, status, kaeufer: null, kaeuferKontakt: null, verkauftAm: null }
+                  : x,
               ),
-            ],
-          };
+              verlauf: [
+                ...o.verlauf,
+                eintrag(
+                  "status",
+                  `Verkauf zurückgenommen: ${e?.bezeichnung ?? "Einheit"}${
+                    e?.kaeufer ? ` (${e.kaeufer})` : ""
+                  }${grund.trim() ? ` — ${grund.trim()}` : ""}`,
+                ),
+              ],
+            },
+            einheitId,
+          );
         }),
+
+      ummeldungSetzen: (id, ummeldungId, teil) =>
+        mutieren(id, (o) => ({
+          ...o,
+          ummeldungen: (o.ummeldungen ?? []).map((u) =>
+            u.id === ummeldungId ? { ...u, ...teil } : u,
+          ),
+        })),
 
       // Nur das ausdrückliche Speichern schreibt in den Verlauf — beim Tippen
       // in der Planung wäre das eine Flut aus bedeutungslosen Einträgen.

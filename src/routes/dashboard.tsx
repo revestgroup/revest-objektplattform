@@ -16,6 +16,7 @@ import { STUFEN, f, type Objekt } from "../lib/objekte";
 import { useObjekte } from "../lib/objekteStore";
 import { fristText, sortiereOffen, tageBis, type Aufgabe } from "../lib/aufgaben";
 import { useAufgaben } from "../lib/aufgabenStore";
+import { UMMELDEARTEN, ueberfaelligeUmmeldungen } from "../lib/ummeldungen";
 import { cn } from "../lib/utils";
 
 export const Route = createFileRoute("/dashboard")({ component: DashboardSeite });
@@ -35,6 +36,15 @@ function DashboardSeite() {
       termine: alle.filter((a) => TERMINARTEN.has(a.art) && a.faelligAm),
     };
   }, [aufgaben]);
+
+  // Ummeldungen, an denen seit 14 Tagen nichts passiert ist — je Projekt eine Zeile.
+  const ummeldungen = useMemo(
+    () =>
+      objekte
+        .map((o) => ({ objekt: o, faellig: ueberfaelligeUmmeldungen(o) }))
+        .filter((x) => x.faellig.length > 0),
+    [objekte],
+  );
 
   if (!objekteBereit || !aufgabenBereit) return <div className="h-96" />;
 
@@ -67,6 +77,46 @@ function DashboardSeite() {
             <Terminzeile key={a.id} aufgabe={a} objekte={objekte} />
           ))}
         </Block>
+
+        {/* Nur wenn etwas fällig ist — ein leerer Kasten „alles gemeldet“ wäre Lärm. */}
+        {ummeldungen.length > 0 && (
+          <Block titel="Ummeldungen" zu="/projekte" leer="">
+            {ummeldungen.map(({ objekt, faellig }) => (
+              <li key={objekt.id}>
+                <Link
+                  to="/projekte"
+                  search={{ objekt: objekt.id }}
+                  className="druckbar -mx-2 flex items-center gap-3 rounded-lg px-2 py-3"
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[0.82rem] text-tinte">
+                      {objekt.kuerzel ? `${objekt.kuerzel} · ` : ""}
+                      {objekt.bezeichnung?.trim() || objekt.strasse}
+                    </span>
+                    <span className="mt-0.5 block truncate text-[0.68rem] text-grau">
+                      {faellig
+                        .map((u) => {
+                          const titel = UMMELDEARTEN.find((a) => a.art === u.art)?.titel ?? u.art;
+                          const einheit =
+                            u.richtung === "ab"
+                              ? objekt.einheiten.find((e) => e.id === u.einheitId)?.bezeichnung.split(" · ")[0]
+                              : null;
+                          return `${einheit ? `${einheit}: ` : ""}${titel}${u.status === "gemeldet" ? " (Bestätigung fehlt)" : ""}`;
+                        })
+                        .join(", ")}
+                    </span>
+                  </span>
+                  <span
+                    className="zahl shrink-0 text-[0.66rem] font-medium"
+                    style={{ color: STUFEN.abgesagt.farbe }}
+                  >
+                    {faellig.length} überfällig
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </Block>
+        )}
       </div>
     </div>
   );

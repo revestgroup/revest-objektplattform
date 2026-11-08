@@ -52,6 +52,12 @@ Wer irgendwo eine Stufe setzt, nimmt `useStufenwechsel()` aus `components/Pruefu
 statt `stufeSetzen` direkt und rendert dessen `dialog` mit — sonst fehlt der Prüfhinweis
 beim Wechsel nach „Angebot abgegeben“ oder „Gekauft“.
 
+## Ummeldungen
+
+`src/lib/ummeldungen.ts` (Tests daneben). Angelegt wird zentral in `mutieren` im
+Objektspeicher, sobald `besitzuebergangAm` gesetzt ist — kein Aufrufer muss daran denken.
+Abmeldungen entstehen in `einheitVerkaufen`, unberührte verschwinden bei der Rücknahme.
+
 ## Anlegemaske
 
 Offen stehen nur Lage, Objekt, Preis und Miete, Bilder, Notiz. Alles weitere liegt in

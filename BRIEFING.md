@@ -36,7 +36,7 @@ Lies zuerst `AGENTS.md` und halte dich an die Design-Regeln (deutsche Benennung,
 | 2c-2. Reiter „Dateien“ im Ankauf, Einsortieren beim Kauf | erledigt | `aufgabe-2c2/dateien` |
 | 2c-3. Kalkulation ETW nach `KALKULATION_ETW.md` | erledigt (offen: Bedeutung „Abzug für €/m²“) | `aufgabe-2c3/kalkulation` |
 | 3. Objektprüfung | erledigt | `aufgabe-3/pruefung` |
-| 4. Ummeldungen | offen | |
+| 4. Ummeldungen | erledigt | `aufgabe-4/ummeldungen` |
 | 4b. Ankauf-Eingang | offen, erst nach 4 | |
 
 Die Branches bauen aufeinander auf; der jüngste enthält alle vorherigen.

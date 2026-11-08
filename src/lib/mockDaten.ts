@@ -20,6 +20,7 @@ import type {
   Verlaufseintrag,
 } from "./objekte";
 import { umrissAusMitte } from "./objekte";
+import { UMMELDEARTEN, type Ummeldung } from "./ummeldungen";
 
 /** Fester Bezugszeitpunkt, damit Fristen und Verlauf reproduzierbar bleiben. */
 export const JETZT = new Date("2026-10-20T09:30:00+02:00");
@@ -121,6 +122,26 @@ function san(
   }));
 }
 
+/**
+ * Ummeldungen in Kurzform: je Art Status und was sonst bekannt ist. Nicht
+ * genannte Arten stehen auf „offen“.
+ */
+function um(
+  praefix: string,
+  richtung: Ummeldung["richtung"],
+  einheitId: string | null,
+  bekannt: Partial<Record<Ummeldung["art"], Partial<Ummeldung>>>,
+): Ummeldung[] {
+  return UMMELDEARTEN.map(({ art }) => ({
+    id: `${praefix}-${art}`,
+    art,
+    richtung,
+    einheitId,
+    status: "offen" as const,
+    ...bekannt[art],
+  }));
+}
+
 export const MOCK_OBJEKTE: Objekt[] = [
   {
     id: "obj-001",
@@ -158,6 +179,24 @@ export const MOCK_OBJEKTE: Objekt[] = [
     // in den Vertrieb, vier bleiben als WG im Bestand, die Teilung läuft.
     angekauftAm: "2026-04-17",
     besitzuebergangAm: "2026-06-01",
+    ummeldungen: [
+      ...um("um-obj-001", "an", null, {
+        hausverwaltung: { status: "bestaetigt", anbieter: "Hausverwaltung Nordlicht", gemeldetAm: "2026-06-02", bestaetigtAm: "2026-06-09" },
+        gas: { status: "gemeldet", anbieter: "Stadtwerke, Kundenservice", zaehlernummer: "G 4471-208", zaehlerstand: "18.402 m³", gemeldetAm: "2026-06-03", notiz: "Bestätigung trotz zweimal Nachfragen nicht da" },
+        strom: { status: "bestaetigt", anbieter: "Stadtwerke", zaehlernummer: "1ESY1160-7720", zaehlerstand: "52.118 kWh", gemeldetAm: "2026-06-03", bestaetigtAm: "2026-06-20" },
+        versicherung: { status: "bestaetigt", anbieter: "Gebäudeversicherung, Police 77-120", gemeldetAm: "2026-05-28", bestaetigtAm: "2026-06-01" },
+        schornsteinfeger: { status: "gemeldet", gemeldetAm: "2026-10-30" },
+        grundbesitzabgaben: { status: "bestaetigt", anbieter: "Stadt Neu-Ulm, Steueramt", gemeldetAm: "2026-06-05", bestaetigtAm: "2026-07-14" },
+      }),
+      ...um("ab-e001-1", "ab", "e001-1", {
+        hausverwaltung: { status: "bestaetigt", gemeldetAm: "2026-08-25", bestaetigtAm: "2026-09-02" },
+        strom: { status: "bestaetigt", zaehlerstand: "8.204 kWh", gemeldetAm: "2026-08-25", bestaetigtAm: "2026-09-10" },
+        gas: { status: "entfaellt", notiz: "Wohnung hat keinen eigenen Gaszähler" },
+        versicherung: { status: "entfaellt" },
+        schornsteinfeger: { status: "entfaellt" },
+        grundbesitzabgaben: { status: "gemeldet", gemeldetAm: "2026-08-26" },
+      }),
+    ],
     kuerzel: "FAH6",
     gesellschaft: "revest_projekt",
     driveOrdnerUrl: null,

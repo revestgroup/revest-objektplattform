@@ -62,6 +62,7 @@ import { useAufgaben } from "../lib/aufgabenStore";
 import { useEinstellungen } from "../lib/einstellungenStore";
 import { SZENARIEN, SZENARIO_TITEL, berechneEtw, etwEingabe } from "../lib/kalkulationEtw";
 import { pruefstand } from "../lib/pruefung";
+import { ueberfaelligeUmmeldungen } from "../lib/ummeldungen";
 import { useObjekte } from "../lib/objekteStore";
 import { cn } from "../lib/utils";
 import { berechneGarantie } from "../lib/vermietung";
@@ -77,10 +78,12 @@ import { Ruecknahmedialog, Verkaufsdialog } from "./Verkaufsdialog";
 import { Verkaufsplanung } from "./Verkaufsplanung";
 import { KalkulationEtwBlatt } from "./KalkulationEtw";
 import { Pruefblatt, Pruefzeichen, useStufenwechsel } from "./Pruefung";
+import { Ummeldungsblatt } from "./Ummeldungen";
 
 type Reiter =
   | "uebersicht"
   | "pruefung"
+  | "ummeldungen"
   | "aufgaben"
   | "kontakt"
   | "verkauf"
@@ -118,6 +121,8 @@ const PROJEKT_REITER: Reiter[] = [
   "uebersicht",
   "aufgaben",
   "kontakt",
+  // Mit dem Besitzübergang zuerst: wer zahlt ab wann Gas und Hausgeld.
+  "ummeldungen",
   "teilung",
   "sanierung",
   "kosten",
@@ -142,6 +147,7 @@ function reiterTitel(r: Reiter, projekt: boolean): string {
 const REITER_TITEL: Record<Reiter, string> = {
   uebersicht: "Übersicht",
   pruefung: "Prüfung",
+  ummeldungen: "Ummeldungen",
   aufgaben: "Aufgaben",
   kontakt: "Kontakt",
   verkauf: "Kalkulation",
@@ -188,6 +194,8 @@ export function ObjektDetail({
         const s = pruefstand(objekt);
         return s.offenePflicht.length + s.kritisch.length;
       })(),
+      // Die überfälligen — der Rest ist Routine.
+      ummeldungen: ueberfaelligeUmmeldungen(objekt).length,
       aufgaben: aufgaben.filter((a) => a.objektId === objekt.id && !a.erledigtAm).length,
       kontakt: objekt.kontakte.length,
       verkauf: objekt.verkaufsplan?.posten.length ?? 0,
@@ -330,6 +338,7 @@ export function ObjektDetail({
           <Uebersicht objekt={objekt} kennzahlen={k} zuReiter={setReiter} />
         )}
         {sichtbar === "pruefung" && <Pruefblatt objekt={objekt} />}
+        {sichtbar === "ummeldungen" && <Ummeldungsblatt objekt={objekt} />}
         {sichtbar === "aufgaben" && <Objektaufgaben objekt={objekt} />}
         {sichtbar === "kontakt" && <Kontaktblatt objekt={objekt} />}
         {sichtbar === "verkauf" &&
