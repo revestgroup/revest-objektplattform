@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnkaufRouteImport } from './routes/ankauf'
 import { Route as AufgabenRouteImport } from './routes/aufgaben'
 import { Route as AuswertungRouteImport } from './routes/auswertung'
+import { Route as BackofficeRouteImport } from './routes/backoffice'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as EinstellungenRouteImport } from './routes/einstellungen'
 import { Route as KarteRouteImport } from './routes/karte'
@@ -40,6 +41,11 @@ const AufgabenRoute = AufgabenRouteImport.update({
 const AuswertungRoute = AuswertungRouteImport.update({
   id: '/auswertung',
   path: '/auswertung',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BackofficeRoute = BackofficeRouteImport.update({
+  id: '/backoffice',
+  path: '/backoffice',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/ankauf': typeof AnkaufRoute
   '/aufgaben': typeof AufgabenRoute
   '/auswertung': typeof AuswertungRoute
+  '/backoffice': typeof BackofficeRoute
   '/dashboard': typeof DashboardRoute
   '/einstellungen': typeof EinstellungenRoute
   '/karte': typeof KarteRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/ankauf': typeof AnkaufRoute
   '/aufgaben': typeof AufgabenRoute
   '/auswertung': typeof AuswertungRoute
+  '/backoffice': typeof BackofficeRoute
   '/dashboard': typeof DashboardRoute
   '/einstellungen': typeof EinstellungenRoute
   '/karte': typeof KarteRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/ankauf': typeof AnkaufRoute
   '/aufgaben': typeof AufgabenRoute
   '/auswertung': typeof AuswertungRoute
+  '/backoffice': typeof BackofficeRoute
   '/dashboard': typeof DashboardRoute
   '/einstellungen': typeof EinstellungenRoute
   '/karte': typeof KarteRoute
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/ankauf'
     | '/aufgaben'
     | '/auswertung'
+    | '/backoffice'
     | '/dashboard'
     | '/einstellungen'
     | '/karte'
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/ankauf'
     | '/aufgaben'
     | '/auswertung'
+    | '/backoffice'
     | '/dashboard'
     | '/einstellungen'
     | '/karte'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/ankauf'
     | '/aufgaben'
     | '/auswertung'
+    | '/backoffice'
     | '/dashboard'
     | '/einstellungen'
     | '/karte'
@@ -176,6 +188,7 @@ export interface RootRouteChildren {
   AnkaufRoute: typeof AnkaufRoute
   AufgabenRoute: typeof AufgabenRoute
   AuswertungRoute: typeof AuswertungRoute
+  BackofficeRoute: typeof BackofficeRoute
   DashboardRoute: typeof DashboardRoute
   EinstellungenRoute: typeof EinstellungenRoute
   KarteRoute: typeof KarteRoute
@@ -214,6 +227,13 @@ declare module '@tanstack/react-router' {
       path: '/auswertung'
       fullPath: '/auswertung'
       preLoaderRoute: typeof AuswertungRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/backoffice': {
+      id: '/backoffice'
+      path: '/backoffice'
+      fullPath: '/backoffice'
+      preLoaderRoute: typeof BackofficeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -280,6 +300,7 @@ const rootRouteChildren: RootRouteChildren = {
   AnkaufRoute: AnkaufRoute,
   AufgabenRoute: AufgabenRoute,
   AuswertungRoute: AuswertungRoute,
+  BackofficeRoute: BackofficeRoute,
   DashboardRoute: DashboardRoute,
   EinstellungenRoute: EinstellungenRoute,
   KarteRoute: KarteRoute,

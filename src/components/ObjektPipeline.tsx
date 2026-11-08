@@ -25,7 +25,7 @@
  * verdrängen. Auch eine zugeklappte Spalte nimmt Karten an.
  */
 import { ChevronLeft, ChevronRight, Phone } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 import {
   KONTAKTROLLEN,
@@ -39,6 +39,7 @@ import { useObjekte } from "../lib/objekteStore";
 import { cn } from "../lib/utils";
 import { Bildflaeche } from "./Bilder";
 import { useStufenwechsel } from "./Pruefung";
+import { useSeitlichScroll } from "./SeitlichScroll";
 
 export function ObjektPipeline({
   objekte,
@@ -72,67 +73,7 @@ export function ObjektPipeline({
     });
   }
 
-  // ----- Seitlich bewegen -----
-  // Trackpad und Shift + Mausrad scrollen die Leiste von selbst. Dazu kommen:
-  // Greifen auf freier Fläche, Pfeilknöpfe am Rand und Mitscrollen, wenn eine
-  // Karte an den Rand gezogen wird.
-  const leiste = useRef<HTMLDivElement>(null);
-  const greifen = useRef<{ x: number; links: number } | null>(null);
-  const [rand, setRand] = useState({ links: false, rechts: false });
-
-  function randPruefen() {
-    const el = leiste.current;
-    if (!el) return;
-    setRand({
-      links: el.scrollLeft > 4,
-      rechts: el.scrollLeft + el.clientWidth < el.scrollWidth - 4,
-    });
-  }
-
-  useEffect(() => {
-    randPruefen();
-    window.addEventListener("resize", randPruefen);
-    return () => window.removeEventListener("resize", randPruefen);
-  }, [objekte.length, offeneAblage]);
-
-  function blaettern(richtung: -1 | 1) {
-    const el = leiste.current;
-    if (!el) return;
-    el.scrollBy({ left: richtung * el.clientWidth * 0.6, behavior: "smooth" });
-    // Nicht jeder Browser meldet das Ende des sanften Scrollens zuverlässig.
-    setTimeout(randPruefen, 400);
-  }
-
-  function greifenStart(e: React.PointerEvent<HTMLDivElement>) {
-    // Nur auf freier Fläche und nur mit der Maus — Karten, Knöpfe und Links
-    // behalten ihr eigenes Verhalten, am Telefon wischt der Finger ohnehin.
-    if (e.pointerType !== "mouse" || e.button !== 0) return;
-    if ((e.target as HTMLElement).closest("li, button, a, input, select")) return;
-    greifen.current = { x: e.clientX, links: e.currentTarget.scrollLeft };
-    e.currentTarget.setPointerCapture(e.pointerId);
-    e.currentTarget.style.cursor = "grabbing";
-  }
-
-  function greifenBewegen(e: React.PointerEvent<HTMLDivElement>) {
-    if (!greifen.current) return;
-    e.currentTarget.scrollLeft = greifen.current.links - (e.clientX - greifen.current.x);
-    randPruefen();
-  }
-
-  function greifenEnde(e: React.PointerEvent<HTMLDivElement>) {
-    if (!greifen.current) return;
-    greifen.current = null;
-    e.currentTarget.style.cursor = "";
-  }
-
-  /** Eine Karte am Rand der Leiste schiebt die Pipeline weiter. */
-  function randScroll(e: React.DragEvent<HTMLDivElement>) {
-    const el = leiste.current;
-    if (!el || !zieht) return;
-    const r = el.getBoundingClientRect();
-    if (e.clientX < r.left + 70) el.scrollLeft -= 18;
-    else if (e.clientX > r.right - 70) el.scrollLeft += 18;
-  }
+  const seitlich = useSeitlichScroll([objekte.length, offeneAblage]);
 
   function ablegen(stufe: Ankaufsstufe) {
     const o = zieht ? objekte.find((x) => x.id === zieht) : undefined;
@@ -145,34 +86,10 @@ export function ObjektPipeline({
     <>
       {wechsel.dialog}
       <div className="relative">
-        {rand.links && (
-          <button
-            type="button"
-            onClick={() => blaettern(-1)}
-            aria-label="Pipeline nach links"
-            className="druckbar absolute top-8 left-1 z-10 hidden size-9 items-center justify-center rounded-full border border-linie bg-flaeche text-grau-stark shadow-karte hover:text-tinte md:flex"
-          >
-            <ChevronLeft size={16} strokeWidth={2.2} />
-          </button>
-        )}
-        {rand.rechts && (
-          <button
-            type="button"
-            onClick={() => blaettern(1)}
-            aria-label="Pipeline nach rechts"
-            className="druckbar absolute top-8 right-1 z-10 hidden size-9 items-center justify-center rounded-full border border-linie bg-flaeche text-grau-stark shadow-karte hover:text-tinte md:flex"
-          >
-            <ChevronRight size={16} strokeWidth={2.2} />
-          </button>
-        )}
+        {seitlich.pfeile}
         <div
-          ref={leiste}
-          onScroll={randPruefen}
-          onPointerDown={greifenStart}
-          onPointerMove={greifenBewegen}
-          onPointerUp={greifenEnde}
-          onPointerCancel={greifenEnde}
-          onDragOver={randScroll}
+          {...seitlich.leisteProps}
+          onDragOver={(e) => zieht && seitlich.randScroll(e)}
           className="scroll-pipeline flex snap-x snap-mandatory items-start gap-3 overflow-x-auto px-4 pt-5 pb-3 md:cursor-grab md:snap-none md:gap-2 md:px-6"
         >
           {stufen.map((s) => {

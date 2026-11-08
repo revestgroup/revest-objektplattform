@@ -5,6 +5,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronUp,
+  Inbox,
   KeyRound,
   LayoutDashboard,
   ListChecks,
@@ -18,6 +19,7 @@ import {
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { useAuth } from "../lib/auth";
+import { useBackoffice } from "../lib/backofficeStore";
 import { cn } from "../lib/utils";
 
 /**
@@ -37,6 +39,7 @@ const NAVIGATION = [
   { zu: "/projekte", titel: "Projekte", kurz: "Projekte", icon: Building2, unten: true },
   { zu: "/kontakte", titel: "Kontakte", kurz: "Kontakte", icon: Users, unten: true },
   { zu: "/aufgaben", titel: "To Do's", kurz: "To Do's", icon: ListChecks, unten: true },
+  { zu: "/backoffice", titel: "Backoffice", kurz: "Post", icon: Inbox, unten: false },
   { zu: "/mietverwaltung", titel: "Mietverwaltung", kurz: "Miete", icon: KeyRound, unten: true },
   { zu: "/karte", titel: "Karte", kurz: "Karte", icon: Map, unten: false },
   { zu: "/auswertung", titel: "Auswertung", kurz: "Zahlen", icon: BarChart3, unten: false },
@@ -67,6 +70,9 @@ export function AppLayout({ children }: { children?: ReactNode }) {
 
 function Seitenleiste() {
   const { nutzer, abmelden } = useAuth();
+  // Ziel: Posteingang abends leer. Die Zahl steht deshalb immer im Blick.
+  const { karten } = useBackoffice();
+  const posteingang = karten.filter((k) => k.spalte === "posteingang").length;
 
   return (
     <aside className="hidden w-[210px] shrink-0 flex-col border-r border-linie bg-flaeche md:flex">
@@ -90,7 +96,12 @@ function Seitenleiste() {
             activeOptions={{ exact: false }}
           >
             <Icon size={15} strokeWidth={1.75} className="shrink-0" />
-            <span>{titel}</span>
+            <span className="flex-1">{titel}</span>
+            {zu === "/backoffice" && posteingang > 0 && (
+              <span className="zahl rounded-full bg-tinte px-1.5 py-px text-[0.6rem] font-semibold text-grund">
+                {posteingang}
+              </span>
+            )}
           </Link>
         ))}
       </nav>

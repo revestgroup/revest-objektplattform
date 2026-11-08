@@ -66,6 +66,13 @@ mit einer Kopie von Name, Telefon, E-Mail. Stammdaten nur über `kontaktSpeicher
 das zieht alle Kopien nach. Neue Kontakte am Objekt ohne `kontaktId` übernimmt der
 Objektspeicher automatisch ins Register (Dubletten über E-Mail, Telefon, Name).
 
+## Backoffice
+
+`src/lib/backoffice.ts` + `backofficeStore.tsx` (Tests daneben), Seite `routes/backoffice.tsx`.
+Weiterleiten (→ Qonto / Projekt / Ablage) verschiebt nach „Erledigt“ und vermerkt die Übergabe
+als „wartet“ — die echte Übergabe kommt mit Phase 2. Seitliches Ziehen für breite Boards:
+`useSeitlichScroll` in `components/SeitlichScroll.tsx` (auch die Pipeline nutzt ihn).
+
 ## Anlegemaske
 
 Offen stehen nur Lage, Objekt, Preis und Miete, Bilder, Notiz. Alles weitere liegt in
