@@ -37,12 +37,12 @@ Lies zuerst `AGENTS.md` und halte dich an die Design-Regeln (deutsche Benennung,
 | 2b. Ankauf-Pipeline | erledigt | `aufgabe-2b/pipeline` |
 | 2c-1. Übersicht in drei Spalten, Kopf, Objekt in der Adresse | erledigt | `aufgabe-2c1/uebersicht` |
 | 2c-2. Reiter „Dateien“ im Ankauf, Einsortieren beim Kauf | erledigt | `aufgabe-2c2/dateien` |
-| 2c-3. Kalkulation ETW nach `KALKULATION_ETW.md` | erledigt (offen: Bedeutung „Abzug für €/m²“) | `aufgabe-2c3/kalkulation` |
+| 2c-3. Kalkulation ETW nach `KALKULATION_ETW.md` | erledigt (Abzug = Stellplatz/Garage, geklärt in Feinschliff B) | `aufgabe-2c3/kalkulation` |
 | 3. Objektprüfung | erledigt | `aufgabe-3/pruefung` |
 | 4. Ummeldungen | erledigt | `aufgabe-4/ummeldungen` |
 | 4b. Ankauf-Eingang | offen, nach Feinschliff 1 | |
 | Feinschliff 1 · A Ankauf | erledigt | `feinschliff/a-ankauf` |
-| Feinschliff 1 · B Kalkulation | offen | |
+| Feinschliff 1 · B Kalkulation | erledigt | `feinschliff/b-kalkulation` |
 | Feinschliff 1 · C Projekte | offen | |
 | Feinschliff 1 · D Kontaktregister | offen | |
 | Feinschliff 1 · E Backoffice | offen | |

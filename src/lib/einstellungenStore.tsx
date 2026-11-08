@@ -43,6 +43,10 @@ export function EinstellungenProvider({ children }: { children: ReactNode }) {
       const rohV = localStorage.getItem(SPEICHER_VORGABEN);
       if (rohV) {
         const v = JSON.parse(rohV) as Partial<EtwVorgaben>;
+        // Bis Feinschliff B war der Abzug „für die €/m²-Betrachtung“ mit
+        // 30.000 € vorbelegt und wurde mitgespeichert. Seit er „Abzug
+        // Stellplatz / Garage“ heißt, ist der Standard 0.
+        if (v.abzugQm === 30_000) delete v.abzugQm;
         setVorgaben({ ...STANDARD_VORGABEN, ...v, preise: { ...(v.preise ?? {}) } });
       }
     } catch {

@@ -39,7 +39,7 @@ fest (sticky), nur der Inhalt scrollt. Die Übersicht steht ab `lg:` in drei Spa
 
 ## Kalkulation ETW
 
-Vorgabe ist `KALKULATION_ETW.md` (Timos Excel). Der Rechenkern steht in
+Vorgabe ist `docs/planung/KALKULATION_ETW.md` (Timos Excel). Der Rechenkern steht in
 `src/lib/kalkulationEtw.ts` und rechnet ungerundet; gerundet wird nur in der Anzeige.
 `src/lib/kalkulationEtw.test.ts` prüft die Werte aus Abschnitt 3 der Vorgabe —
 nach jeder Änderung an der Rechnung `bun run test` laufen lassen. Standardwerte und

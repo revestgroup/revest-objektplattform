@@ -1,6 +1,6 @@
 /**
  * Kalkulation einer Eigentumswohnung — Timos Excel „Sanierungskalkulation“,
- * 1:1 abgebildet. Die Vorgabe steht in `KALKULATION_ETW.md`; deren Prüfwerte
+ * 1:1 abgebildet. Die Vorgabe steht in `docs/planung/KALKULATION_ETW.md`; deren Prüfwerte
  * (Abschnitt 3) rechnet `kalkulationEtw.test.ts` nach.
  *
  * Gerechnet wird ungerundet wie in der Excel, gerundet wird erst in der
@@ -36,7 +36,7 @@ export interface Gewerk {
   positionen: Katalogposition[];
 }
 
-/** Aus `KALKULATION_ETW.md`, Abschnitt 4. „Garagentore“ gehört zu „Sonstiges“. */
+/** Aus `docs/planung/KALKULATION_ETW.md`, Abschnitt 4. „Garagentore“ gehört zu „Sonstiges“. */
 export const AUFWERTUNGSKATALOG: Gewerk[] = [
   {
     id: "projektplanung",
@@ -649,7 +649,10 @@ export interface EtwVorgaben {
   zinsCoProzent: number;
   maklerVerkaufProzent: number;
   homeStaging: number;
-  /** Abzug vom Verkaufspreis für die €/m²-Betrachtung, z. B. Stellplatz/TG. */
+  /**
+   * Anteil von Stellplatz, Garage oder TG am Verkaufspreis. Wird nur für den
+   * €/m²-Wert abgezogen, damit der nur die Wohnfläche misst.
+   */
   abzugQm: number;
   /** Abweichende Katalogpreise je Position-ID. Fehlt eine, gilt der Katalog. */
   preise: Record<string, number>;
@@ -665,7 +668,7 @@ export const STANDARD_VORGABEN: EtwVorgaben = {
   zinsCoProzent: 8,
   maklerVerkaufProzent: 0,
   homeStaging: 0,
-  abzugQm: 30_000,
+  abzugQm: 0,
   preise: {},
 };
 
@@ -827,7 +830,7 @@ export interface Szenarioergebnis {
   gewinn: number | null;
   /** In Prozent der Gesamtinvestition. */
   gewinnProzent: number | null;
-  /** (Verkaufspreis − Abzug) / Wohnfläche. */
+  /** €/m² Wohnfläche: (Verkaufspreis − Abzug Stellplatz/Garage) / Wohnfläche. */
   preisJeQm: number | null;
 }
 

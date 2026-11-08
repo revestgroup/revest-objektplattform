@@ -1,24 +1,24 @@
 /**
- * Kalkulation einer Eigentumswohnung — der Reiter „Kalkulation“ im Ankauf.
+ * Kalkulation einer Eigentumswohnung im Excel-Stil — nach dem freigegebenen
+ * Entwurf `docs/planung/entwurf_kalkulation.dc.html`.
  *
- * Aufbau von oben nach unten in der Reihenfolge, in der Timo liest: erst das
- * Ergebnis in drei Szenarien, dann die Bankansicht, dann die Eingaben, ganz
- * unten der Aufwertungskatalog, aus dem die Kostenschätzung kommt.
+ * Links die Eingaben in den Abschnitten 1–8 der Excel, je Zeile das Ergebnis
+ * rechts daneben. Rechts das Ergebnis Worst/Mid/Best, das beim Scrollen
+ * stehen bleibt. Darunter, in voller Breite, der Aufwertungskatalog.
  *
- * Jedes Feld zeigt seine Vorgabe als Platzhalter. Wer nichts einträgt, rechnet
- * mit der Vorgabe aus den Einstellungen; wer etwas einträgt, überschreibt sie
- * nur für dieses Objekt. Ein Klick auf „Vorgabe“ nimmt das zurück.
+ * Gelb = Eingabe, weiß = berechnet. Ein leeres gelbes Feld rechnet mit der
+ * Vorgabe aus den Einstellungen; die steht grau als Platzhalter darin.
  */
-import { ChevronDown, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { useState } from "react";
 
 import { useEinstellungen } from "../lib/einstellungenStore";
 import {
   AUFWERTUNGSKATALOG,
+  KATALOG_PREISE,
   MARKTQUELLEN,
   SZENARIEN,
   SZENARIO_TITEL,
-  KATALOG_PREISE,
   berechneEtw,
   etwEingabe,
   katalogPreis,
@@ -26,102 +26,173 @@ import {
   positionsBetrag,
   type EtwKalkulation,
   type EtwVorgaben,
-  type Gewerk,
-  type Szenario,
 } from "../lib/kalkulationEtw";
 import { BUNDESLAND_NAMEN, GRUNDERWERBSTEUER, f, type Objekt } from "../lib/objekte";
 import { useObjekte } from "../lib/objekteStore";
 import { cn } from "../lib/utils";
 
-function zahlAus(s: string): number | null {
-  const n = Number(s.replace(/\./g, "").replace(",", "."));
-  return s.trim() === "" || Number.isNaN(n) ? null : n;
-}
-
 /* ------------------------------------------------------------------ */
-/* Bausteine                                                            */
+/* Zahlen lesen und schreiben                                           */
 /* ------------------------------------------------------------------ */
 
 /**
- * Zahlenfeld mit Vorgabe. Leer heißt „Vorgabe gilt“ — die steht als
- * Platzhalter im Feld, damit man sieht, womit gerechnet wird.
+ * Deutsch eingetippt: „185.000“, „5,5“, „1.234,50 €“. Ein Punkt ist nur dann
+ * Tausendertrenner, wenn er so aussieht — „5.5“ bleibt fünfeinhalb.
  */
-export function Vorgabefeld({
-  id,
-  label,
+export function zahlLesen(roh: string): number | null {
+  let s = roh.trim().replace(/\s/g, "").replace(/[€%]/g, "");
+  if (s === "") return null;
+  if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+  else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+const GANZ = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 });
+const DEZIMAL = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 2 });
+
+/** Beträge mit Tausenderpunkt, Prozente mit Komma. */
+function zahlZeigen(v: number, art: "betrag" | "satz" | "jahr"): string {
+  if (art === "jahr") return String(v);
+  return art === "betrag" ? GANZ.format(v) : DEZIMAL.format(v);
+}
+
+/**
+ * Gelbes Eingabefeld. Beim Tippen roh, nach dem Verlassen formatiert
+ * („545000“ wird „545.000“). Leer heißt: Vorgabe gilt — sie steht grau darin.
+ */
+function Eingabe({
   wert,
   vorgabe,
   setWert,
-  einheit,
-  hinweis,
-  schmal,
+  art,
+  label,
+  breite = "w-full",
 }: {
-  id: string;
-  label: string;
   wert: number | null | undefined;
-  vorgabe: number;
+  vorgabe?: number | null;
   setWert: (v: number | null) => void;
-  einheit: "€" | "%" | "Mon." | "€/M";
-  hinweis?: string;
-  schmal?: boolean;
+  art: "betrag" | "satz" | "jahr";
+  label: string;
+  breite?: string;
 }) {
-  const [text, setText] = useState(wert === null || wert === undefined ? "" : String(wert));
-  const ueberschrieben = wert !== null && wert !== undefined;
-  const platzhalter =
-    einheit === "€" || einheit === "€/M"
-      ? new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 }).format(vorgabe)
-      : String(vorgabe).replace(".", ",");
+  const [fokus, setFokus] = useState(false);
+  const [text, setText] = useState("");
+  const gesetzt = wert !== null && wert !== undefined;
 
   return (
-    <div className={cn(schmal && "max-w-[11rem]")}>
-      <div className="flex items-baseline justify-between gap-2">
-        <label htmlFor={id} className="mini-label block">
-          {label}
-        </label>
-        {ueberschrieben && (
+    <input
+      inputMode="decimal"
+      aria-label={label}
+      value={fokus ? text : gesetzt ? zahlZeigen(wert, art) : ""}
+      placeholder={vorgabe !== null && vorgabe !== undefined ? zahlZeigen(vorgabe, art) : ""}
+      onFocus={() => {
+        setText(gesetzt ? zahlZeigen(wert, art) : "");
+        setFokus(true);
+      }}
+      onChange={(e) => {
+        setText(e.target.value);
+        setWert(zahlLesen(e.target.value));
+      }}
+      onBlur={() => setFokus(false)}
+      className={cn(
+        "zahl h-6 rounded-md border border-[#F0D58A] bg-[#FFF8E1] px-2 text-right text-[0.8rem] text-tinte placeholder:text-grau focus:bg-flaeche focus:outline focus:outline-2 focus:-outline-offset-1 focus:outline-tinte",
+        breite,
+      )}
+    />
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Zeilen                                                               */
+/* ------------------------------------------------------------------ */
+
+function Karte({
+  titel,
+  hinweis,
+  children,
+}: {
+  titel: string;
+  hinweis?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-[18px] border border-linie bg-flaeche">
+      <div className="px-2.5 pt-3.5 pb-1.5 text-[0.6rem] font-semibold tracking-[0.18em] uppercase text-grau">
+        {titel}
+      </div>
+      {children}
+      {hinweis && (
+        <p className="px-2.5 pt-1.5 pb-2.5 text-[0.66rem] leading-relaxed text-grau">{hinweis}</p>
+      )}
+    </section>
+  );
+}
+
+/** Eingabezeile: Bezeichnung · Feld mit Einheit · Ergebnis. */
+function Zeile({
+  label,
+  einheit,
+  ergebnis,
+  ueberschrieben,
+  zuruecksetzen,
+  titel,
+  children,
+}: {
+  label: string;
+  einheit?: string;
+  ergebnis?: string;
+  ueberschrieben?: boolean;
+  zuruecksetzen?: () => void;
+  titel?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="grid min-h-[30px] grid-cols-[46%_22%_32%] items-center border-b border-linie text-[0.8rem] last:border-b-0">
+      <div title={titel ?? label} className="truncate px-2.5 text-grau-stark">
+        {label}
+      </div>
+      <div className="flex items-center gap-1.5 px-2.5">
+        {children}
+        {einheit !== undefined && (
+          <span className="w-8 shrink-0 text-[0.66rem] text-grau">{einheit}</span>
+        )}
+        {ueberschrieben && zuruecksetzen && (
           <button
             type="button"
-            onClick={() => {
-              setText("");
-              setWert(null);
-            }}
+            onClick={zuruecksetzen}
             title="Vorgabe wiederherstellen"
-            className="druckbar flex items-center gap-1 rounded-full text-[0.58rem] text-grau hover:text-tinte"
+            aria-label={`${label}: Vorgabe wiederherstellen`}
+            className="druckbar -ml-1 shrink-0 text-grau hover:text-tinte"
           >
-            <RotateCcw size={9} strokeWidth={2} />
-            Vorgabe
+            <RotateCcw size={10} strokeWidth={2} />
           </button>
         )}
       </div>
-      <div className="relative mt-1.5">
-        <input
-          id={id}
-          inputMode="decimal"
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            setWert(zahlAus(e.target.value));
-          }}
-          placeholder={platzhalter}
-          className={cn(
-            "zahl w-full rounded-xl border bg-flaeche px-3 py-2 pr-12 text-[0.8rem] text-tinte placeholder:text-grau focus:border-linie-stark focus:outline-none",
-            ueberschrieben ? "border-linie-stark" : "border-linie",
-          )}
-        />
-        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[0.64rem] text-grau">
-          {einheit}
-        </span>
-      </div>
-      {hinweis && <p className="mt-1 text-[0.6rem] leading-relaxed text-grau">{hinweis}</p>}
+      <div className="zahl truncate px-2.5 text-right text-tinte">{ergebnis ?? ""}</div>
     </div>
   );
 }
 
-function Abschnitt({ titel, children }: { titel: string; children: React.ReactNode }) {
+function Summenzeile({
+  label,
+  wert,
+  stark = true,
+}: {
+  label: string;
+  wert: string;
+  stark?: boolean;
+}) {
   return (
-    <div>
-      <div className="mini-label">{titel}</div>
-      <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-4">{children}</div>
+    <div
+      className={cn(
+        "grid min-h-[30px] grid-cols-[46%_22%_32%] items-center border-b border-linie text-[0.8rem] last:border-b-0",
+        stark && "border-t border-t-linie-stark font-bold",
+      )}
+    >
+      <div className="truncate px-2.5 text-tinte">{label}</div>
+      <div />
+      <div className="zahl px-2.5 text-right text-tinte">{wert}</div>
     </div>
   );
 }
@@ -137,389 +208,443 @@ export function KalkulationEtwBlatt({ objekt }: { objekt: Objekt }) {
   const eingabe = etwEingabe(objekt, vorgaben);
   const e = berechneEtw(eingabe);
   const katalog = katalogSumme(kalk, vorgaben, eingabe.wohnflaeche);
+  const [alleZeigen, setAlleZeigen] = useState(false);
 
   function setze(teil: Partial<EtwKalkulation>) {
     aendern(objekt.id, { kalkulationEtw: { ...kalk, ...teil } });
   }
 
-  const fehlt = [
-    objekt.kaufpreis === null && "Kaufpreis",
-    !objekt.wohnflaeche && "Wohnfläche",
-  ].filter(Boolean);
-  const grestVorgabe = GRUNDERWERBSTEUER[objekt.bundesland] ?? 5;
+  /** Vorgabefeld: leer = Vorgabe, gesetzt = für dieses Objekt überschrieben. */
+  function vorgabe<K extends keyof EtwKalkulation>(
+    schluessel: K,
+    label: string,
+    art: "betrag" | "satz",
+    standard: number,
+  ) {
+    const wert = kalk[schluessel] as number | null | undefined;
+    return {
+      ueberschrieben: wert !== null && wert !== undefined,
+      zuruecksetzen: () => setze({ [schluessel]: null } as Partial<EtwKalkulation>),
+      feld: (
+        <Eingabe
+          label={label}
+          art={art}
+          wert={wert}
+          vorgabe={standard}
+          setWert={(v) => setze({ [schluessel]: v } as Partial<EtwKalkulation>)}
+        />
+      ),
+    };
+  }
+
+  const grest = vorgabe(
+    "grestProzent",
+    "Grunderwerbsteuer",
+    "satz",
+    GRUNDERWERBSTEUER[objekt.bundesland] ?? 5,
+  );
+  const notar = vorgabe("notarProzent", "Notar / Grundbuch", "satz", vorgaben.notarProzent);
+  const makler = vorgabe(
+    "maklerAnkaufProzent",
+    "Maklerprovision",
+    "satz",
+    objekt.maklerprovision ?? vorgaben.maklerAnkaufProzent,
+  );
+  const aufwertung = vorgabe("aufwertungManuell", "Kostenschätzung", "betrag", katalog.gesamt);
+  const monate = vorgabe("monate", "Dauer inkl. Verkauf", "satz", vorgaben.monate);
+  const bewirt = vorgabe(
+    "bewirtschaftungMonat",
+    "Kosten pro Monat",
+    "betrag",
+    vorgaben.bewirtschaftungMonat,
+  );
+  const finanz = vorgabe(
+    "finanzierungsbetrag",
+    "Finanzierungsbetrag Bank",
+    "betrag",
+    eingabe.kaufpreis,
+  );
+  const zins = vorgabe("zinsBankProzent", "Zinssatz p. a.", "satz", vorgaben.zinsBankProzent);
+  const gebuehr = vorgabe(
+    "gebuehrBankProzent",
+    "Bearbeitungsgebühr",
+    "satz",
+    vorgaben.gebuehrBankProzent,
+  );
+  const coKapital = vorgabe("coKapital", "Kapital Co-Investor", "betrag", 0);
+  const coZins = vorgabe(
+    "zinsCoProzent",
+    "Zinssatz Co-Investor p. a.",
+    "satz",
+    vorgaben.zinsCoProzent,
+  );
+  const maklerVk = vorgabe(
+    "maklerVerkaufProzent",
+    "Maklerkosten Verkauf",
+    "satz",
+    vorgaben.maklerVerkaufProzent,
+  );
+  const staging = vorgabe("homeStaging", "Home Staging", "betrag", vorgaben.homeStaging);
+  const abzug = vorgabe("abzugQm", "Abzug Stellplatz / Garage", "betrag", vorgaben.abzugQm);
+
+  // Stellplatz im Steckbrief, aber nichts abgezogen: dann misst der €/m²-Wert
+  // auch die Garage mit.
+  const stellplatzOhneAbzug = !!objekt.stellplatz?.trim() && eingabe.abzugQm === 0;
+
+  const gut = (v: number | null) =>
+    v === null ? "text-grau" : v >= 0 ? "text-[#0C5E3A]" : "text-[#9A2727]";
 
   return (
-    <div className="flex flex-col gap-10 px-6 py-8 md:px-9">
-      {fehlt.length > 0 && (
-        <p className="rounded-xl border border-[#EFD9A6] bg-[#FDF8EC] px-3.5 py-2.5 text-[0.74rem] text-grau-stark">
-          {fehlt.join(" und ")} fehlt am Objekt — bitte über „Bearbeiten“ nachtragen, sonst rechnet
-          die Kalkulation mit 0.
-        </p>
-      )}
+    <div className="flex flex-col gap-4 px-4 py-5 md:px-7">
+      {/* ----- Kopf ----- */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="mini-label">Kalkulation · Eigentumswohnung</div>
+          <h2 className="headline mt-1 text-[1.35rem]">
+            {objekt.bezeichnung?.trim() || objekt.strasse}
+          </h2>
+        </div>
+        <div className="flex items-center gap-3.5 text-[0.72rem] text-grau-stark">
+          <span className="flex items-center gap-1.5">
+            <span className="size-3.5 rounded border border-[#F0D58A] bg-[#FFF8E1]" />
+            Eingabe
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="size-3.5 rounded border border-linie-stark bg-flaeche" />
+            berechnet
+          </span>
+        </div>
+      </div>
 
-      {/* ----- Ergebnis ----- */}
-      <section>
-        <div className="mini-label">Ergebnis</div>
-        <div className="mt-3 overflow-x-auto rounded-2xl border border-linie bg-flaeche">
-          <table className="w-full min-w-[34rem] text-[0.78rem]">
-            <thead>
-              <tr className="border-b border-linie text-left">
-                <th className="px-4 py-3 font-normal text-grau" />
-                {SZENARIEN.map((s) => (
-                  <th key={s} className="px-3 py-3 text-right">
-                    <span className="mini-label">{SZENARIO_TITEL[s]}</span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="zahl">
-              <tr className="border-b border-linie">
-                <td className="px-4 py-2 text-grau">Verkaufspreis</td>
-                {SZENARIEN.map((s) => (
-                  <td key={s} className="px-2 py-1.5">
-                    <Verkaufsfeld
-                      szenario={s}
-                      wert={kalk.verkauf?.[s] ?? null}
-                      setWert={(v) => setze({ verkauf: { ...kalk.verkauf, [s]: v } })}
-                    />
-                  </td>
-                ))}
-              </tr>
-              <Zeile titel="Kaufpreis" werte={SZENARIEN.map(() => eingabe.kaufpreis)} />
-              <Zeile titel="Ankaufsnebenkosten" werte={SZENARIEN.map(() => e.ankaufsnebenkosten)} />
-              <Zeile titel="Aufwertung" werte={SZENARIEN.map(() => e.aufwertung)} />
-              <Zeile titel="Bewirtschaftung" werte={SZENARIEN.map(() => e.bewirtschaftung)} />
-              <Zeile titel="Vermarktung" werte={SZENARIEN.map((s) => e.szenarien[s].vermarktung)} />
-              <Zeile titel="Finanzierungskosten" werte={SZENARIEN.map(() => e.finanzierungskosten)} />
-              <Zeile
-                titel="Gesamtinvestition"
-                werte={SZENARIEN.map((s) => e.szenarien[s].gesamtinvestition)}
-                stark
-                linie
+      <div className="flex flex-wrap items-start gap-4">
+        {/* ----- Eingaben links ----- */}
+        <div className="flex min-w-0 flex-[999_1_34rem] flex-col gap-3.5">
+          <Karte titel="1. Objektdaten" hinweis="Wirkt auch auf das Objekt selbst.">
+            <Zeile label="Wohnfläche" einheit="m²">
+              <Eingabe
+                label="Wohnfläche"
+                art="satz"
+                wert={objekt.wohnflaeche}
+                setWert={(v) => aendern(objekt.id, { wohnflaeche: v })}
               />
-              <tr className="border-t border-linie">
-                <td className="px-4 py-2.5 font-semibold text-tinte">Gewinn vor Steuer</td>
-                {SZENARIEN.map((s) => {
-                  const g = e.szenarien[s].gewinn;
-                  return (
-                    <td
-                      key={s}
-                      className={cn(
-                        "px-3 py-2.5 text-right font-semibold",
-                        g === null ? "text-grau" : g < 0 ? "text-[#CF4848]" : "text-[#17935C]",
-                      )}
-                    >
-                      {f.eur(g)}
-                    </td>
-                  );
-                })}
-              </tr>
-              <tr>
-                <td className="px-4 py-2 text-grau">Gewinn in %</td>
-                {SZENARIEN.map((s) => (
-                  <td key={s} className="px-3 py-2 text-right text-grau-stark">
-                    {f.prozent(e.szenarien[s].gewinnProzent)}
-                  </td>
-                ))}
-              </tr>
-              <tr>
-                <td className="px-4 py-2 text-grau">
-                  €/m² Verkauf
-                  <span className="block text-[0.6rem] text-linie-stark">
-                    nach {f.eur(eingabe.abzugQm)} Abzug
-                  </span>
-                </td>
-                {SZENARIEN.map((s) => (
-                  <td key={s} className="px-3 py-2 text-right text-grau-stark">
-                    {f.eur(e.szenarien[s].preisJeQm)}
-                  </td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+            </Zeile>
+            <Zeile label="Baujahr" einheit="">
+              <Eingabe
+                label="Baujahr"
+                art="jahr"
+                wert={objekt.baujahr}
+                setWert={(v) => aendern(objekt.id, { baujahr: v })}
+              />
+            </Zeile>
+          </Karte>
 
-      {/* ----- Bank ----- */}
-      <section>
-        <div className="mini-label">Ansicht Bank · Mid-Case</div>
-        <dl className="mt-3 max-w-md rounded-2xl border border-linie bg-flaeche px-4 py-2 text-[0.76rem]">
-          {(
-            [
-              ["Kaufpreis", eingabe.kaufpreis],
-              [`Grunderwerbsteuer ${f.prozent(eingabe.grestProzent)}`, e.grest],
-              [`Notar/Grundbuch ${f.prozent(eingabe.notarProzent)}`, e.notar],
-              [`Makler Ankauf ${f.prozent(eingabe.maklerAnkaufProzent)}`, e.maklerAnkauf],
-              ["Aufwertung", e.aufwertung],
-              ["Bewirtschaftung", e.bewirtschaftung],
-              ["Zinsen Bank", e.zinsenBank],
-              ["Bearbeitungsgebühr", e.gebuehrBank],
-              ["Kosten Co-Investor", e.kostenCo],
-              ["Vermarktung", e.szenarien.mid.vermarktung],
-            ] as [string, number][]
-          ).map(([titel, wert]) => (
-            <div key={titel} className="flex justify-between gap-4 py-1">
-              <dt className="text-grau">{titel}</dt>
-              <dd className="zahl text-grau-stark">{f.eur(wert)}</dd>
-            </div>
-          ))}
-          <div className="mt-1 flex justify-between gap-4 border-t border-linie py-1.5 font-semibold">
-            <dt className="text-tinte">Gesamtinvestition</dt>
-            <dd className="zahl text-tinte">{f.eur(e.szenarien.mid.gesamtinvestition)}</dd>
-          </div>
-          <div className="flex justify-between gap-4 py-1">
-            <dt className="text-grau">Verkaufspreis</dt>
-            <dd className="zahl text-grau-stark">{f.eur(e.szenarien.mid.verkaufspreis)}</dd>
-          </div>
-          <div className="flex justify-between gap-4 py-1 font-semibold">
-            <dt className="text-tinte">Gewinn vor Steuer</dt>
-            <dd className="zahl text-tinte">
-              {f.eur(e.szenarien.mid.gewinn)} · {f.prozent(e.szenarien.mid.gewinnProzent)}
-            </dd>
-          </div>
-        </dl>
-      </section>
-
-      {/* ----- Eingaben ----- */}
-      <section className="grid gap-x-10 gap-y-8 md:grid-cols-2">
-        <Abschnitt titel="Ankauf">
-          <div>
-            <div className="mini-label">Kaufpreis</div>
-            <div className="zahl mt-1.5 rounded-xl border border-dashed border-linie px-3 py-2 text-[0.8rem] text-grau-stark">
-              {f.eur(objekt.kaufpreis)}
-            </div>
-            <p className="mt-1 text-[0.6rem] text-grau">aus dem Objekt</p>
-          </div>
-          <Vorgabefeld
-            id="k-grest"
-            label="Grunderwerbsteuer"
-            wert={kalk.grestProzent}
-            vorgabe={grestVorgabe}
-            setWert={(v) => setze({ grestProzent: v })}
-            einheit="%"
-            hinweis={BUNDESLAND_NAMEN[objekt.bundesland]}
-          />
-          <Vorgabefeld
-            id="k-notar"
-            label="Notar/Grundbuch"
-            wert={kalk.notarProzent}
-            vorgabe={vorgaben.notarProzent}
-            setWert={(v) => setze({ notarProzent: v })}
-            einheit="%"
-          />
-          <Vorgabefeld
-            id="k-makler"
-            label="Maklerprovision"
-            wert={kalk.maklerAnkaufProzent}
-            vorgabe={objekt.maklerprovision ?? vorgaben.maklerAnkaufProzent}
-            setWert={(v) => setze({ maklerAnkaufProzent: v })}
-            einheit="%"
-          />
-        </Abschnitt>
-
-        <Abschnitt titel="Aufwertung und Bewirtschaftung">
-          <Vorgabefeld
-            id="k-aufwertung"
-            label="Kostenschätzung"
-            wert={kalk.aufwertungManuell}
-            vorgabe={katalog.gesamt}
-            setWert={(v) => setze({ aufwertungManuell: v })}
-            einheit="€"
-            hinweis="Summe aus dem Katalog unten, überschreibbar"
-          />
-          <Vorgabefeld
-            id="k-monate"
-            label="Dauer inkl. Verkauf"
-            wert={kalk.monate}
-            vorgabe={vorgaben.monate}
-            setWert={(v) => setze({ monate: v })}
-            einheit="Mon."
-          />
-          <Vorgabefeld
-            id="k-bewirtschaftung"
-            label="Bewirtschaftung"
-            wert={kalk.bewirtschaftungMonat}
-            vorgabe={vorgaben.bewirtschaftungMonat}
-            setWert={(v) => setze({ bewirtschaftungMonat: v })}
-            einheit="€/M"
-          />
-        </Abschnitt>
-
-        <Abschnitt titel="Finanzierung Bank">
-          <Vorgabefeld
-            id="k-fin"
-            label="Finanzierungsbetrag"
-            wert={kalk.finanzierungsbetrag}
-            vorgabe={eingabe.kaufpreis}
-            setWert={(v) => setze({ finanzierungsbetrag: v })}
-            einheit="€"
-            hinweis="Vorgabe: Kaufpreis"
-          />
-          <Vorgabefeld
-            id="k-zins"
-            label="Zinssatz p. a."
-            wert={kalk.zinsBankProzent}
-            vorgabe={vorgaben.zinsBankProzent}
-            setWert={(v) => setze({ zinsBankProzent: v })}
-            einheit="%"
-          />
-          <Vorgabefeld
-            id="k-gebuehr"
-            label="Bearbeitungsgebühr"
-            wert={kalk.gebuehrBankProzent}
-            vorgabe={vorgaben.gebuehrBankProzent}
-            setWert={(v) => setze({ gebuehrBankProzent: v })}
-            einheit="%"
-          />
-        </Abschnitt>
-
-        <Abschnitt titel="Co-Investor">
-          <Vorgabefeld
-            id="k-co"
-            label="Kapitaleinsatz"
-            wert={kalk.coKapital}
-            vorgabe={0}
-            setWert={(v) => setze({ coKapital: v })}
-            einheit="€"
-          />
-          <Vorgabefeld
-            id="k-cozins"
-            label="Zinssatz p. a."
-            wert={kalk.zinsCoProzent}
-            vorgabe={vorgaben.zinsCoProzent}
-            setWert={(v) => setze({ zinsCoProzent: v })}
-            einheit="%"
-          />
-        </Abschnitt>
-
-        <Abschnitt titel="Vermarktung und Verkauf">
-          <Vorgabefeld
-            id="k-maklerverkauf"
-            label="Makler Verkauf"
-            wert={kalk.maklerVerkaufProzent}
-            vorgabe={vorgaben.maklerVerkaufProzent}
-            setWert={(v) => setze({ maklerVerkaufProzent: v })}
-            einheit="%"
-          />
-          <Vorgabefeld
-            id="k-staging"
-            label="Home Staging"
-            wert={kalk.homeStaging}
-            vorgabe={vorgaben.homeStaging}
-            setWert={(v) => setze({ homeStaging: v })}
-            einheit="€"
-          />
-          <Vorgabefeld
-            id="k-abzug"
-            label="Abzug für €/m²-Betrachtung"
-            wert={kalk.abzugQm}
-            vorgabe={vorgaben.abzugQm}
-            setWert={(v) => setze({ abzugQm: v })}
-            einheit="€"
-            hinweis="z. B. Stellplatz/TG"
-          />
-        </Abschnitt>
-
-        <Abschnitt titel="Marktwert">
-          {MARKTQUELLEN.map((q) => {
-            const w = kalk.marktwerte?.[q.id] ?? null;
-            return (
-              <div key={q.id}>
-                <Vorgabefeld
-                  id={`k-markt-${q.id}`}
-                  label={q.titel}
-                  wert={w}
-                  vorgabe={0}
-                  setWert={(v) => setze({ marktwerte: { ...kalk.marktwerte, [q.id]: v } })}
-                  einheit="€"
-                />
-                <p className="zahl mt-1 text-[0.6rem] text-grau">
-                  {w && eingabe.wohnflaeche ? `${f.eur(w / eingabe.wohnflaeche)} / m²` : " "}
-                </p>
-              </div>
-            );
-          })}
-        </Abschnitt>
-      </section>
-
-      {/* ----- Katalog ----- */}
-      <section>
-        <div className="flex items-baseline justify-between gap-3">
-          <div className="mini-label">Aufwertungskatalog</div>
-          <div className="zahl text-[0.8rem] font-semibold text-tinte">{f.eur(katalog.gesamt)}</div>
-        </div>
-        {kalk.aufwertungManuell !== null && kalk.aufwertungManuell !== undefined && (
-          <p className="mt-1 text-[0.64rem] text-grau">
-            Die Kalkulation rechnet mit der überschriebenen Kostenschätzung von{" "}
-            {f.eur(kalk.aufwertungManuell)}.
-          </p>
-        )}
-        <div className="mt-3 divide-y divide-linie overflow-hidden rounded-2xl border border-linie bg-flaeche">
-          {AUFWERTUNGSKATALOG.map((g) => (
-            <Gewerkzeile
-              key={g.id}
-              gewerk={g}
-              summe={katalog.jeGewerk[g.id] ?? 0}
-              kalk={kalk}
-              vorgaben={vorgaben}
-              wohnflaeche={eingabe.wohnflaeche}
-              setze={setze}
+          <Karte
+            titel="2. Ankaufskosten"
+            hinweis={`Grunderwerbsteuer kommt automatisch aus dem Bundesland (${BUNDESLAND_NAMEN[objekt.bundesland] ?? objekt.bundesland}), ist aber überschreibbar.`}
+          >
+            <Zeile label="Kaufpreis" einheit="€">
+              <Eingabe
+                label="Kaufpreis"
+                art="betrag"
+                wert={objekt.kaufpreis}
+                setWert={(v) => aendern(objekt.id, { kaufpreis: v })}
+              />
+            </Zeile>
+            <Zeile label="Grunderwerbsteuer" einheit="%" ergebnis={f.eur(e.grest)} {...grest}>
+              {grest.feld}
+            </Zeile>
+            <Zeile label="Notar / Grundbuch" einheit="%" ergebnis={f.eur(e.notar)} {...notar}>
+              {notar.feld}
+            </Zeile>
+            <Zeile label="Maklerprovision" einheit="%" ergebnis={f.eur(e.maklerAnkauf)} {...makler}>
+              {makler.feld}
+            </Zeile>
+            <Summenzeile
+              label="Nebenkosten gesamt"
+              wert={f.eur(e.ankaufsnebenkosten)}
+              stark={false}
             />
-          ))}
+            <Summenzeile
+              label="Ankaufskosten"
+              wert={f.eur(eingabe.kaufpreis + e.ankaufsnebenkosten)}
+            />
+          </Karte>
+
+          <Karte
+            titel="3. Aufwertung"
+            hinweis={`Leer lassen = Summe aus dem Katalog unten (${f.eur(katalog.gesamt)}).`}
+          >
+            <Zeile
+              label="Kostenschätzung"
+              einheit="€"
+              ergebnis={f.eur(e.aufwertung)}
+              {...aufwertung}
+            >
+              {aufwertung.feld}
+            </Zeile>
+            <Zeile label="Dauer inkl. Verkauf" einheit="Mon." {...monate}>
+              {monate.feld}
+            </Zeile>
+          </Karte>
+
+          <Karte titel="4. Bewirtschaftung">
+            <Zeile
+              label="Kosten pro Monat"
+              einheit="€"
+              ergebnis={f.eur(e.bewirtschaftung)}
+              {...bewirt}
+            >
+              {bewirt.feld}
+            </Zeile>
+          </Karte>
+
+          <Karte titel="5. Finanzierung">
+            <Zeile label="Finanzierungsbetrag Bank" einheit="€" {...finanz}>
+              {finanz.feld}
+            </Zeile>
+            <Zeile label="Zinssatz p. a." einheit="%" ergebnis={f.eur(e.zinsenBank)} {...zins}>
+              {zins.feld}
+            </Zeile>
+            <Zeile
+              label="Bearbeitungsgebühr"
+              einheit="%"
+              ergebnis={f.eur(e.gebuehrBank)}
+              {...gebuehr}
+            >
+              {gebuehr.feld}
+            </Zeile>
+            <Zeile label="Kapital Co-Investor" einheit="€" {...coKapital}>
+              {coKapital.feld}
+            </Zeile>
+            <Zeile
+              label="Zinssatz Co-Investor p. a."
+              einheit="%"
+              ergebnis={f.eur(e.kostenCo)}
+              {...coZins}
+            >
+              {coZins.feld}
+            </Zeile>
+            <Summenzeile label="Finanzierungskosten gesamt" wert={f.eur(e.finanzierungskosten)} />
+          </Karte>
+
+          <Karte
+            titel="6. Vermarktung"
+            hinweis="Makler Verkauf rechnet je Szenario auf den jeweiligen Verkaufspreis."
+          >
+            <Zeile label="Maklerkosten Verkauf" einheit="%" {...maklerVk}>
+              {maklerVk.feld}
+            </Zeile>
+            <Zeile label="Home Staging" einheit="€" {...staging}>
+              {staging.feld}
+            </Zeile>
+          </Karte>
+
+          <Karte titel="7. Verkaufserwartung">
+            <div className="grid min-h-7 grid-cols-[31%_23%_23%_23%] items-center bg-flaeche-hoch text-[0.6rem] font-semibold tracking-[0.14em] uppercase text-grau">
+              <div />
+              {SZENARIEN.map((s) => (
+                <div key={s} className="px-2.5 text-right">
+                  {SZENARIO_TITEL[s]}
+                </div>
+              ))}
+            </div>
+            <div className="grid min-h-[30px] grid-cols-[31%_23%_23%_23%] items-center border-b border-linie text-[0.8rem]">
+              <div className="truncate px-2.5 text-grau-stark">Erzielbarer Verkaufspreis €</div>
+              {SZENARIEN.map((s) => (
+                <div key={s} className="px-2.5">
+                  <Eingabe
+                    label={`Verkaufspreis ${SZENARIO_TITEL[s]}`}
+                    art="betrag"
+                    wert={kalk.verkauf?.[s] ?? null}
+                    setWert={(v) => setze({ verkauf: { ...kalk.verkauf, [s]: v } })}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="grid min-h-[30px] grid-cols-[31%_23%_23%_23%] items-center border-b border-linie text-[0.8rem]">
+              <div
+                title="Anteil Stellplatz, Garage oder TG am Verkaufspreis, damit der €/m²-Wert nur die Wohnfläche misst"
+                className="truncate px-2.5 text-grau-stark"
+              >
+                Abzug Stellplatz / Garage €
+              </div>
+              <div className="flex items-center gap-1 px-2.5">
+                {abzug.feld}
+                {abzug.ueberschrieben && (
+                  <button
+                    type="button"
+                    onClick={abzug.zuruecksetzen}
+                    title="Vorgabe wiederherstellen"
+                    className="druckbar text-grau hover:text-tinte"
+                  >
+                    <RotateCcw size={10} strokeWidth={2} />
+                  </button>
+                )}
+              </div>
+              <div className="col-span-2 px-2.5 text-[0.64rem] text-[#8A5608]">
+                {stellplatzOhneAbzug && `Steckbrief: „${objekt.stellplatz}“ — Abzug prüfen`}
+              </div>
+            </div>
+            <div className="grid min-h-[30px] grid-cols-[31%_23%_23%_23%] items-center text-[0.8rem]">
+              <div className="truncate px-2.5 text-grau-stark">€/m² Wohnfläche</div>
+              {SZENARIEN.map((s) => (
+                <div key={s} className="zahl px-2.5 text-right text-tinte">
+                  {f.eur(e.szenarien[s].preisJeQm)}
+                </div>
+              ))}
+            </div>
+          </Karte>
+
+          <Karte titel="8. Marktwert-Einschätzung (Eigennutzer)">
+            {MARKTQUELLEN.map((q) => {
+              const w = kalk.marktwerte?.[q.id] ?? null;
+              return (
+                <Zeile
+                  key={q.id}
+                  label={q.titel}
+                  einheit="€"
+                  ergebnis={
+                    w && eingabe.wohnflaeche ? `${GANZ.format(w / eingabe.wohnflaeche)} €/m²` : "–"
+                  }
+                >
+                  <Eingabe
+                    label={q.titel}
+                    art="betrag"
+                    wert={w}
+                    setWert={(v) => setze({ marktwerte: { ...kalk.marktwerte, [q.id]: v } })}
+                  />
+                </Zeile>
+              );
+            })}
+          </Karte>
         </div>
-      </section>
+
+        {/* ----- Ergebnis rechts, bleibt beim Scrollen stehen ----- */}
+        {/* Steht unter dem festen Kopf des Fensters — dessen Höhe misst ObjektDetail. */}
+        <div className="flex min-w-0 flex-[1_1_25rem] flex-col gap-3.5 md:sticky md:top-[calc(var(--kopf-hoehe,0px)+12px)]">
+          <Karte titel="Ergebnis · Top-Down intern">
+            <div className="grid min-h-7 grid-cols-[31%_23%_23%_23%] items-center bg-flaeche-hoch text-[0.6rem] font-semibold tracking-[0.14em] uppercase text-grau">
+              <div />
+              {SZENARIEN.map((s) => (
+                <div key={s} className="px-2.5 text-right">
+                  {SZENARIO_TITEL[s]}
+                </div>
+              ))}
+            </div>
+            {(
+              [
+                ["Kaufpreis", () => eingabe.kaufpreis],
+                ["Ankaufsnebenkosten", () => e.ankaufsnebenkosten],
+                ["Aufwertung", () => e.aufwertung],
+                ["Bewirtschaftung", () => e.bewirtschaftung],
+                ["Vermarktung", (s) => e.szenarien[s].vermarktung],
+                ["Finanzierung", () => e.finanzierungskosten],
+                ["Gesamtinvestition", (s) => e.szenarien[s].gesamtinvestition, "summe"],
+                ["Verkaufspreis", (s) => e.szenarien[s].verkaufspreis],
+                ["Gewinn vor Steuer", (s) => e.szenarien[s].gewinn, "gewinn"],
+              ] as [
+                string,
+                (s: (typeof SZENARIEN)[number]) => number | null,
+                ("summe" | "gewinn")?,
+              ][]
+            ).map(([label, wert, art]) => (
+              <div
+                key={label}
+                className={cn(
+                  "grid min-h-[30px] grid-cols-[31%_23%_23%_23%] items-center border-b border-linie text-[0.8rem]",
+                  art && "border-t border-t-linie-stark font-bold",
+                )}
+              >
+                <div className={cn("truncate px-2.5", art ? "text-tinte" : "text-grau-stark")}>
+                  {label}
+                </div>
+                {SZENARIEN.map((s) => (
+                  <div
+                    key={s}
+                    className={cn(
+                      "zahl truncate px-2.5 text-right",
+                      art === "gewinn" ? gut(wert(s)) : "text-tinte",
+                    )}
+                  >
+                    {f.eur(wert(s))}
+                  </div>
+                ))}
+              </div>
+            ))}
+            <div className="grid min-h-[30px] grid-cols-[31%_23%_23%_23%] items-center text-[0.8rem]">
+              <div className="truncate px-2.5 text-grau-stark">Gewinn in %</div>
+              {SZENARIEN.map((s) => (
+                <div key={s} className={cn("zahl px-2.5 text-right", gut(e.szenarien[s].gewinn))}>
+                  {f.prozent(e.szenarien[s].gewinnProzent)}
+                </div>
+              ))}
+            </div>
+          </Karte>
+
+          <div className="grid grid-cols-3 gap-2.5">
+            {SZENARIEN.map((s) => (
+              <div
+                key={s}
+                className="flex flex-col gap-1 rounded-[14px] border border-linie bg-flaeche p-3"
+              >
+                <div className="mini-label">{SZENARIO_TITEL[s]}</div>
+                <div className={cn("headline zahl text-[1.25rem]", gut(e.szenarien[s].gewinn))}>
+                  {f.prozent(e.szenarien[s].gewinnProzent)}
+                </div>
+                <div className="zahl text-[0.72rem] text-grau-stark">
+                  {f.eur(e.szenarien[s].gewinn)} Gewinn
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <Karte titel="Ansicht Bank · Mid-Case">
+            {(
+              [
+                ["Kaufpreis", eingabe.kaufpreis],
+                ["Ankaufsnebenkosten", e.ankaufsnebenkosten],
+                ["Aufwertung", e.aufwertung],
+                ["Bewirtschaftung", e.bewirtschaftung],
+                ["Vermarktung", e.szenarien.mid.vermarktung],
+                ["Finanzierung", e.finanzierungskosten],
+                ["Gesamtinvestition", e.szenarien.mid.gesamtinvestition, true],
+                ["Verkaufspreis", e.szenarien.mid.verkaufspreis],
+              ] as [string, number | null, boolean?][]
+            ).map(([label, wert, summe]) => (
+              <div
+                key={label}
+                className={cn(
+                  "grid min-h-[30px] grid-cols-[60%_40%] items-center border-b border-linie text-[0.8rem]",
+                  summe && "border-t border-t-linie-stark font-bold",
+                )}
+              >
+                <div className={cn("px-2.5", summe ? "text-tinte" : "text-grau-stark")}>
+                  {label}
+                </div>
+                <div className="zahl px-2.5 text-right text-tinte">{f.eur(wert)}</div>
+              </div>
+            ))}
+            <div className="grid min-h-[30px] grid-cols-[60%_40%] items-center border-t border-t-linie-stark text-[0.8rem] font-bold">
+              <div className="px-2.5 text-tinte">Gewinn vor Steuer</div>
+              <div className="zahl px-2.5 text-right text-tinte">
+                {f.eur(e.szenarien.mid.gewinn)} · {f.prozent(e.szenarien.mid.gewinnProzent)}
+              </div>
+            </div>
+          </Karte>
+        </div>
+      </div>
+
+      {/* ----- Aufwertungskatalog ----- */}
+      <Katalog
+        kalk={kalk}
+        vorgaben={vorgaben}
+        wohnflaeche={eingabe.wohnflaeche}
+        summen={katalog}
+        alleZeigen={alleZeigen}
+        setAlleZeigen={setAlleZeigen}
+        setze={setze}
+      />
     </div>
-  );
-}
-
-function Zeile({
-  titel,
-  werte,
-  stark,
-  linie,
-}: {
-  titel: string;
-  werte: (number | null)[];
-  stark?: boolean;
-  linie?: boolean;
-}) {
-  return (
-    <tr className={cn(linie && "border-t border-linie")}>
-      <td className={cn("px-4 py-1.5", stark ? "font-semibold text-tinte" : "text-grau")}>{titel}</td>
-      {werte.map((w, i) => (
-        <td
-          key={i}
-          className={cn("px-3 py-1.5 text-right", stark ? "font-semibold text-tinte" : "text-grau-stark")}
-        >
-          {f.eur(w)}
-        </td>
-      ))}
-    </tr>
-  );
-}
-
-function Verkaufsfeld({
-  szenario,
-  wert,
-  setWert,
-}: {
-  szenario: Szenario;
-  wert: number | null;
-  setWert: (v: number | null) => void;
-}) {
-  const [text, setText] = useState(wert === null ? "" : String(wert));
-  return (
-    <input
-      inputMode="decimal"
-      aria-label={`Verkaufspreis ${SZENARIO_TITEL[szenario]}`}
-      value={text}
-      onChange={(e) => {
-        setText(e.target.value);
-        setWert(zahlAus(e.target.value));
-      }}
-      placeholder="—"
-      className="zahl w-full rounded-lg border border-linie bg-grund px-2 py-1.5 text-right text-[0.8rem] font-semibold text-tinte focus:border-linie-stark focus:outline-none"
-    />
   );
 }
 
@@ -527,23 +652,28 @@ function Verkaufsfeld({
 /* Katalog                                                              */
 /* ------------------------------------------------------------------ */
 
-function Gewerkzeile({
-  gewerk,
-  summe,
+function Katalog({
   kalk,
   vorgaben,
   wohnflaeche,
+  summen,
+  alleZeigen,
+  setAlleZeigen,
   setze,
 }: {
-  gewerk: Gewerk;
-  summe: number;
   kalk: EtwKalkulation;
   vorgaben: EtwVorgaben;
   wohnflaeche: number;
+  summen: ReturnType<typeof katalogSumme>;
+  alleZeigen: boolean;
+  setAlleZeigen: (v: boolean) => void;
   setze: (teil: Partial<EtwKalkulation>) => void;
 }) {
-  // Gewerke mit Inhalt stehen offen, leere bleiben zu — sonst sind es 102 Zeilen.
-  const [offen, setOffen] = useState(summe > 0);
+  // Nur Gewerke mit Werten stehen offen — sonst sind es 102 Zeilen.
+  const [offen, setOffen] = useState<Set<string>>(
+    () =>
+      new Set(AUFWERTUNGSKATALOG.filter((g) => (summen.jeGewerk[g.id] ?? 0) > 0).map((g) => g.id)),
+  );
 
   function menge(id: string, v: number) {
     const katalog = { ...kalk.katalog };
@@ -559,121 +689,147 @@ function Gewerkzeile({
     setze({ preise });
   }
 
-  return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setOffen((o) => !o)}
-        aria-expanded={offen}
-        className="druckbar flex w-full items-center gap-3 px-4 py-3 text-left"
-      >
-        <ChevronDown
-          size={14}
-          strokeWidth={2}
-          className={cn("shrink-0 text-grau transition-transform duration-200 ease-out-stark", !offen && "-rotate-90")}
-        />
-        <span className={cn("min-w-0 flex-1 truncate text-[0.8rem]", summe > 0 ? "text-tinte" : "text-grau")}>
-          {gewerk.titel}
-        </span>
-        <span className={cn("zahl shrink-0 text-[0.74rem]", summe > 0 ? "text-grau-stark" : "text-linie-stark")}>
-          {f.eur(summe)}
-        </span>
-      </button>
+  const raster =
+    "grid min-h-[30px] grid-cols-[46%_16%_8%_14%_16%] items-center border-b border-linie text-[0.8rem]";
 
-      {offen && (
-        <ul className="flex flex-col gap-1 px-3 pb-3">
-          {gewerk.positionen.map((p) => {
-            const m = kalk.katalog?.[p.id] ?? 0;
-            const pr = katalogPreis(p.id, vorgaben, kalk);
-            const betrag = positionsBetrag(p, m, pr, wohnflaeche);
+  return (
+    <section className="overflow-hidden rounded-[18px] border border-linie bg-flaeche">
+      <div className="flex flex-wrap items-center justify-between gap-2.5 px-2.5 pt-3 pb-1">
+        <div className="text-[0.6rem] font-semibold tracking-[0.18em] uppercase text-grau">
+          Aufwertungskatalog · {f.eur(summen.gesamt)}
+        </div>
+        <button
+          type="button"
+          onClick={() => setAlleZeigen(!alleZeigen)}
+          aria-pressed={alleZeigen}
+          className={cn(
+            "druckbar h-6 rounded-full border px-3 text-[0.72rem] font-semibold",
+            alleZeigen
+              ? "border-tinte bg-tinte text-grund"
+              : "border-linie-stark bg-flaeche text-grau-stark",
+          )}
+        >
+          {alleZeigen ? "Nur genutzte Gewerke" : "Alle Positionen zeigen"}
+        </button>
+      </div>
+      <div className="overflow-x-auto">
+        <div className="min-w-[47.5rem]">
+          <div
+            className={cn(
+              raster,
+              "min-h-7 bg-flaeche-hoch text-[0.6rem] font-semibold tracking-[0.14em] uppercase text-grau",
+            )}
+          >
+            <div className="px-2.5">Position</div>
+            <div className="px-2.5 text-right">Menge / Auswahl</div>
+            <div className="px-2.5">Einheit</div>
+            <div className="px-2.5 text-right">€ je Einheit</div>
+            <div className="px-2.5 text-right">Summe</div>
+          </div>
+          {AUFWERTUNGSKATALOG.map((g) => {
+            const summe = summen.jeGewerk[g.id] ?? 0;
+            const aktiv = g.positionen.filter((p) => (kalk.katalog?.[p.id] ?? 0) > 0).length;
+            const istOffen = alleZeigen || offen.has(g.id);
             return (
-              <li
-                key={p.id}
-                className={cn(
-                  "grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1.5 rounded-lg px-2 py-2 sm:grid-cols-[1fr_7rem_7rem_6rem]",
-                  m ? "bg-flaeche-hoch" : "",
-                )}
-              >
-                <span className="min-w-0 text-[0.74rem] text-grau-stark">{p.titel}</span>
-                <span className="justify-self-end sm:justify-self-stretch">
-                  {p.art === "menge" ? (
-                    <span className="relative block">
-                      <input
-                        inputMode="decimal"
-                        aria-label={`${p.titel} Menge`}
-                        value={m || ""}
-                        onChange={(e) => menge(p.id, zahlAus(e.target.value) ?? 0)}
-                        placeholder="0"
-                        className="zahl w-24 rounded-lg border border-linie bg-grund px-2 py-1 pr-9 text-right text-[0.74rem] text-tinte focus:border-linie-stark focus:outline-none sm:w-full"
-                      />
-                      <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[0.58rem] text-grau">
-                        {p.einheit}
+              <div key={g.id}>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setOffen((alt) => {
+                      const neu = new Set(alt);
+                      if (neu.has(g.id)) neu.delete(g.id);
+                      else neu.add(g.id);
+                      return neu;
+                    })
+                  }
+                  aria-expanded={istOffen}
+                  className="druckbar grid min-h-[30px] w-full grid-cols-[84%_16%] items-center border-b border-linie bg-[#FAFBFC] text-left text-[0.8rem] hover:bg-flaeche-hoch"
+                >
+                  <span className="flex items-center gap-2 px-2.5 font-semibold text-tinte">
+                    <span className="w-3 text-grau">{istOffen ? "▾" : "▸"}</span>
+                    {g.titel}
+                    {aktiv > 0 && (
+                      <span className="text-[0.72rem] font-normal text-grau">
+                        {aktiv} von {g.positionen.length}
                       </span>
-                    </span>
-                  ) : (
-                    <label className="flex items-center gap-2 text-[0.7rem] text-grau-stark">
-                      <input
-                        type="checkbox"
-                        checked={m > 0}
-                        onChange={(e) => menge(p.id, e.target.checked ? 1 : 0)}
-                        className="size-4 accent-[#17935C]"
-                      />
-                      {p.art === "flaeche" ? "Ja × m²" : "Ja"}
-                    </label>
-                  )}
-                </span>
-                <Preisfeld
-                  titel={p.titel}
-                  wert={kalk.preise?.[p.id] ?? null}
-                  vorgabe={vorgaben.preise[p.id] ?? KATALOG_PREISE[p.id]}
-                  setWert={(v) => preis(p.id, v)}
-                  zusatz={p.art === "flaeche" ? "/m²" : p.art === "menge" ? `/${p.einheit}` : ""}
-                />
-                <span className="zahl justify-self-end text-[0.74rem] text-tinte">{betrag ? f.eur(betrag) : ""}</span>
-              </li>
+                    )}
+                  </span>
+                  <span className="zahl px-2.5 text-right font-bold text-tinte">
+                    {summe > 0 ? f.eur(summe) : "–"}
+                  </span>
+                </button>
+                {istOffen &&
+                  g.positionen.map((p) => {
+                    const m = kalk.katalog?.[p.id] ?? 0;
+                    const pr = katalogPreis(p.id, vorgaben, kalk);
+                    const betrag = positionsBetrag(p, m, pr, wohnflaeche);
+                    return (
+                      <div key={p.id} className={raster}>
+                        <div
+                          title={p.titel}
+                          className={cn(
+                            "truncate pr-2.5 pl-[30px]",
+                            betrag > 0 ? "text-tinte" : "text-grau",
+                          )}
+                        >
+                          {p.titel}
+                        </div>
+                        <div className="flex justify-end px-2.5">
+                          {p.art === "menge" ? (
+                            <Eingabe
+                              label={`Menge ${p.titel}`}
+                              art="satz"
+                              wert={m || null}
+                              setWert={(v) => menge(p.id, v ?? 0)}
+                              breite="w-full max-w-[5.6rem]"
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => menge(p.id, m ? 0 : 1)}
+                              aria-pressed={m > 0}
+                              className={cn(
+                                "druckbar h-6 min-w-[3.6rem] rounded-full border text-[0.74rem] font-semibold",
+                                m > 0
+                                  ? "border-tinte bg-tinte text-grund"
+                                  : "border-linie-stark bg-flaeche text-grau",
+                              )}
+                            >
+                              {m > 0 ? "Ja" : "Nein"}
+                            </button>
+                          )}
+                        </div>
+                        <div className="truncate px-2.5 text-[0.68rem] text-grau">
+                          {p.art === "flaeche"
+                            ? `× ${GANZ.format(wohnflaeche)} m²`
+                            : (p.einheit ?? "")}
+                        </div>
+                        <div className="flex justify-end px-2.5">
+                          <Eingabe
+                            label={`Preis ${p.titel}`}
+                            art="betrag"
+                            wert={kalk.preise?.[p.id] ?? null}
+                            vorgabe={vorgaben.preise[p.id] ?? KATALOG_PREISE[p.id]}
+                            setWert={(v) => preis(p.id, v)}
+                            breite="w-full max-w-[6rem]"
+                          />
+                        </div>
+                        <div className="zahl px-2.5 text-right text-tinte">
+                          {betrag > 0 ? f.eur(betrag) : "–"}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
             );
           })}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function Preisfeld({
-  titel,
-  wert,
-  vorgabe,
-  setWert,
-  zusatz,
-}: {
-  titel: string;
-  wert: number | null;
-  vorgabe: number;
-  setWert: (v: number | null) => void;
-  zusatz: string;
-}) {
-  const [text, setText] = useState(wert === null ? "" : String(wert));
-  return (
-    <span className="relative block">
-      <input
-        inputMode="decimal"
-        aria-label={`${titel} Preis`}
-        title="Preis für dieses Objekt — leer lassen für den Standardpreis"
-        value={text}
-        onChange={(e) => {
-          setText(e.target.value);
-          setWert(zahlAus(e.target.value));
-        }}
-        placeholder={new Intl.NumberFormat("de-DE").format(vorgabe)}
-        className={cn(
-          "zahl w-24 rounded-lg border bg-grund px-2 py-1 pr-10 text-right text-[0.7rem] text-grau-stark placeholder:text-grau focus:border-linie-stark focus:outline-none sm:w-full",
-          wert !== null ? "border-linie-stark" : "border-linie",
-        )}
-      />
-      <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[0.56rem] text-grau">
-        €{zusatz}
-      </span>
-    </span>
+          <div className="grid min-h-[30px] grid-cols-[84%_16%] items-center border-t border-linie-stark text-[0.8rem] font-bold">
+            <div className="px-2.5 text-tinte">Gesamtkosten brutto</div>
+            <div className="zahl px-2.5 text-right text-tinte">{f.eur(summen.gesamt)}</div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -683,8 +839,8 @@ function Preisfeld({
 
 /**
  * Die Standardwerte für alle Objekte. Leeres Feld heißt: Wert aus
- * `KALKULATION_ETW.md`. Preise je Position sind eingeklappt — man ändert
- * selten mehr als zwei auf einmal.
+ * `docs/planung/KALKULATION_ETW.md`. Preise je Position sind eingeklappt —
+ * man ändert selten mehr als zwei auf einmal.
  */
 export function KalkulationsVorgaben() {
   const { vorgaben, vorgabenSetzen, preisSetzen, vorgabenZuruecksetzen } = useEinstellungen();
@@ -692,32 +848,38 @@ export function KalkulationsVorgaben() {
   // Schlüssel beim Zurücksetzen wechseln, damit die Felder ihren Text verlieren.
   const [runde, setRunde] = useState(0);
 
-  const felder: [keyof Omit<EtwVorgaben, "preise">, string, "€" | "%" | "Mon." | "€/M", number][] = [
-    ["notarProzent", "Notar/Grundbuch", "%", 2],
-    ["maklerAnkaufProzent", "Maklerprovision Ankauf", "%", 0],
-    ["monate", "Dauer der Maßnahme", "Mon.", 4],
-    ["bewirtschaftungMonat", "Bewirtschaftung", "€/M", 100],
-    ["zinsBankProzent", "Zinssatz Bank", "%", 5.5],
-    ["gebuehrBankProzent", "Bearbeitungsgebühr", "%", 1.5],
-    ["zinsCoProzent", "Zinssatz Co-Investor", "%", 8],
-    ["maklerVerkaufProzent", "Makler Verkauf", "%", 0],
-    ["homeStaging", "Home Staging", "€", 0],
-    ["abzugQm", "Abzug für €/m²", "€", 30_000],
+  const felder: [keyof Omit<EtwVorgaben, "preise">, string, string, "betrag" | "satz", number][] = [
+    ["notarProzent", "Notar/Grundbuch", "%", "satz", 2],
+    ["maklerAnkaufProzent", "Maklerprovision Ankauf", "%", "satz", 0],
+    ["monate", "Dauer der Maßnahme", "Mon.", "satz", 4],
+    ["bewirtschaftungMonat", "Bewirtschaftung pro Monat", "€", "betrag", 100],
+    ["zinsBankProzent", "Zinssatz Bank", "%", "satz", 5.5],
+    ["gebuehrBankProzent", "Bearbeitungsgebühr", "%", "satz", 1.5],
+    ["zinsCoProzent", "Zinssatz Co-Investor", "%", "satz", 8],
+    ["maklerVerkaufProzent", "Makler Verkauf", "%", "satz", 0],
+    ["homeStaging", "Home Staging", "€", "betrag", 0],
+    ["abzugQm", "Abzug Stellplatz / Garage", "€", "betrag", 0],
   ];
 
   return (
     <div key={runde}>
-      <div className="mt-5 grid max-w-3xl grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3">
-        {felder.map(([schluessel, titel, einheit, standard]) => (
-          <Vorgabefeld
+      <div className="mt-5 max-w-xl overflow-hidden rounded-[18px] border border-linie bg-flaeche">
+        {felder.map(([schluessel, titel, einheit, art, standard]) => (
+          <Zeile
             key={schluessel}
-            id={`v-${schluessel}`}
             label={titel}
-            wert={vorgaben[schluessel] === standard ? null : vorgaben[schluessel]}
-            vorgabe={standard}
-            setWert={(v) => vorgabenSetzen({ [schluessel]: v ?? standard })}
             einheit={einheit}
-          />
+            ueberschrieben={vorgaben[schluessel] !== standard}
+            zuruecksetzen={() => vorgabenSetzen({ [schluessel]: standard })}
+          >
+            <Eingabe
+              label={titel}
+              art={art}
+              wert={vorgaben[schluessel] === standard ? null : vorgaben[schluessel]}
+              vorgabe={standard}
+              setWert={(v) => vorgabenSetzen({ [schluessel]: v ?? standard })}
+            />
+          </Zeile>
         ))}
       </div>
       <p className="mt-3 text-[0.64rem] text-grau">
@@ -732,8 +894,7 @@ export function KalkulationsVorgaben() {
           aria-expanded={preiseOffen}
           className="druckbar flex items-center gap-2 rounded-full border border-linie-stark px-4 py-2 text-[0.64rem] font-medium tracking-[0.12em] uppercase text-tinte"
         >
-          <ChevronDown size={12} strokeWidth={2} className={cn(!preiseOffen && "-rotate-90")} />
-          Katalogpreise
+          {preiseOffen ? "▾" : "▸"} Katalogpreise
           {Object.keys(vorgaben.preise).length > 0 && (
             <span className="zahl text-grau">· {Object.keys(vorgaben.preise).length} geändert</span>
           )}
@@ -752,24 +913,32 @@ export function KalkulationsVorgaben() {
       </div>
 
       {preiseOffen && (
-        <div className="mt-4 flex max-w-3xl flex-col gap-5">
+        <div className="mt-4 flex max-w-xl flex-col gap-4">
           {AUFWERTUNGSKATALOG.map((g) => (
-            <div key={g.id}>
-              <div className="mini-label">{g.titel}</div>
-              <ul className="mt-2 flex flex-col gap-1">
-                {g.positionen.map((p) => (
-                  <li key={p.id} className="grid grid-cols-[1fr_8rem] items-center gap-3">
-                    <span className="text-[0.74rem] text-grau-stark">{p.titel}</span>
-                    <Preisfeld
-                      titel={p.titel}
-                      wert={vorgaben.preise[p.id] ?? null}
-                      vorgabe={p.preis}
-                      setWert={(v) => preisSetzen(p.id, v)}
-                      zusatz={p.art === "flaeche" ? "/m²" : p.art === "menge" ? `/${p.einheit}` : ""}
-                    />
-                  </li>
-                ))}
-              </ul>
+            <div
+              key={g.id}
+              className="overflow-hidden rounded-[18px] border border-linie bg-flaeche"
+            >
+              <div className="px-2.5 pt-3 pb-1.5 text-[0.6rem] font-semibold tracking-[0.18em] uppercase text-grau">
+                {g.titel}
+              </div>
+              {g.positionen.map((p) => (
+                <Zeile
+                  key={p.id}
+                  label={p.titel}
+                  einheit={
+                    p.art === "flaeche" ? "€/m²" : p.art === "menge" ? `€/${p.einheit}` : "€"
+                  }
+                >
+                  <Eingabe
+                    label={p.titel}
+                    art="betrag"
+                    wert={vorgaben.preise[p.id] ?? null}
+                    vorgabe={p.preis}
+                    setWert={(v) => preisSetzen(p.id, v)}
+                  />
+                </Zeile>
+              ))}
             </div>
           ))}
         </div>

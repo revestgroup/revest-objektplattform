@@ -26,7 +26,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   ANGEBOTSARTEN,
@@ -178,6 +178,18 @@ export function ObjektDetail({
   // Kalkulation stand, soll nicht ins Leere schauen — gibt es den Reiter in
   // der neuen Phase nicht, landet man auf der Übersicht.
   const sichtbar = reiterliste.includes(reiter) ? reiter : "uebersicht";
+
+  // Wie hoch der feste Kopf gerade ist — damit Inhalte, die selbst stehen
+  // bleiben (das Ergebnis der Kalkulation), genau darunter andocken.
+  const kopfRef = useRef<HTMLDivElement>(null);
+  const [kopfHoehe, setKopfHoehe] = useState(0);
+  useEffect(() => {
+    const el = kopfRef.current;
+    if (!el) return;
+    const beobachter = new ResizeObserver(() => setKopfHoehe(el.offsetHeight));
+    beobachter.observe(el);
+    return () => beobachter.disconnect();
+  }, []);
   const verwertung = aufteilungText(objekt);
 
   /**
@@ -209,12 +221,12 @@ export function ObjektDetail({
   );
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex min-h-full flex-col" style={{ "--kopf-hoehe": `${kopfHoehe}px` } as React.CSSProperties}>
       {/* ----- Kopf ----- */}
       {/* Kopf, Stufenleiste und Reiter stehen fest; nur der Inhalt darunter
           scrollt. Deshalb so kompakt: Bild, Bezeichnung, Adresse, Fläche,
           Preis und Stufe in einem Block, die Knöpfe in derselben Zeile. */}
-      <div className="sticky top-0 z-20 bg-grund">
+      <div ref={kopfRef} className="sticky top-0 z-20 bg-grund">
       <div className="border-b border-linie px-4 py-4 md:px-7">
         <div className="flex items-start gap-4">
           <div className="hidden h-[4.5rem] w-24 shrink-0 overflow-hidden rounded-xl bg-flaeche-hoch sm:block">

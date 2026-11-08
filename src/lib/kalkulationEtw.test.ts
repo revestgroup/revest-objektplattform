@@ -1,5 +1,5 @@
 /**
- * Prüfwerte aus `KALKULATION_ETW.md`, Abschnitt 3. Die Plattform muss mit
+ * Prüfwerte aus `docs/planung/KALKULATION_ETW.md`, Abschnitt 3. Die Plattform muss mit
  * diesen Eingaben exakt diese Werte liefern — gerundet wie in der Excel-
  * Anzeige: Euro ganz, Prozent auf eine Stelle.
  */
