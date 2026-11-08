@@ -14,10 +14,12 @@ import { useState } from "react";
 
 import { Seitenkopf } from "../components/AppLayout";
 import { Regler } from "../components/Felder";
+import { SuchprofilPflegen } from "../components/Eingang";
 import { KalkulationsVorgaben } from "../components/KalkulationEtw";
 import { KategorienPflegen } from "./kontakte";
 import { useAuth } from "../lib/auth";
 import { GRUPPEN } from "../lib/einstellungen";
+import { useEingang } from "../lib/eingangStore";
 import { useEinstellungen } from "../lib/einstellungenStore";
 import { DOKUMENT_ORDNER, BUNDESLAND_NAMEN, GRUNDERWERBSTEUER, f } from "../lib/objekte";
 import { useObjekte } from "../lib/objekteStore";
@@ -41,6 +43,7 @@ function EinstellungenSeite() {
   const { objekte, zuruecksetzen: objekteZurueck } = useObjekte();
   const { garantien, mieter, zuruecksetzen: garantienZurueck } = useVermietung();
   const { einstellungen, umschalten, zuruecksetzen: einstellungenZurueck } = useEinstellungen();
+  const { zuruecksetzen: eingangZurueck } = useEingang();
   const [frage, setFrage] = useState(false);
 
   const ulm = STADTTEIL_NAMEN.filter((s) => s.stadt === "Ulm").length;
@@ -104,6 +107,16 @@ function EinstellungenSeite() {
             Aus monday übernommen, in vier Gruppen. Genutzte Kategorien lassen sich nicht entfernen.
           </p>
           <KategorienPflegen />
+        </section>
+
+        {/* ----- Ankauf-Eingang ----- */}
+        <section className="px-4 py-7 sm:px-6 md:px-10 md:py-10">
+          <h2 className="mini-label">Suchprofil Ankauf</h2>
+          <p className="mt-2 max-w-2xl text-[0.7rem] leading-relaxed text-grau">
+            Was nicht passt, steht im Eingang unten und ist markiert — aussortiert wird es nicht
+            automatisch.
+          </p>
+          <SuchprofilPflegen />
         </section>
 
         {/* ----- Kalkulation ----- */}
@@ -221,6 +234,7 @@ function EinstellungenSeite() {
                     objekteZurueck();
                     garantienZurueck();
                     einstellungenZurueck();
+                    eingangZurueck();
                     setFrage(false);
                   }}
                   className="druckbar rounded-full bg-tinte px-4 py-2.5 text-[0.66rem] font-semibold tracking-[0.14em] uppercase text-grund shadow-karte"

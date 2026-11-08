@@ -12,6 +12,7 @@ import maplibregl from "maplibre-gl";
 import { LoaderCircle, MapPin } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { geocode } from "../lib/geocode";
 import { stadtteilAnPunkt } from "../lib/stadtteile";
 import { cn } from "../lib/utils";
 
@@ -20,23 +21,6 @@ const BASISKARTE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.jso
 /** Startblick zwischen Ulm und Neu-Ulm, wenn noch kein Punkt existiert. */
 const START: [number, number] = [9.995, 48.398];
 
-/** Adresse → Koordinate über Nominatim (OSM). Kostenlos, kein Schlüssel. */
-async function geocode(
-  adresse: { strasse: string; plz: string; stadt: string },
-  signal: AbortSignal,
-): Promise<[number, number] | null> {
-  const antwort = await fetch(
-    "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=de" +
-      `&street=${encodeURIComponent(adresse.strasse)}` +
-      `&postalcode=${encodeURIComponent(adresse.plz)}` +
-      `&city=${encodeURIComponent(adresse.stadt)}`,
-    { signal, headers: { Accept: "application/json" } },
-  );
-  if (!antwort.ok) return null;
-  const treffer = (await antwort.json()) as { lon: string; lat: string }[];
-  if (!treffer[0]) return null;
-  return [Number.parseFloat(treffer[0].lon), Number.parseFloat(treffer[0].lat)];
-}
 
 export function PunktWaehler({
   laenge,

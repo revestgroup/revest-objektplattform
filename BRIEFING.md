@@ -40,7 +40,7 @@ Lies zuerst `AGENTS.md` und halte dich an die Design-Regeln (deutsche Benennung,
 | 2c-3. Kalkulation ETW nach `KALKULATION_ETW.md` | erledigt (Abzug = Stellplatz/Garage, geklärt in Feinschliff B) | `aufgabe-2c3/kalkulation` |
 | 3. Objektprüfung | erledigt | `aufgabe-3/pruefung` |
 | 4. Ummeldungen | erledigt | `aufgabe-4/ummeldungen` |
-| 4b. Ankauf-Eingang | offen, nach Feinschliff 1 | |
+| 4b. Ankauf-Eingang | Stufe 1 erledigt (Mail-Postfach, ImmoMetrica-Abruf, OCR fürs Exposé: Phase 2) | `aufgabe-4b/eingang` |
 | Feinschliff 1 · A Ankauf | erledigt | `feinschliff/a-ankauf` |
 | Feinschliff 1 · B Kalkulation | erledigt | `feinschliff/b-kalkulation` |
 | Feinschliff 1 · C Projekte | erledigt | `feinschliff/c-projekte` |

@@ -24,10 +24,11 @@
  * der Auswertung.
  */
 import { useNavigate } from "@tanstack/react-router";
-import { Columns3, LayoutGrid, Plus, Search, X } from "lucide-react";
+import { Columns3, Inbox, LayoutGrid, Plus, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { Fenster, Seitenkopf } from "./AppLayout";
+import { Eingangsansicht } from "./Eingang";
 import type { NeuesDokument } from "./Dokumente";
 import { ObjektDetail, ObjektKachel } from "./ObjektDetail";
 import { ObjektFormular } from "./ObjektFormular";
@@ -41,6 +42,7 @@ import {
   type Ankaufsstufe,
   type Objekt,
 } from "../lib/objekte";
+import { useEingang } from "../lib/eingangStore";
 import { useObjekte, type ObjektEntwurf } from "../lib/objekteStore";
 import { cn } from "../lib/utils";
 
@@ -58,7 +60,8 @@ const SORTIERUNGEN = {
 type Sortierung = keyof typeof SORTIERUNGEN;
 
 /** Dieselben Objekte, zwei Fragen: welche haben wir, und woran hängt es. */
-type Ansicht = "liste" | "pipeline";
+/** „eingang“ gibt es nur im Ankauf: Angebote sichten, bevor sie Objekte werden. */
+type Ansicht = "liste" | "pipeline" | "eingang";
 
 interface Bereichsangaben {
   titel: string;
@@ -133,6 +136,8 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
   const [stadt, setStadt] = useState<"" | "Ulm" | "Neu-Ulm">("");
   const [sortierung, setSortierung] = useState<Sortierung>(b.standardSortierung);
   const [ansicht, setAnsicht] = useState<Ansicht>(b.startAnsicht);
+  const { eingaenge } = useEingang();
+  const offenImEingang = eingaenge.filter((e) => e.status === "offen").length;
   // Kommt eine Objekt-ID aus der Adresse — etwa aus einer Aufgabe —, öffnet
   // sich das Detail sofort. Danach ist es normaler Zustand: Zumachen soll
   // nicht die Adresse umschreiben müssen.
@@ -220,8 +225,10 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
             (berechneKennzahlen(a).bruttoMietrendite ?? 0)
           );
         case "einheiten":
-          return (c.einheiten.length || (c.anzahlEinheiten ?? 0)) -
-            (a.einheiten.length || (a.anzahlEinheiten ?? 0));
+          return (
+            (c.einheiten.length || (c.anzahlEinheiten ?? 0)) -
+            (a.einheiten.length || (a.anzahlEinheiten ?? 0))
+          );
         case "stufe":
           return STUFEN_REIHENFOLGE.indexOf(c.stufe) - STUFEN_REIHENFOLGE.indexOf(a.stufe);
         default:
@@ -302,42 +309,51 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
             Sortierung und Umschalter blieben sonst vier Zeichen Platz für den
             Straßennamen. */}
         <div className="flex flex-wrap items-center gap-2 px-4 py-3 sm:flex-nowrap sm:px-6 md:gap-3 md:px-10">
-          <label className="relative order-1 w-full min-w-0 sm:order-none sm:flex-1">
-            <Search
-              size={14}
-              strokeWidth={1.75}
-              className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-grau"
-            />
-            <input
-              type="search"
-              value={suche}
-              onChange={(e) => setSuche(e.target.value)}
-              placeholder="Straße, Stadtteil, Eigentümer, Quelle"
-              aria-label="Objekte durchsuchen"
-              className="w-full rounded-full border border-linie bg-flaeche py-2.5 pr-4 pl-9 text-[0.8rem] text-tinte placeholder:text-grau focus:border-linie-stark focus:outline-none"
-            />
-          </label>
+          {ansicht === "eingang" && (
+            <p className="min-w-0 flex-1 text-[0.76rem] text-grau-stark">
+              Angebote aus Mails und ImmoMetrica — sichten, bevor sie Objekte werden.
+            </p>
+          )}
+          {ansicht !== "eingang" && (
+            <label className="relative order-1 w-full min-w-0 sm:order-none sm:flex-1">
+              <Search
+                size={14}
+                strokeWidth={1.75}
+                className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-grau"
+              />
+              <input
+                type="search"
+                value={suche}
+                onChange={(e) => setSuche(e.target.value)}
+                placeholder="Straße, Stadtteil, Eigentümer, Quelle"
+                aria-label="Objekte durchsuchen"
+                className="w-full rounded-full border border-linie bg-flaeche py-2.5 pr-4 pl-9 text-[0.8rem] text-tinte placeholder:text-grau focus:border-linie-stark focus:outline-none"
+              />
+            </label>
+          )}
 
           {/* Die Sortierung ordnet in der Liste das Raster und in der Pipeline
               den Stapel innerhalb der Spalte — nach Stufe zu sortieren ist
               dort aber sinnlos, weil die Spalte schon die Stufe ist. */}
-          <select
-            value={sortierung}
-            onChange={(e) => setSortierung(e.target.value as Sortierung)}
-            aria-label="Sortierung"
-            className="order-2 min-w-0 flex-1 border border-linie bg-flaeche px-3 py-2.5 text-[0.76rem] text-tinte focus:border-linie-stark focus:outline-none sm:order-none sm:flex-none sm:shrink md:px-3.5"
-          >
-            {b.sortierungen
-              .filter((s) => !(ansicht === "pipeline" && s === "stufe"))
-              .map((s) => (
-                <option key={s} value={s}>
-                  {SORTIERUNGEN[s]}
-                </option>
-              ))}
-          </select>
+          {ansicht !== "eingang" && (
+            <select
+              value={sortierung}
+              onChange={(e) => setSortierung(e.target.value as Sortierung)}
+              aria-label="Sortierung"
+              className="order-2 min-w-0 flex-1 border border-linie bg-flaeche px-3 py-2.5 text-[0.76rem] text-tinte focus:border-linie-stark focus:outline-none sm:order-none sm:flex-none sm:shrink md:px-3.5"
+            >
+              {b.sortierungen
+                .filter((s) => !(ansicht === "pipeline" && s === "stufe"))
+                .map((s) => (
+                  <option key={s} value={s}>
+                    {SORTIERUNGEN[s]}
+                  </option>
+                ))}
+            </select>
+          )}
 
           {b.pipeline && (
-            <div className="order-3 flex shrink-0 gap-1 rounded-full border border-linie bg-flaeche-hoch p-1 sm:order-none">
+            <div className="order-3 flex shrink-0 items-center gap-1 rounded-full border border-linie bg-flaeche-hoch p-1 sm:order-none">
               {(
                 [
                   { wert: "liste", titel: "Liste", Zeichen: LayoutGrid },
@@ -361,70 +377,102 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
                   <a.Zeichen size={14} strokeWidth={1.9} />
                 </button>
               ))}
+              {bereich === "ankauf" && (
+                <button
+                  type="button"
+                  onClick={() => ansichtWechseln("eingang")}
+                  aria-pressed={ansicht === "eingang"}
+                  aria-label={`Ansicht Eingang, ${offenImEingang} zu sichten`}
+                  title="Eingang"
+                  className={cn(
+                    "druckbar flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[0.68rem] font-medium",
+                    ansicht === "eingang"
+                      ? "bg-tinte text-grund shadow-karte"
+                      : "text-grau-stark hover:text-tinte",
+                  )}
+                >
+                  <Inbox size={14} strokeWidth={1.9} />
+                  Eingang
+                  {offenImEingang > 0 && (
+                    <span
+                      className={cn(
+                        "zahl rounded-full px-1.5 text-[0.6rem] font-semibold",
+                        ansicht === "eingang" ? "bg-grund text-tinte" : "bg-tinte text-grund",
+                      )}
+                    >
+                      {offenImEingang}
+                    </span>
+                  )}
+                </button>
+              )}
             </div>
           )}
         </div>
 
         {/* Stadt und Stufe teilen sich eine Reihe. Auf dem Telefon schiebt sie
             sich seitwärts, statt in drei Zeilen die halbe Höhe zu fressen. */}
-        <div className="scroll-reihe flex gap-2 overflow-x-auto px-4 pb-3 sm:px-6 md:flex-wrap md:px-10">
-          <div className="flex shrink-0 gap-1 rounded-full border border-linie bg-flaeche-hoch p-1">
-            {(["", "Ulm", "Neu-Ulm"] as const).map((s) => (
-              <button
-                key={s || "alle"}
-                type="button"
-                onClick={() => setStadt(s)}
-                aria-pressed={stadt === s}
-                className={cn(
-                  "druckbar rounded-full px-3 py-1 text-[0.68rem] whitespace-nowrap",
-                  stadt === s ? "bg-tinte text-grund shadow-karte" : "text-grau-stark",
-                )}
-              >
-                {s || "Beide"}
-              </button>
-            ))}
-          </div>
+        {ansicht !== "eingang" && (
+          <div className="scroll-reihe flex gap-2 overflow-x-auto px-4 pb-3 sm:px-6 md:flex-wrap md:px-10">
+            <div className="flex shrink-0 gap-1 rounded-full border border-linie bg-flaeche-hoch p-1">
+              {(["", "Ulm", "Neu-Ulm"] as const).map((s) => (
+                <button
+                  key={s || "alle"}
+                  type="button"
+                  onClick={() => setStadt(s)}
+                  aria-pressed={stadt === s}
+                  className={cn(
+                    "druckbar rounded-full px-3 py-1 text-[0.68rem] whitespace-nowrap",
+                    stadt === s ? "bg-tinte text-grund shadow-karte" : "text-grau-stark",
+                  )}
+                >
+                  {s || "Beide"}
+                </button>
+              ))}
+            </div>
 
-          {/* In der Pipeline ist die Spalte schon der Stufenfilter. Zwei
+            {/* In der Pipeline ist die Spalte schon der Stufenfilter. Zwei
               Filter auf dieselbe Eigenschaft würden sich gegenseitig
               widersprechen — leere Spalten, obwohl Objekte da sind. */}
-          {b.stufenfilter && ansicht === "liste" && (
-            <>
-              <span aria-hidden className="my-1 w-px shrink-0 bg-linie" />
+            {b.stufenfilter && ansicht === "liste" && (
+              <>
+                <span aria-hidden className="my-1 w-px shrink-0 bg-linie" />
 
-              {b.stufen.map((s) => {
-                const aktiv = stufen.has(s);
-                const anzahl = bestand.filter((o) => o.stufe === s).length;
-                return (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => stufeUmschalten(s)}
-                    aria-pressed={aktiv}
-                    className={cn(
-                      "druckbar flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-1.5 text-[0.68rem] whitespace-nowrap",
-                      aktiv
-                        ? "border-tinte bg-tinte text-grund"
-                        : "border-linie bg-flaeche text-grau-stark",
-                    )}
-                  >
-                    <span
-                      aria-hidden
-                      className="size-[7px] shrink-0 rounded-full"
-                      style={{ background: aktiv ? "#ffffff" : STUFEN[s].farbe }}
-                    />
-                    {STUFEN[s].titel}
-                    <span className="zahl text-[0.6rem] opacity-60">{anzahl}</span>
-                  </button>
-                );
-              })}
-            </>
-          )}
-        </div>
+                {b.stufen.map((s) => {
+                  const aktiv = stufen.has(s);
+                  const anzahl = bestand.filter((o) => o.stufe === s).length;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => stufeUmschalten(s)}
+                      aria-pressed={aktiv}
+                      className={cn(
+                        "druckbar flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-1.5 text-[0.68rem] whitespace-nowrap",
+                        aktiv
+                          ? "border-tinte bg-tinte text-grund"
+                          : "border-linie bg-flaeche text-grau-stark",
+                      )}
+                    >
+                      <span
+                        aria-hidden
+                        className="size-[7px] shrink-0 rounded-full"
+                        style={{ background: aktiv ? "#ffffff" : STUFEN[s].farbe }}
+                      />
+                      {STUFEN[s].titel}
+                      <span className="zahl text-[0.6rem] opacity-60">{anzahl}</span>
+                    </button>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ----- Bestand ----- */}
-      {!bereit ? (
+      {ansicht === "eingang" ? (
+        <Eingangsansicht oeffneObjekt={(id) => wechsle({ art: "detail", id })} />
+      ) : !bereit ? (
         <div className="h-48" />
       ) : liste.length === 0 ? (
         <div className="flex flex-col items-center gap-4 px-6 py-20 text-center">
@@ -478,9 +526,13 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
       <Fenster
         offen={modus.art !== "zu"}
         schliessen={() => wechsle({ art: "zu" })}
-        vorher={nachbarn.vorher ? () => wechsle({ art: "detail", id: nachbarn.vorher! }, true) : undefined}
+        vorher={
+          nachbarn.vorher ? () => wechsle({ art: "detail", id: nachbarn.vorher! }, true) : undefined
+        }
         nachher={
-          nachbarn.nachher ? () => wechsle({ art: "detail", id: nachbarn.nachher! }, true) : undefined
+          nachbarn.nachher
+            ? () => wechsle({ art: "detail", id: nachbarn.nachher! }, true)
+            : undefined
         }
         titel={
           modus.art === "anlegen"
@@ -510,4 +562,3 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
     </>
   );
 }
-

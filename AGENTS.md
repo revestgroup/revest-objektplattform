@@ -73,6 +73,15 @@ Weiterleiten (→ Qonto / Projekt / Ablage) verschiebt nach „Erledigt“ und v
 als „wartet“ — die echte Übergabe kommt mit Phase 2. Seitliches Ziehen für breite Boards:
 `useSeitlichScroll` in `components/SeitlichScroll.tsx` (auch die Pipeline nutzt ihn).
 
+## Ankauf-Eingang
+
+`src/lib/eingang.ts` + `eingangStore.tsx` (Tests daneben), Ansicht `components/Eingang.tsx`,
+im Ankauf als dritte Ansicht „Eingang“ neben Liste und Pipeline. `textAuslesen` füllt nur,
+was sicher erkannt wird — lieber leer als falsch. `wiedererkennen` gleicht über die
+vereinheitlichte Adresse mit Objekten und früheren Angeboten ab. „Interessant“ legt das Objekt
+auf „Neu“ an (Punkt per `geocode`, Treffer außerhalb Ulm/Neu-Ulm zählen nicht) oder hängt bei
+bekannten Objekten die Preisnennung an. Das Suchprofil steht in den Einstellungen.
+
 ## Anlegemaske
 
 Offen stehen nur Lage, Objekt, Preis und Miete, Bilder, Notiz. Alles weitere liegt in

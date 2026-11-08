@@ -14,6 +14,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from "react";
 
 import type {
+  Angebot,
   Aufteilung,
   Kontakt,
   Dokument,
@@ -175,6 +176,8 @@ interface StoreWert {
   ) => void;
   verkaufsplanSetzen: (id: string, plan: Verkaufsplan) => void;
   ummeldungSetzen: (id: string, ummeldungId: string, teil: Partial<Ummeldung>) => void;
+  /** Neue Preisnennung an ein Objekt hängen — etwa ein wiedererkanntes Angebot aus dem Eingang. */
+  angebotHinzufuegen: (id: string, angebot: Omit<Angebot, "id">, verlaufstext: string) => void;
   zuruecksetzen: () => void;
 
   /* ----- Kontaktregister ----- */
@@ -522,6 +525,13 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
             einheitId,
           );
         }),
+
+      angebotHinzufuegen: (id, angebot, verlaufstext) =>
+        mutieren(id, (o) => ({
+          ...o,
+          angebote: [...o.angebote, { ...angebot, id: neueId("a") }],
+          verlauf: [...o.verlauf, eintrag("status", verlaufstext)],
+        })),
 
       ummeldungSetzen: (id, ummeldungId, teil) =>
         mutieren(id, (o) => ({
