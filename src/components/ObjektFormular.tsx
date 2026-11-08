@@ -17,20 +17,27 @@ import { useMemo, useState } from "react";
 
 import {
   BUNDESLAND_NAMEN,
+  GESELLSCHAFTEN,
   GRUNDERWERBSTEUER,
+  KUERZEL_MUSTER,
   OBJEKTARTEN,
+  STANDARD_GESELLSCHAFT,
   STUFEN,
   STUFEN_REIHENFOLGE,
   ZUSTAENDE,
+  andereKuerzel,
   f,
+  kuerzelSaeubern,
+  kuerzelVorschlag,
   umrissAusMitte,
   type Ankaufsstufe,
+  type Gesellschaft,
   type Objekt,
   type Objektart,
   type Zustand,
 } from "../lib/objekte";
 import { stadtteilAnPunkt, stadtteileDerStadt } from "../lib/stadtteile";
-import type { ObjektEntwurf } from "../lib/objekteStore";
+import { useObjekte, type ObjektEntwurf } from "../lib/objekteStore";
 import { cn } from "../lib/utils";
 import { AnlegeEinstieg } from "./AnlegeEinstieg";
 import { Bilderfeld } from "./Bilder";
@@ -39,6 +46,7 @@ import { PunktWaehler } from "./PunktWaehler";
 import {
   Auswahlfeld,
   Bereich,
+  Huelle,
   Klappbereich,
   Schalter,
   Segmente,
@@ -85,6 +93,10 @@ interface FormularZustand {
   notiz: string;
   /** 48-Stunden-Uhr starten? Nur bei frischen Objekten sinnvoll. */
   fristStarten: boolean;
+  kuerzel: string;
+  gesellschaft: Gesellschaft;
+  driveOrdnerUrl: string;
+  besitzuebergangAm: string;
 }
 
 function z(v: string): number | null {
@@ -135,6 +147,10 @@ function leerZustand(): FormularZustand {
     wgZimmer: "",
     notiz: "",
     fristStarten: true,
+    kuerzel: "",
+    gesellschaft: STANDARD_GESELLSCHAFT,
+    driveOrdnerUrl: "",
+    besitzuebergangAm: "",
   };
 }
 
@@ -172,6 +188,10 @@ function ausObjekt(o: Objekt): FormularZustand {
     wgZimmer: t(o.wgZimmer ?? null),
     notiz: o.notiz ?? "",
     fristStarten: o.fristBis !== null,
+    kuerzel: o.kuerzel ?? "",
+    gesellschaft: o.gesellschaft ?? STANDARD_GESELLSCHAFT,
+    driveOrdnerUrl: o.driveOrdnerUrl ?? "",
+    besitzuebergangAm: o.besitzuebergangAm ?? "",
   };
 }
 
@@ -215,6 +235,13 @@ export function ObjektFormular({
     setV((alt) => ({ ...alt, [feld]: wert }));
   }
 
+  const { objekte } = useObjekte();
+  const vergeben = useMemo(
+    () => andereKuerzel(objekte, bestehend?.id ?? null),
+    [objekte, bestehend?.id],
+  );
+  const vorschlag = kuerzelVorschlag(v.strasse, vergeben);
+
   const stadtteile = useMemo(() => stadtteileDerStadt(v.stadt), [v.stadt]);
   const bundesland = BUNDESLAND[v.stadt];
 
@@ -230,8 +257,14 @@ export function ObjektFormular({
     } else if (ln < 9.7 || ln > 10.3 || br < 48.2 || br > 48.55) {
       m.laenge = "Der Punkt liegt außerhalb von Ulm und Neu-Ulm.";
     }
+    // Leer ist erlaubt — ab „Angekauft“ springt dann der Vorschlag ein.
+    if (v.kuerzel && !KUERZEL_MUSTER.test(v.kuerzel)) {
+      m.kuerzel = "2 bis 12 Zeichen, nur Großbuchstaben und Ziffern.";
+    } else if (v.kuerzel && vergeben.includes(v.kuerzel)) {
+      m.kuerzel = `${v.kuerzel} ist schon vergeben.`;
+    }
     return m;
-  }, [v.strasse, v.plz, v.stadtteil, v.laenge, v.breite]);
+  }, [v.strasse, v.plz, v.stadtteil, v.laenge, v.breite, v.kuerzel, vergeben]);
 
   const gueltig = Object.keys(fehler).length === 0;
 
@@ -277,6 +310,11 @@ export function ObjektFormular({
       wgZimmer:
         v.objektart === "etw" && v.vertriebsweg === "wg" ? z(v.wgZimmer) : null,
       notiz: s(v.notiz),
+      // Ab „Angekauft“ ist das Kürzel Pflicht — leer gelassen gilt der Vorschlag.
+      kuerzel: s(v.kuerzel) ?? (v.stufe === "angekauft" ? vorschlag : null),
+      gesellschaft: v.gesellschaft,
+      driveOrdnerUrl: s(v.driveOrdnerUrl),
+      besitzuebergangAm: s(v.besitzuebergangAm),
       bilder,
       // Kontakte, Angebotshistorie und Gewerkeliste werden im Detail gepflegt,
       // nicht hier — durchreichen, damit das Bearbeiten sie nicht löscht.
@@ -287,13 +325,17 @@ export function ObjektFormular({
         ? new Date(Date.now() + 48 * 3_600_000).toISOString()
         : null,
     };
-  }, [v, bilder, bundesland, bestehend]);
+  }, [v, bilder, bundesland, bestehend, vorschlag]);
 
   function absenden(e: React.FormEvent) {
     e.preventDefault();
     setGeprueft(true);
     if (!gueltig) {
-      document.getElementById("formular-lage")?.scrollIntoView({ behavior: "smooth" });
+      // Liegt der einzige Fehler im Kürzel, dorthin springen statt zur Lage.
+      const ziel = Object.keys(fehler).every((k) => k === "kuerzel")
+        ? "formular-ablage"
+        : "formular-lage";
+      document.getElementById(ziel)?.scrollIntoView({ behavior: "smooth" });
       return;
     }
     onSpeichern(entwurf, dokumente);
@@ -660,6 +702,64 @@ export function ObjektFormular({
             />
           </Klappbereich>
         )}
+
+        {/* Kürzel, Gesellschaft und Drive-Link brauchen erst gekaufte Objekte.
+            Steht ein Fehler drin, öffnet der Bereich sich — ein Fehler hinter
+            einem zugeklappten Bereich wäre unauffindbar. */}
+        <div id="formular-ablage" />
+        <Klappbereich
+          key={geprueft && fehler.kuerzel ? "fehler" : "ruhe"}
+          titel="Gesellschaft und Ablage"
+          hinweis="Kürzel, Gesellschaft, Drive-Ordner und Besitzübergang"
+          gefuellt={zaehle(v.kuerzel, v.driveOrdnerUrl, v.besitzuebergangAm)}
+          offenAnfangs={geprueft && Boolean(fehler.kuerzel)}
+        >
+          <Textfeld
+            id="kuerzel"
+            label="Objektkürzel"
+            wert={v.kuerzel}
+            setWert={(x) => setze("kuerzel", kuerzelSaeubern(x))}
+            platzhalter={v.strasse.trim() ? vorschlag : "RAV134"}
+            pflicht={v.stufe === "angekauft"}
+            fehler={zeig("kuerzel")}
+            hinweis={
+              v.stufe === "angekauft" && !v.kuerzel
+                ? `Leer gelassen wird ${vorschlag} vergeben.`
+                : "Schlüssel für Drive-Dateinamen und Qonto-Label. Pflicht ab „Angekauft“."
+            }
+          />
+          <Auswahlfeld
+            id="gesellschaft"
+            label="Gesellschaft"
+            wert={v.gesellschaft}
+            setWert={(x) => setze("gesellschaft", x)}
+            optionen={Object.entries(GESELLSCHAFTEN).map(([wert, titel]) => ({
+              wert: wert as Gesellschaft,
+              titel,
+            }))}
+          />
+          <Textfeld
+            id="driveOrdnerUrl"
+            label="Drive-Ordner"
+            wert={v.driveOrdnerUrl}
+            setWert={(x) => setze("driveOrdnerUrl", x)}
+            platzhalter="https://drive.google.com/drive/folders/…"
+            breit
+          />
+          <Huelle
+            id="besitzuebergangAm"
+            label="Besitzübergang am"
+            hinweis="Übergang von Besitz, Nutzen und Lasten — getrennt von der Beurkundung."
+          >
+            <input
+              id="besitzuebergangAm"
+              type="date"
+              value={v.besitzuebergangAm}
+              onChange={(e) => setze("besitzuebergangAm", e.target.value)}
+              className="zahl w-full rounded-xl border border-linie bg-flaeche px-3 py-2.5 text-[0.82rem] text-tinte focus:border-linie-stark focus:outline-none"
+            />
+          </Huelle>
+        </Klappbereich>
 
         <Klappbereich
           titel="Unterlagen"

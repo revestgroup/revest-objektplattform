@@ -155,6 +155,10 @@ export const MOCK_OBJEKTE: Objekt[] = [
     // Das einzige Objekt, das den Deal hinter sich hat: sechs Wohnungen gehen
     // in den Vertrieb, vier bleiben als WG im Bestand, die Teilung läuft.
     angekauftAm: "2026-04-17",
+    besitzuebergangAm: "2026-06-01",
+    kuerzel: "FAH6",
+    gesellschaft: "revest_projekt",
+    driveOrdnerUrl: null,
     aufteilung: { etw: 6, wg: 4 },
     teilung: {
       gestartetAm: "2026-04-24",

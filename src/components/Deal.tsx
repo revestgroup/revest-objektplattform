@@ -13,15 +13,22 @@ import { Handshake, X } from "lucide-react";
 import { useState } from "react";
 
 import {
+  GESELLSCHAFTEN,
+  KUERZEL_MUSTER,
   OBJEKTARTEN,
+  STANDARD_GESELLSCHAFT,
+  andereKuerzel,
   istEinzelwohnung,
   f,
+  kuerzelSaeubern,
+  kuerzelVorschlag,
+  type Gesellschaft,
   type Objekt,
 } from "../lib/objekte";
 import { useObjekte } from "../lib/objekteStore";
 import { cn } from "../lib/utils";
 import { Dialog, Leiste } from "./Dialog";
-import { Schalter, Segmente, Textfeld, Zahlfeld } from "./Felder";
+import { Auswahlfeld, Schalter, Segmente, Textfeld, Zahlfeld } from "./Felder";
 
 /** Heute als ISO-Datum — die Vorbelegung für jeden Notartermin. */
 function heute() {
@@ -83,8 +90,9 @@ export function DealKnoepfe({ objekt }: { objekt: Objekt }) {
 /* ------------------------------------------------------------------ */
 
 function DealDialog({ objekt, schliessen }: { objekt: Objekt; schliessen: () => void }) {
-  const { dealAbschliessen } = useObjekte();
+  const { objekte, dealAbschliessen } = useObjekte();
   const wohnung = istEinzelwohnung(objekt);
+  const vergeben = andereKuerzel(objekte, objekt.id);
 
   const [preis, setPreis] = useState(objekt.kaufpreis !== null ? String(objekt.kaufpreis) : "");
   const [datum, setDatum] = useState(heute());
@@ -100,6 +108,13 @@ function DealDialog({ objekt, schliessen }: { objekt: Objekt; schliessen: () => 
   );
   const [wg, setWg] = useState(String(objekt.aufteilung?.wg ?? 0));
   const [teilung, setTeilung] = useState(Boolean(objekt.teilung));
+  const [kuerzel, setKuerzel] = useState(
+    () => objekt.kuerzel ?? kuerzelVorschlag(objekt.strasse, vergeben),
+  );
+  const [gesellschaft, setGesellschaft] = useState<Gesellschaft>(
+    objekt.gesellschaft ?? STANDARD_GESELLSCHAFT,
+  );
+  const [besitz, setBesitz] = useState(objekt.besitzuebergangAm ?? "");
   const [versucht, setVersucht] = useState(false);
 
   const preisWert = zahl(preis);
@@ -109,10 +124,15 @@ function DealDialog({ objekt, schliessen }: { objekt: Objekt; schliessen: () => 
   const soll = objekt.anzahlEinheiten;
 
   const preisFehler = versucht && preisWert === null ? "Ohne Preis ist der Deal nicht belegt." : "";
+  const kuerzelProblem = !KUERZEL_MUSTER.test(kuerzel)
+    ? "2 bis 12 Zeichen, nur Großbuchstaben und Ziffern."
+    : vergeben.includes(kuerzel)
+      ? `${kuerzel} ist schon vergeben.`
+      : "";
 
   function bestaetigen() {
     setVersucht(true);
-    if (preisWert === null) return;
+    if (preisWert === null || kuerzelProblem) return;
     dealAbschliessen(objekt.id, {
       preis: preisWert,
       datum,
@@ -121,6 +141,9 @@ function DealDialog({ objekt, schliessen }: { objekt: Objekt; schliessen: () => 
       aufteilung: wohnung ? null : { etw: etwWert, wg: wgWert },
       teilungStarten: teilung,
       notar: notar.trim() || null,
+      kuerzel,
+      gesellschaft,
+      besitzuebergangAm: besitz || null,
     });
     schliessen();
   }
@@ -168,6 +191,47 @@ function DealDialog({ objekt, schliessen }: { objekt: Objekt; schliessen: () => 
           platzhalter="Notariat Dr. Winterberg, Ulm"
           breit
         />
+      </div>
+
+      {/* ----- Ablage ----- */}
+      <div className="mt-7 border-t border-linie pt-6">
+        <div className="mini-label">Ablage</div>
+        <div className="mt-4 grid gap-6 sm:grid-cols-2">
+          <Textfeld
+            id="deal-kuerzel"
+            label="Objektkürzel"
+            wert={kuerzel}
+            setWert={(v) => setKuerzel(kuerzelSaeubern(v))}
+            pflicht
+            fehler={versucht ? kuerzelProblem : ""}
+            hinweis="Schlüssel für Drive-Dateinamen und Qonto-Label."
+          />
+          <Auswahlfeld
+            id="deal-gesellschaft"
+            label="Gesellschaft"
+            wert={gesellschaft}
+            setWert={setGesellschaft}
+            optionen={Object.entries(GESELLSCHAFTEN).map(([wert, titel]) => ({
+              wert: wert as Gesellschaft,
+              titel,
+            }))}
+          />
+          <div>
+            <label htmlFor="deal-besitz" className="mini-label block">
+              Besitzübergang am
+            </label>
+            <input
+              id="deal-besitz"
+              type="date"
+              value={besitz}
+              onChange={(e) => setBesitz(e.target.value)}
+              className="zahl mt-2 w-full rounded-xl border border-linie bg-flaeche px-3 py-2.5 text-[0.82rem] text-tinte focus:border-linie-stark focus:outline-none"
+            />
+            <p className="mt-1.5 text-[0.62rem] leading-relaxed text-grau">
+              Kann später nachgetragen werden.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* ----- Verwertung ----- */}

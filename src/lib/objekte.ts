@@ -665,8 +665,23 @@ export interface Objekt {
    */
   aufteilung?: Aufteilung | null;
 
-  /** Wann der Deal zustande kam. Null, solange nicht gekauft. */
+  /** Wann der Deal beurkundet wurde. Null, solange nicht gekauft. */
   angekauftAm?: string | null;
+  /**
+   * Übergang von Besitz, Nutzen und Lasten — meist Wochen nach der
+   * Beurkundung, wenn der Kaufpreis bezahlt ist. Ab hier laufen Ummeldungen.
+   */
+  besitzuebergangAm?: string | null;
+
+  /**
+   * Objektkürzel wie „RAV134“: Schlüssel für Drive-Dateinamen und Qonto-Labels.
+   * Pflicht ab „Angekauft“ und eindeutig über alle Objekte (siehe `kuerzelVorschlag`).
+   */
+  kuerzel?: string | null;
+  /** Welche Gesellschaft kauft. Optional, damit gespeicherte Bestände gültig bleiben. */
+  gesellschaft?: Gesellschaft | null;
+  /** Link zum Objektordner im Google Drive. */
+  driveOrdnerUrl?: string | null;
   /**
    * Warum kein Deal zustande kam. Bleibt stehen, denn Objekte in Ulm kommen
    * ein zweites Mal — und dann ist die alte Begründung die erste Frage.
@@ -695,6 +710,64 @@ export interface Objekt {
   angelegtAm: string;
   /** Revest verspricht öffentlich eine verbindliche Prüfung in 48 Stunden. */
   fristBis: string | null;
+}
+
+/* ------------------------------------------------------------------ */
+/* Gesellschaft und Kürzel                                              */
+/* ------------------------------------------------------------------ */
+
+export type Gesellschaft = "revest_projekt" | "revest_asset" | "gt_projekt";
+
+export const GESELLSCHAFTEN: Record<Gesellschaft, string> = {
+  revest_projekt: "Revest Projekt GmbH",
+  revest_asset: "Revest Asset GmbH",
+  gt_projekt: "GT Projekt GmbH",
+};
+
+export const STANDARD_GESELLSCHAFT: Gesellschaft = "revest_projekt";
+
+/** Erlaubte Form: Großbuchstaben und Ziffern, 2 bis 12 Zeichen. */
+export const KUERZEL_MUSTER = /^[A-Z0-9]{2,12}$/;
+
+/** Eingabe in Kürzelform bringen: groß, ohne Umlautpunkte, nur A–Z und 0–9. */
+export function kuerzelSaeubern(roh: string): string {
+  return roh
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ß/g, "SS")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
+}
+
+/**
+ * Vorschlag aus Straße und Hausnummer: „Ravensburger Straße 134“ → „RAV134“.
+ * Ist er schon vergeben, kommt ein Buchstabe dazu („RAV134B“) — das Kürzel
+ * muss eindeutig sein, sonst landen zwei Objekte im selben Qonto-Label.
+ */
+export function kuerzelVorschlag(strasse: string, vergeben: Iterable<string>): string {
+  const belegt = new Set(Array.from(vergeben, (k) => k.toUpperCase()));
+  const nummer = strasse.match(/\d+\s*[a-zA-Z]?\s*$/)?.[0] ?? "";
+  const name = strasse.slice(0, strasse.length - nummer.length);
+  const basis = (kuerzelSaeubern(name).slice(0, 3) || "OBJ") + kuerzelSaeubern(nummer);
+  if (!belegt.has(basis)) return basis;
+  for (const zusatz of "BCDEFGHIJKLMNOPQRSTUVWXYZ") {
+    if (!belegt.has(basis + zusatz)) return basis + zusatz;
+  }
+  return basis + belegt.size;
+}
+
+/** Alle Kürzel außer dem des Objekts selbst — für Eindeutigkeit beim Bearbeiten. */
+export function andereKuerzel(objekte: Objekt[], eigeneId: string | null): string[] {
+  return objekte.flatMap((o) => (o.id !== eigeneId && o.kuerzel ? [o.kuerzel] : []));
+}
+
+/**
+ * Name des Objektordners nach Drive-Konvention: „JJJJ-MM_Ort_Straße Nr“.
+ * Der Monat ist der Ankauf, ersatzweise die Anlage.
+ */
+export function driveOrdnerName(o: Objekt): string {
+  const monat = (o.angekauftAm ?? o.angelegtAm).slice(0, 7);
+  return `${monat}_${o.stadt}_${o.strasse}`;
 }
 
 /* ------------------------------------------------------------------ */

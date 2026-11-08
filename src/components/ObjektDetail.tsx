@@ -10,7 +10,9 @@ import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
   ArrowUpRight,
+  Check,
   ChevronDown,
+  Copy,
   Crosshair,
   Hammer,
   Lock,
@@ -28,6 +30,8 @@ import {
   ANGEBOTSARTEN,
   ANGEBOTSERGEBNISSE,
   BUNDESLAND_NAMEN,
+  GESELLSCHAFTEN,
+  driveOrdnerName,
   EINHEITSSTATUS,
   GEWERKE,
   GEWERKSTATUS,
@@ -182,6 +186,7 @@ export function ObjektDetail({
       <div className="border-b border-linie px-6 py-7 md:px-9">
         <div className="flex flex-wrap items-center gap-2">
           <Stufenzeichen stufe={objekt.stufe} gross />
+          {objekt.kuerzel && <Marke>{objekt.kuerzel}</Marke>}
           <Fristzeichen objekt={objekt} />
           {objekt.denkmalschutz && <Marke>Denkmal</Marke>}
           {objekt.erbbaurecht && <Marke>Erbbaurecht</Marke>}
@@ -398,6 +403,37 @@ function Uebersicht({
       {/* Die Beteiligten stehen im Reiter „Kontakt“, wo sie auch bearbeitet
           werden. Hier bleibt nur der Name als Orientierung — zwei Orte für
           dieselbe Telefonnummer wären einer zu viel. */}
+      {/* Erst ab dem Ankauf von Belang — vorher gibt es kein Kürzel und keinen Ordner. */}
+      {(objekt.stufe === "angekauft" || objekt.kuerzel) && (
+        <Block titel="Ablage">
+          <Reihe titel="Kürzel" wert={objekt.kuerzel ?? "—"} stark />
+          <Reihe
+            titel="Gesellschaft"
+            wert={objekt.gesellschaft ? GESELLSCHAFTEN[objekt.gesellschaft] : "nicht hinterlegt"}
+          />
+          <Reihe titel="Beurkundet" wert={objekt.angekauftAm ? f.datum(objekt.angekauftAm) : "—"} />
+          <Reihe titel="Besitzübergang" wert={objekt.besitzuebergangAm ? f.datum(objekt.besitzuebergangAm) : "offen"} />
+          <div className="flex items-baseline justify-between gap-4 py-2">
+            <dt className="text-[0.76rem] text-grau">Drive-Ordner</dt>
+            <dd className="text-[0.82rem]">
+              {objekt.driveOrdnerUrl ? (
+                <a
+                  href={objekt.driveOrdnerUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-tinte underline-offset-2 hover:underline"
+                >
+                  Öffnen
+                  <ArrowUpRight size={12} strokeWidth={2} />
+                </a>
+              ) : (
+                <span className="text-grau-stark">nicht verknüpft</span>
+              )}
+            </dd>
+          </div>
+        </Block>
+      )}
+
       <Block titel="Herkunft">
         <Reihe titel="Eigentümer" wert={eigentuemerVon(objekt)?.name ?? "nicht hinterlegt"} />
         <Reihe titel="Quelle" wert={objekt.quelle ?? "—"} />
@@ -1076,9 +1112,49 @@ function Garantiezeile({
 
 function Dokumente({ objekt }: { objekt: Objekt }) {
   const { dokumenteAnhaengen, dokumentLoeschen } = useObjekte();
+  const ordnerName = driveOrdnerName(objekt);
+  const [kopiert, setKopiert] = useState(false);
+
+  async function kopieren() {
+    try {
+      await navigator.clipboard.writeText(ordnerName);
+      setKopiert(true);
+      setTimeout(() => setKopiert(false), 1600);
+    } catch {
+      // Ohne Zwischenablage-Recht bleibt der Name zum Abschreiben stehen.
+    }
+  }
 
   return (
     <div>
+      {/* Brücke zum Drive: der Ordnername nach Konvention zum Kopieren, und
+          sobald der Ordner verknüpft ist, der direkte Weg dorthin. */}
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-linie bg-flaeche px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <div className="mini-label">Objektordner im Drive</div>
+          <div className="zahl mt-1 truncate text-[0.76rem] text-grau-stark">{ordnerName}</div>
+        </div>
+        <button
+          type="button"
+          onClick={kopieren}
+          aria-label="Ordnernamen kopieren"
+          title="Ordnernamen kopieren"
+          className="druckbar flex size-8 shrink-0 items-center justify-center rounded-full text-grau hover:text-tinte"
+        >
+          {kopiert ? <Check size={14} strokeWidth={2} /> : <Copy size={14} strokeWidth={1.75} />}
+        </button>
+        {objekt.driveOrdnerUrl && (
+          <a
+            href={objekt.driveOrdnerUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="druckbar flex items-center gap-1.5 rounded-full border border-linie-stark px-3.5 py-2 text-[0.66rem] font-medium tracking-[0.1em] uppercase text-tinte"
+          >
+            Im Drive öffnen
+            <ArrowUpRight size={12} strokeWidth={2} />
+          </a>
+        )}
+      </div>
       <Dokumentenablage
         dokumente={objekt.dokumente}
         onHochladen={(neue) => dokumenteAnhaengen(objekt.id, neue)}

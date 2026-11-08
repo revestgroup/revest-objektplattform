@@ -137,7 +137,15 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
       if (!begriff) return true;
       // Auch über die Kontakte: „Albrecht“ findet das Objekt, von dem man nur
       // noch weiß, dass der Makler so hieß.
-      return [o.strasse, o.stadtteil, o.stadt, o.plz, o.quelle ?? "", kontakteAlsText(o)]
+      return [
+        o.kuerzel ?? "",
+        o.strasse,
+        o.stadtteil,
+        o.stadt,
+        o.plz,
+        o.quelle ?? "",
+        kontakteAlsText(o),
+      ]
         .join(" ")
         .toLowerCase()
         .includes(begriff);

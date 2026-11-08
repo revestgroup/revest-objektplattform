@@ -17,12 +17,13 @@ import type {
   Aufteilung,
   Dokument,
   Einheit,
+  Gesellschaft,
   Objekt,
   Teilungserklaerung,
   Verkaufsplan,
   Verlaufseintrag,
 } from "./objekte";
-import { TEILUNGSSTATUS, f, ordnerUmziehen } from "./objekte";
+import { TEILUNGSSTATUS, andereKuerzel, f, kuerzelVorschlag, ordnerUmziehen } from "./objekte";
 import { MOCK_OBJEKTE } from "./mockDaten";
 
 /**
@@ -35,13 +36,23 @@ const SPEICHER = "revest.objekte.v6";
 /**
  * Gespeicherte Stände an die aktuelle Form anpassen, statt sie über eine neue
  * Version zu verwerfen: Dokumente aus der alten flachen Ablage ziehen in die
- * Drive-Ordner um.
+ * Drive-Ordner um, und gekaufte Objekte ohne Kürzel bekommen den Vorschlag —
+ * ab „Angekauft“ ist es Pflicht.
  */
 function ausSpeicher(objekte: Objekt[]): Objekt[] {
-  return objekte.map((o) => ({
-    ...o,
-    dokumente: (o.dokumente ?? []).map((d) => ({ ...d, ordner: ordnerUmziehen(d.ordner) })),
-  }));
+  const vergeben = objekte.flatMap((o) => (o.kuerzel ? [o.kuerzel] : []));
+  return objekte.map((o) => {
+    let kuerzel = o.kuerzel ?? null;
+    if (!kuerzel && o.stufe === "angekauft") {
+      kuerzel = kuerzelVorschlag(o.strasse, vergeben);
+      vergeben.push(kuerzel);
+    }
+    return {
+      ...o,
+      kuerzel,
+      dokumente: (o.dokumente ?? []).map((d) => ({ ...d, ordner: ordnerUmziehen(d.ordner) })),
+    };
+  });
 }
 
 /** Felder, die einen Reload nicht überleben, werden vor dem Speichern geleert. */
@@ -78,6 +89,11 @@ export interface Dealabschluss {
   /** Haken gesetzt heißt: die Teilungserklärung läuft an, der Reiter wird nutzbar. */
   teilungStarten: boolean;
   notar: string | null;
+  /** Pflicht ab hier — der Dialog füllt den Vorschlag vor. */
+  kuerzel: string;
+  gesellschaft: Gesellschaft;
+  /** Steht beim Deal oft noch nicht fest. */
+  besitzuebergangAm: string | null;
 }
 
 /**
@@ -204,15 +220,24 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
 
       loeschen: (id) => setObjekte((alt) => alt.filter((o) => o.id !== id)),
 
+      // Ab „Angekauft“ ist das Kürzel Pflicht. Wer per Drag & Drop oder
+      // Stufenknopf dorthin springt, statt den Deal-Dialog zu nehmen, bekommt
+      // den Vorschlag automatisch — ein gekauftes Objekt ohne Kürzel hätte
+      // kein Qonto-Label und keinen Dateinamen.
       stufeSetzen: (id, stufe) =>
-        mutieren(id, (o) =>
-          o.stufe === stufe
-            ? o
-            : {
-                ...o,
-                stufe,
-                verlauf: [...o.verlauf, eintrag("status", `Stufe auf ${stufe} gesetzt`)],
-              },
+        setObjekte((alle) =>
+          alle.map((o) => {
+            if (o.id !== id || o.stufe === stufe) return o;
+            const verlauf = [...o.verlauf, eintrag("status", `Stufe auf ${stufe} gesetzt`)];
+            if (stufe !== "angekauft" || o.kuerzel) return { ...o, stufe, verlauf };
+            const kuerzel = kuerzelVorschlag(o.strasse, andereKuerzel(alle, o.id));
+            return {
+              ...o,
+              stufe,
+              kuerzel,
+              verlauf: [...verlauf, eintrag("notiz", `Kürzel ${kuerzel} vergeben`)],
+            };
+          }),
         ),
 
       // Ein Deal schreibt an fünf Stellen gleichzeitig: Stufe, Datum, Preis,
@@ -226,11 +251,15 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
             `Deal: angekauft${preis !== null ? ` für ${f.eur(preis)}` : ""}, beurkundet am ${f.datum(a.datum)}`,
           ];
           if (a.teilungStarten) texte.push("Teilungserklärung angestoßen");
+          if (a.kuerzel !== o.kuerzel) texte.push(`Kürzel ${a.kuerzel} vergeben`);
 
           return {
             ...o,
             stufe: "angekauft",
             angekauftAm: a.datum,
+            besitzuebergangAm: a.besitzuebergangAm ?? o.besitzuebergangAm ?? null,
+            kuerzel: a.kuerzel,
+            gesellschaft: a.gesellschaft,
             kaufpreis: preis,
             // Die Frist war die Zusage an den Verkäufer. Sie ist eingelöst.
             fristBis: null,
