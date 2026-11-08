@@ -14,6 +14,7 @@ import { useState } from "react";
 
 import { Seitenkopf } from "../components/AppLayout";
 import { Regler } from "../components/Felder";
+import { KalkulationsVorgaben } from "../components/KalkulationEtw";
 import { useAuth } from "../lib/auth";
 import { GRUPPEN } from "../lib/einstellungen";
 import { useEinstellungen } from "../lib/einstellungenStore";
@@ -94,6 +95,16 @@ function EinstellungenSeite() {
             </div>
           </section>
         ))}
+
+        {/* ----- Kalkulation ----- */}
+        <section className="px-4 py-7 sm:px-6 md:px-10 md:py-10">
+          <h2 className="mini-label">Kalkulation ETW</h2>
+          <p className="mt-2 max-w-2xl text-[0.7rem] leading-relaxed text-grau">
+            Standardwerte für jede neue Kalkulation. Ein Objekt, das einen Wert selbst überschreibt,
+            behält ihn. Leere Felder rechnen mit der Vorlage aus Timos Excel.
+          </p>
+          <KalkulationsVorgaben />
+        </section>
 
         {/* ----- Region ----- */}
         <section className="px-4 py-7 sm:px-6 md:px-10 md:py-10">

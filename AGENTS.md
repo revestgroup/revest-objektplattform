@@ -37,6 +37,14 @@ bis 1240 px. Die Übersicht eines Objekts steht ab `lg:` in drei Spalten (Kontak
 Notizen, Steckbrief + Kalkulation), darunter untereinander. Das geöffnete Objekt steht in der
 Adresse (`?objekt=`), damit Zurück, Neuladen und Links funktionieren.
 
+## Kalkulation ETW
+
+Vorgabe ist `KALKULATION_ETW.md` (Timos Excel). Der Rechenkern steht in
+`src/lib/kalkulationEtw.ts` und rechnet ungerundet; gerundet wird nur in der Anzeige.
+`src/lib/kalkulationEtw.test.ts` prüft die Werte aus Abschnitt 3 der Vorgabe —
+nach jeder Änderung an der Rechnung `bun run test` laufen lassen. Standardwerte und
+Katalogpreise liegen in den Einstellungen, Abweichungen je Objekt in `kalkulationEtw`.
+
 ## Anlegemaske
 
 Offen stehen nur Lage, Objekt, Preis und Miete, Bilder, Notiz. Alles weitere liegt in

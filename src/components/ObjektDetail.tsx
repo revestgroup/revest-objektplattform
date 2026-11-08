@@ -59,6 +59,8 @@ import {
   type Sanierungsposten,
 } from "../lib/objekte";
 import { useAufgaben } from "../lib/aufgabenStore";
+import { useEinstellungen } from "../lib/einstellungenStore";
+import { SZENARIEN, SZENARIO_TITEL, berechneEtw, etwEingabe } from "../lib/kalkulationEtw";
 import { useObjekte } from "../lib/objekteStore";
 import { cn } from "../lib/utils";
 import { berechneGarantie } from "../lib/vermietung";
@@ -72,6 +74,7 @@ import { Fristzeichen, Stufenzeichen } from "./Stufe";
 import { Teilung, TeilungAnstossen } from "./Teilung";
 import { Ruecknahmedialog, Verkaufsdialog } from "./Verkaufsdialog";
 import { Verkaufsplanung } from "./Verkaufsplanung";
+import { KalkulationEtwBlatt } from "./KalkulationEtw";
 
 type Reiter =
   | "uebersicht"
@@ -318,13 +321,57 @@ export function ObjektDetail({
         )}
         {sichtbar === "aufgaben" && <Objektaufgaben objekt={objekt} />}
         {sichtbar === "kontakt" && <Kontaktblatt objekt={objekt} />}
-        {sichtbar === "verkauf" && <Verkaufsplanung objekt={objekt} />}
+        {sichtbar === "verkauf" &&
+          (projekt ? <Verkaufsplanung objekt={objekt} /> : <Kalkulation objekt={objekt} />)}
         {sichtbar === "teilung" && <Teilung objekt={objekt} />}
         {sichtbar === "sanierung" && <Sanierung objekt={objekt} kennzahlen={k} />}
         {sichtbar === "kosten" && <Kosten objekt={objekt} kennzahlen={k} />}
         {sichtbar === "einheiten" && <Einheiten objekt={objekt} />}
         {sichtbar === "dokumente" && <Dokumente objekt={objekt} projekt={projekt} />}
         {sichtbar === "verlauf" && <Verlauf objekt={objekt} />}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Im Ankauf: bei Eigentumswohnungen Timos Excel-Kalkulation, bei allen
+ * anderen vorerst die bisherige Verkaufsplanung — die MFH-Kalkulation folgt.
+ * Die Verkaufsplanung bleibt auch bei ETW erreichbar, zugeklappt darunter:
+ * dort steht etwa die WG-Planung, die sonst verloren wäre.
+ */
+function Kalkulation({ objekt }: { objekt: Objekt }) {
+  const [planOffen, setPlanOffen] = useState(false);
+
+  if (objekt.objektart !== "etw") {
+    return (
+      <div>
+        <p className="mx-6 mt-6 rounded-xl border border-linie bg-flaeche-hoch px-3.5 py-2.5 text-[0.74rem] text-grau-stark md:mx-9">
+          MFH-Kalkulation folgt. Bis dahin rechnet hier die bisherige Verkaufsplanung.
+        </p>
+        <Verkaufsplanung objekt={objekt} />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <KalkulationEtwBlatt objekt={objekt} />
+      <div className="border-t border-linie">
+        <button
+          type="button"
+          onClick={() => setPlanOffen((o) => !o)}
+          aria-expanded={planOffen}
+          className="druckbar flex w-full items-center gap-3 px-6 py-5 text-left md:px-9"
+        >
+          <ChevronDown
+            size={14}
+            strokeWidth={2}
+            className={cn("shrink-0 text-grau transition-transform duration-200", !planOffen && "-rotate-90")}
+          />
+          <span className="mini-label">Bisherige Verkaufsplanung</span>
+        </button>
+        {planOffen && <Verkaufsplanung objekt={objekt} />}
       </div>
     </div>
   );
@@ -596,6 +643,12 @@ function SteckbriefSpalte({
 }) {
   const k = kennzahlen;
   const plan = berechneVerkaufsplan(objekt, k);
+  const { vorgaben } = useEinstellungen();
+  // Bei ETW die Excel-Kalkulation, sobald sie gerechnet werden kann.
+  const etw =
+    objekt.objektart === "etw" && objekt.stufe !== "angekauft"
+      ? berechneEtw(etwEingabe(objekt, vorgaben))
+      : null;
   const ruecklage = objekt.instandhaltungsruecklage;
 
   return (
@@ -627,17 +680,56 @@ function SteckbriefSpalte({
       </dl>
 
       <div className="mini-label mt-8">Kalkulation</div>
-      <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-5">
-        <GrossZahl titel="Kaufpreis" wert={f.eurKurz(objekt.kaufpreis)} />
-        <GrossZahl titel="Gesamtinvestition" wert={f.eurKurz(plan.gesamtkosten ?? k.gesamtinvestition)} />
-        <GrossZahl titel="Gewinn" wert={f.eurKurz(plan.rohgewinn)} />
-        <GrossZahl titel="Gewinn %" wert={f.prozent(plan.margeProzent)} />
-      </div>
-      {/* Worst/Mid/Best kommen mit der ETW-Kalkulation (2c-3). Bis dahin steht
-          hier die eine Rechnung aus der Verkaufsplanung. */}
-      <p className="mt-3 text-[0.64rem] leading-relaxed text-grau">
-        Aus der Verkaufsplanung. Worst / Mid / Best folgen mit der ETW-Kalkulation.
-      </p>
+      {etw ? (
+        <>
+          <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-5">
+            <GrossZahl titel="Kaufpreis" wert={f.eurKurz(objekt.kaufpreis)} />
+            <GrossZahl titel="Gesamtinvestition" wert={f.eurKurz(etw.szenarien.mid.gesamtinvestition)} />
+          </div>
+          <table className="zahl mt-4 w-full text-[0.74rem]">
+            <thead>
+              <tr>
+                <th />
+                {SZENARIEN.map((sz) => (
+                  <th key={sz} className="pb-1.5 text-right">
+                    <span className="mini-label">{SZENARIO_TITEL[sz]}</span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="py-1 text-grau">Gewinn</td>
+                {SZENARIEN.map((sz) => (
+                  <td key={sz} className="py-1 text-right font-semibold text-tinte">
+                    {f.eurKurz(etw.szenarien[sz].gewinn)}
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <td className="py-1 text-grau">Gewinn %</td>
+                {SZENARIEN.map((sz) => (
+                  <td key={sz} className="py-1 text-right text-grau-stark">
+                    {f.prozent(etw.szenarien[sz].gewinnProzent)}
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </>
+      ) : (
+        <>
+          <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-5">
+            <GrossZahl titel="Kaufpreis" wert={f.eurKurz(objekt.kaufpreis)} />
+            <GrossZahl titel="Gesamtinvestition" wert={f.eurKurz(plan.gesamtkosten ?? k.gesamtinvestition)} />
+            <GrossZahl titel="Gewinn" wert={f.eurKurz(plan.rohgewinn)} />
+            <GrossZahl titel="Gewinn %" wert={f.prozent(plan.margeProzent)} />
+          </div>
+          <p className="mt-3 text-[0.64rem] leading-relaxed text-grau">
+            Aus der Verkaufsplanung. Die MFH-Kalkulation folgt.
+          </p>
+        </>
+      )}
       <button
         type="button"
         onClick={() => zuReiter("verkauf")}

@@ -9,8 +9,11 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from "react";
 
 import { STANDARD, type Einstellungen, type Schluessel } from "./einstellungen";
+import { STANDARD_VORGABEN, type EtwVorgaben } from "./kalkulationEtw";
 
 const SPEICHER = "revest.einstellungen.v1";
+/** Eigener Schlüssel: Zahlen statt Schalter, und ein Zurücksetzen der Schalter soll sie nicht treffen. */
+const SPEICHER_VORGABEN = "revest.kalkulationsvorgaben.v1";
 
 interface StoreWert {
   einstellungen: Einstellungen;
@@ -18,23 +21,44 @@ interface StoreWert {
   setzen: (schluessel: Schluessel, wert: boolean) => void;
   umschalten: (schluessel: Schluessel) => void;
   zuruecksetzen: () => void;
+  /** Standardwerte der ETW-Kalkulation. */
+  vorgaben: EtwVorgaben;
+  vorgabenSetzen: (teil: Partial<Omit<EtwVorgaben, "preise">>) => void;
+  /** Null nimmt den Katalogpreis zurück. */
+  preisSetzen: (id: string, preis: number | null) => void;
+  vorgabenZuruecksetzen: () => void;
 }
 
 const Kontext = createContext<StoreWert | null>(null);
 
 export function EinstellungenProvider({ children }: { children: ReactNode }) {
   const [einstellungen, setEinstellungen] = useState<Einstellungen>(STANDARD);
+  const [vorgaben, setVorgaben] = useState<EtwVorgaben>(STANDARD_VORGABEN);
   const [bereit, setBereit] = useState(false);
 
   useEffect(() => {
     try {
       const roh = localStorage.getItem(SPEICHER);
       if (roh) setEinstellungen({ ...STANDARD, ...(JSON.parse(roh) as Partial<Einstellungen>) });
+      const rohV = localStorage.getItem(SPEICHER_VORGABEN);
+      if (rohV) {
+        const v = JSON.parse(rohV) as Partial<EtwVorgaben>;
+        setVorgaben({ ...STANDARD_VORGABEN, ...v, preise: { ...(v.preise ?? {}) } });
+      }
     } catch {
       // Beschädigter Stand: mit den Standardwerten weiterarbeiten.
     }
     setBereit(true);
   }, []);
+
+  useEffect(() => {
+    if (!bereit) return;
+    try {
+      localStorage.setItem(SPEICHER_VORGABEN, JSON.stringify(vorgaben));
+    } catch {
+      // siehe unten
+    }
+  }, [vorgaben, bereit]);
 
   useEffect(() => {
     if (!bereit) return;
@@ -59,8 +83,18 @@ export function EinstellungenProvider({ children }: { children: ReactNode }) {
       umschalten: (schluessel) =>
         setEinstellungen((alt) => ({ ...alt, [schluessel]: !alt[schluessel] })),
       zuruecksetzen: () => setEinstellungen(STANDARD),
+      vorgaben,
+      vorgabenSetzen: (teil) => setVorgaben((alt) => ({ ...alt, ...teil })),
+      preisSetzen: (id, preis) =>
+        setVorgaben((alt) => {
+          const preise = { ...alt.preise };
+          if (preis === null) delete preise[id];
+          else preise[id] = preis;
+          return { ...alt, preise };
+        }),
+      vorgabenZuruecksetzen: () => setVorgaben(STANDARD_VORGABEN),
     }),
-    [einstellungen, bereit, setzen],
+    [einstellungen, vorgaben, bereit, setzen],
   );
 
   return <Kontext.Provider value={wert}>{children}</Kontext.Provider>;

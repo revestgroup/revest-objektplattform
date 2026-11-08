@@ -6,6 +6,8 @@
  *   2. Vertrieb — auf Ebene der EINHEIT, entsteht erst nach dem Ankauf
  */
 
+import type { EtwKalkulation } from "./kalkulationEtw";
+
 export type Ankaufsstufe =
   | "neu"
   | "unterlagen"
@@ -827,6 +829,8 @@ export interface Objekt {
    * Objekt noch keine Planung hat.
    */
   verkaufsplan?: Verkaufsplan | null;
+  /** Kalkulation nach Timos Excel (nur ETW). Siehe `kalkulationEtw.ts`. */
+  kalkulationEtw?: EtwKalkulation | null;
   angebote: Angebot[];
   sanierung: Sanierungsposten[];
   verlauf: Verlaufseintrag[];
