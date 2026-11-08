@@ -41,7 +41,7 @@ fest (sticky), nur der Inhalt scrollt. Die Übersicht steht ab `lg:` in drei Spa
 
 Vorgabe ist `docs/planung/KALKULATION_ETW.md` (Timos Excel). Der Rechenkern steht in
 `src/lib/kalkulationEtw.ts` und rechnet ungerundet; gerundet wird nur in der Anzeige.
-`src/lib/kalkulationEtw.test.ts` prüft die Werte aus Abschnitt 3 der Vorgabe —
+`src/lib/kalkulationEtw.test.ts` prüft die Werte aus Abschnitt 3 der Vorgabe. Stellplatz/Garage steht je Szenario, zählt zum Gesamtverkaufspreis (Vermarktung, Gewinn), nicht zum €/m² —
 nach jeder Änderung an der Rechnung `bun run test` laufen lassen. Standardwerte und
 Katalogpreise liegen in den Einstellungen, Abweichungen je Objekt in `kalkulationEtw`.
 

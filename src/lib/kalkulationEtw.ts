@@ -650,8 +650,9 @@ export interface EtwVorgaben {
   maklerVerkaufProzent: number;
   homeStaging: number;
   /**
-   * Anteil von Stellplatz, Garage oder TG am Verkaufspreis. Wird nur für den
-   * €/m²-Wert abgezogen, damit der nur die Wohnfläche misst.
+   * Vorgabe für Stellplatz, Garage oder TG je Szenario. Kommt zum Verkaufspreis
+   * der Wohnung dazu, zählt aber nicht in den €/m²-Wert. (Schlüssel heißt aus
+   * Kompatibilität noch `abzugQm`.)
    */
   abzugQm: number;
   /** Abweichende Katalogpreise je Position-ID. Fehlt eine, gilt der Katalog. */
@@ -702,7 +703,10 @@ export interface EtwKalkulation {
   maklerVerkaufProzent?: number | null;
   homeStaging?: number | null;
   verkauf?: Partial<Record<Szenario, number | null>>;
+  /** Alt (bis 08.11.2026): ein Wert für alle Szenarien. Gilt weiter als Vorgabe. */
   abzugQm?: number | null;
+  /** Stellplatz/Garage je Szenario — zum Verkaufspreis dazu, nicht in €/m². */
+  stellplatz?: Partial<Record<Szenario, number | null>>;
   /** Menge je Position; bei Ja/Nein steht 1 für Ja. */
   katalog?: Record<string, number>;
   /** Je Objekt abweichende Preise. */
@@ -726,8 +730,10 @@ export interface EtwEingabe {
   zinsCoProzent: number;
   maklerVerkaufProzent: number;
   homeStaging: number;
+  /** Verkaufspreis der Wohnung allein — Grundlage für €/m². */
   verkauf: Record<Szenario, number | null>;
-  abzugQm: number;
+  /** Stellplatz/Garage je Szenario, kommt zum Gesamtverkaufspreis dazu. */
+  stellplatz: Record<Szenario, number>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -810,18 +816,26 @@ export function etwEingabe(o: Objekt, vorgaben: EtwVorgaben): EtwEingabe {
       mid: k.verkauf?.mid ?? null,
       best: k.verkauf?.best ?? null,
     },
-    abzugQm: k.abzugQm ?? vorgaben.abzugQm,
+    stellplatz: {
+      worst: k.stellplatz?.worst ?? k.abzugQm ?? vorgaben.abzugQm,
+      mid: k.stellplatz?.mid ?? k.abzugQm ?? vorgaben.abzugQm,
+      best: k.stellplatz?.best ?? k.abzugQm ?? vorgaben.abzugQm,
+    },
   };
 }
 
 export interface Szenarioergebnis {
+  /** Wohnung allein. */
   verkaufspreis: number | null;
+  stellplatz: number;
+  /** Wohnung + Stellplatz/Garage — damit rechnen Vermarktung und Gewinn. */
+  gesamtverkaufspreis: number | null;
   vermarktung: number;
   gesamtinvestition: number;
   gewinn: number | null;
   /** In Prozent der Gesamtinvestition. */
   gewinnProzent: number | null;
-  /** €/m² Wohnfläche: (Verkaufspreis − Abzug Stellplatz/Garage) / Wohnfläche. */
+  /** €/m² Wohnfläche: Verkaufspreis der Wohnung (ohne Stellplatz) / Wohnfläche. */
   preisJeQm: number | null;
 }
 
@@ -851,8 +865,9 @@ export function berechneEtw(e: EtwEingabe): EtwErgebnis {
   const kostenCo = ((e.coKapital * e.zinsCoProzent) / 100 / 12) * e.monate;
   const finanzierungskosten = zinsenBank + gebuehrBank + kostenCo;
 
-  const szenario = (vp: number | null): Szenarioergebnis => {
-    const vermarktung = ((vp ?? 0) * e.maklerVerkaufProzent) / 100 + e.homeStaging;
+  const szenario = (vp: number | null, stellplatz: number): Szenarioergebnis => {
+    const gesamt = vp === null ? null : vp + stellplatz;
+    const vermarktung = ((gesamt ?? 0) * e.maklerVerkaufProzent) / 100 + e.homeStaging;
     const gesamtinvestition =
       e.kaufpreis +
       ankaufsnebenkosten +
@@ -860,15 +875,17 @@ export function berechneEtw(e: EtwEingabe): EtwErgebnis {
       bewirtschaftung +
       vermarktung +
       finanzierungskosten;
-    const gewinn = vp === null ? null : vp - gesamtinvestition;
+    const gewinn = gesamt === null ? null : gesamt - gesamtinvestition;
     return {
       verkaufspreis: vp,
+      stellplatz,
+      gesamtverkaufspreis: gesamt,
       vermarktung,
       gesamtinvestition,
       gewinn,
       gewinnProzent:
         gewinn !== null && gesamtinvestition > 0 ? (gewinn / gesamtinvestition) * 100 : null,
-      preisJeQm: vp !== null && e.wohnflaeche > 0 ? (vp - e.abzugQm) / e.wohnflaeche : null,
+      preisJeQm: vp !== null && e.wohnflaeche > 0 ? vp / e.wohnflaeche : null,
     };
   };
 
@@ -884,9 +901,9 @@ export function berechneEtw(e: EtwEingabe): EtwErgebnis {
     kostenCo,
     finanzierungskosten,
     szenarien: {
-      worst: szenario(e.verkauf.worst),
-      mid: szenario(e.verkauf.mid),
-      best: szenario(e.verkauf.best),
+      worst: szenario(e.verkauf.worst, e.stellplatz.worst),
+      mid: szenario(e.verkauf.mid, e.stellplatz.mid),
+      best: szenario(e.verkauf.best, e.stellplatz.best),
     },
   };
 }

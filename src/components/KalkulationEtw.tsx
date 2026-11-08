@@ -284,11 +284,11 @@ export function KalkulationEtwBlatt({ objekt }: { objekt: Objekt }) {
     vorgaben.maklerVerkaufProzent,
   );
   const staging = vorgabe("homeStaging", "Home Staging", "betrag", vorgaben.homeStaging);
-  const abzug = vorgabe("abzugQm", "Abzug Stellplatz / Garage", "betrag", vorgaben.abzugQm);
-
-  // Stellplatz im Steckbrief, aber nichts abgezogen: dann misst der €/m²-Wert
-  // auch die Garage mit.
-  const stellplatzOhneAbzug = !!objekt.stellplatz?.trim() && eingabe.abzugQm === 0;
+  // Stellplatz im Steckbrief, aber in keinem Szenario ein Betrag: dann fehlt
+  // er im Gesamtverkaufspreis.
+  const stellplatzFehlt =
+    !!objekt.stellplatz?.trim() && SZENARIEN.every((s) => eingabe.stellplatz[s] === 0);
+  const stellplatzVorgabe = kalk.abzugQm ?? vorgaben.abzugQm;
 
   const gut = (v: number | null) =>
     v === null ? "text-grau" : v >= 0 ? "text-[#0C5E3A]" : "text-[#9A2727]";
@@ -462,30 +462,43 @@ export function KalkulationEtwBlatt({ objekt }: { objekt: Objekt }) {
             </div>
             <div className="grid min-h-[30px] grid-cols-[31%_23%_23%_23%] items-center border-b border-linie text-[0.8rem]">
               <div
-                title="Anteil Stellplatz, Garage oder TG am Verkaufspreis, damit der €/m²-Wert nur die Wohnfläche misst"
+                title="Stellplatz, Garage oder TG — kommt zum Verkaufspreis dazu, zählt aber nicht in den €/m²-Wert"
                 className="truncate px-2.5 text-grau-stark"
               >
-                Abzug Stellplatz / Garage €
+                Stellplatz / Garage €
               </div>
-              <div className="flex items-center gap-1 px-2.5">
-                {abzug.feld}
-                {abzug.ueberschrieben && (
-                  <button
-                    type="button"
-                    onClick={abzug.zuruecksetzen}
-                    title="Vorgabe wiederherstellen"
-                    className="druckbar text-grau hover:text-tinte"
-                  >
-                    <RotateCcw size={10} strokeWidth={2} />
-                  </button>
-                )}
+              {SZENARIEN.map((s) => (
+                <div key={s} className="px-2.5">
+                  <Eingabe
+                    label={`Stellplatz / Garage ${SZENARIO_TITEL[s]}`}
+                    art="betrag"
+                    wert={kalk.stellplatz?.[s] ?? null}
+                    vorgabe={stellplatzVorgabe}
+                    setWert={(v) => setze({ stellplatz: { ...kalk.stellplatz, [s]: v } })}
+                  />
+                </div>
+              ))}
+            </div>
+            {stellplatzFehlt && (
+              <div className="border-b border-linie px-2.5 py-1 text-[0.64rem] text-[#8A5608]">
+                Steckbrief: „{objekt.stellplatz}“ — Stellplatz/Garage eintragen
               </div>
-              <div className="col-span-2 px-2.5 text-[0.64rem] text-[#8A5608]">
-                {stellplatzOhneAbzug && `Steckbrief: „${objekt.stellplatz}“ — Abzug prüfen`}
-              </div>
+            )}
+            <div className="grid min-h-[30px] grid-cols-[31%_23%_23%_23%] items-center border-b border-linie text-[0.8rem]">
+              <div className="truncate px-2.5 font-semibold text-tinte">Gesamtverkaufspreis €</div>
+              {SZENARIEN.map((s) => (
+                <div key={s} className="zahl px-2.5 text-right font-semibold text-tinte">
+                  {f.eur(e.szenarien[s].gesamtverkaufspreis)}
+                </div>
+              ))}
             </div>
             <div className="grid min-h-[30px] grid-cols-[31%_23%_23%_23%] items-center text-[0.8rem]">
-              <div className="truncate px-2.5 text-grau-stark">€/m² Wohnfläche</div>
+              <div
+                title="Verkaufspreis der Wohnung ohne Stellplatz/Garage, geteilt durch die Wohnfläche"
+                className="truncate px-2.5 text-grau-stark"
+              >
+                €/m² Wohnfläche
+              </div>
               {SZENARIEN.map((s) => (
                 <div key={s} className="zahl px-2.5 text-right text-tinte">
                   {f.eur(e.szenarien[s].preisJeQm)}
@@ -493,7 +506,6 @@ export function KalkulationEtwBlatt({ objekt }: { objekt: Objekt }) {
               ))}
             </div>
           </Karte>
-
         </div>
 
         {/* ----- Ergebnis rechts, bleibt beim Scrollen stehen ----- */}
@@ -517,7 +529,7 @@ export function KalkulationEtwBlatt({ objekt }: { objekt: Objekt }) {
                 ["Vermarktung", (s) => e.szenarien[s].vermarktung],
                 ["Finanzierung", () => e.finanzierungskosten],
                 ["Gesamtinvestition", (s) => e.szenarien[s].gesamtinvestition, "summe"],
-                ["Verkaufspreis", (s) => e.szenarien[s].verkaufspreis],
+                ["Verkaufspreis gesamt", (s) => e.szenarien[s].gesamtverkaufspreis],
                 ["Gewinn vor Steuer", (s) => e.szenarien[s].gewinn, "gewinn"],
               ] as [
                 string,
@@ -585,7 +597,7 @@ export function KalkulationEtwBlatt({ objekt }: { objekt: Objekt }) {
                 ["Vermarktung", e.szenarien.mid.vermarktung],
                 ["Finanzierung", e.finanzierungskosten],
                 ["Gesamtinvestition", e.szenarien.mid.gesamtinvestition, true],
-                ["Verkaufspreis", e.szenarien.mid.verkaufspreis],
+                ["Verkaufspreis gesamt", e.szenarien.mid.gesamtverkaufspreis],
               ] as [string, number | null, boolean?][]
             ).map(([label, wert, summe]) => (
               <div
@@ -835,7 +847,7 @@ export function KalkulationsVorgaben() {
     ["zinsCoProzent", "Zinssatz Co-Investor", "%", "satz", 8],
     ["maklerVerkaufProzent", "Makler Verkauf", "%", "satz", 0],
     ["homeStaging", "Home Staging", "€", "betrag", 0],
-    ["abzugQm", "Abzug Stellplatz / Garage", "€", "betrag", 0],
+    ["abzugQm", "Stellplatz / Garage (je Szenario)", "€", "betrag", 0],
   ];
 
   return (

@@ -25,7 +25,7 @@ und deren Standardwerte in den Einstellungen gepflegt werden.
 | Vermarktung | Maklerkosten Verkauf % | 0 % | auf den jeweiligen Verkaufspreis |
 | Vermarktung | Home Staging € | 0 | |
 | Verkauf | Verkaufspreis Worst / Mid / Best € | – | drei Szenarien |
-| Verkauf | Abzug Stellplatz / Garage € | 0 | Anteil von Stellplatz, Garage oder TG am Verkaufspreis. Wird nur für den €/m²-Wert abgezogen, damit dieser nur die Wohnfläche misst. Hinweis anzeigen, wenn im Steckbrief ein Stellplatz/TG eingetragen ist und der Abzug 0 ist. |
+| Verkauf | Stellplatz / Garage € je Szenario (Worst/Mid/Best) | 0 | Kommt zum Verkaufspreis der Wohnung dazu (Gesamtverkaufspreis), zählt aber nicht in den €/m²-Wert. Hinweis anzeigen, wenn im Steckbrief ein Stellplatz/TG eingetragen ist und überall 0 steht. (Geändert 08.11.2026, vorher „Abzug“.) |
 | ~~Marktwert~~ | ~~Pricehubble, PropRate, Interhyp, eigene Einschätzung €~~ | – | entfällt (Timo, 08.11.2026) |
 
 ## 2. Rechnung
@@ -42,12 +42,13 @@ Kosten Co-Investor     = Kapitaleinsatz × Zins % / 12 × Monate
 Finanzierungskosten    = Zinsen Bank + Bearbeitungsgebühr + Kosten Co-Investor
 
 je Szenario (Worst / Mid / Best):
-  Vermarktungskosten   = Verkaufspreis × Makler Verkauf % + Home Staging
+  Gesamtverkaufspreis  = Verkaufspreis Wohnung + Stellplatz/Garage
+  Vermarktungskosten   = Gesamtverkaufspreis × Makler Verkauf % + Home Staging
   Gesamtinvestition    = Kaufpreis + Ankaufsnebenkosten + Aufwertung
                          + Bewirtschaftung + Vermarktung + Finanzierungskosten
-  Gewinn vor Steuer    = Verkaufspreis − Gesamtinvestition
+  Gewinn vor Steuer    = Gesamtverkaufspreis − Gesamtinvestition
   Gewinn in %          = Gewinn / Gesamtinvestition
-  €/m² Wohnfläche      = (Verkaufspreis − Abzug Stellplatz/Garage) / Wohnfläche
+  €/m² Wohnfläche      = Verkaufspreis Wohnung / Wohnfläche
 ```
 
 **Ansicht „Bank“:** dieselbe Rechnung, nur mit dem Mid-Case-Verkaufspreis, als eigene kompakte Tabelle.
@@ -55,7 +56,7 @@ je Szenario (Worst / Mid / Best):
 ## 3. Prüfwerte (aus der Excel-Vorlage, zum Testen)
 
 Kaufpreis 185.000 · 55 m² · GrESt 5 % · Notar 2 % · Aufwertung 29.000 · 4 Monate · Bewirtschaftung 100 €/M ·
-Finanzierung 185.000 zu 5,5 % + 1,5 % Gebühr · Verkauf 249.000 / 285.000 / 299.000
+Finanzierung 185.000 zu 5,5 % + 1,5 % Gebühr · Verkauf 249.000 / 285.000 / 299.000 gesamt (Wohnung 219.000 / 255.000 / 269.000 + Stellplatz je 30.000)
 
 | | Worst | Mid | Best |
 |---|---|---|---|
@@ -64,7 +65,7 @@ Finanzierung 185.000 zu 5,5 % + 1,5 % Gebühr · Verkauf 249.000 / 285.000 / 299
 | Gesamtinvestition | 233.517 | 233.517 | 233.517 |
 | Gewinn vor Steuer | 15.483 | 51.483 | 65.483 |
 | Gewinn in % | 6,6 % | 22,0 % | 28,0 % |
-| €/m² Wohnfläche (Abzug Stellplatz 30.000) | 3.982 | 4.636 | 4.891 |
+| €/m² Wohnfläche (Wohnung ohne Stellplatz) | 3.982 | 4.636 | 4.891 |
 
 Die Plattform muss mit diesen Eingaben exakt diese Werte liefern.
 

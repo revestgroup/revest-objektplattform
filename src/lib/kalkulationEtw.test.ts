@@ -29,8 +29,9 @@ const PRUEFFALL: EtwEingabe = {
   zinsCoProzent: 8,
   maklerVerkaufProzent: 0,
   homeStaging: 0,
-  verkauf: { worst: 249_000, mid: 285_000, best: 299_000 },
-  abzugQm: 30_000,
+  // Wohnung allein; mit 30.000 Stellplatz ergibt das die 249/285/299 Tsd. der Vorlage.
+  verkauf: { worst: 219_000, mid: 255_000, best: 269_000 },
+  stellplatz: { worst: 30_000, mid: 30_000, best: 30_000 },
 };
 
 const euro = (v: number | null) => Math.round(v ?? NaN);
@@ -54,6 +55,14 @@ describe("ETW-Kalkulation: Prüfwerte der Excel-Vorlage", () => {
     expect(euro(z.gewinn)).toBe(gewinn);
     expect(prozent(z.gewinnProzent)).toBe(pz);
     expect(euro(z.preisJeQm)).toBe(qm);
+  });
+
+  test("Stellplatz zählt zum Gesamtverkaufspreis, nicht zum €/m²", () => {
+    expect(e.szenarien.worst.gesamtverkaufspreis).toBe(249_000);
+    expect(e.szenarien.best.gesamtverkaufspreis).toBe(299_000);
+    const ohne = berechneEtw({ ...PRUEFFALL, stellplatz: { worst: 0, mid: 0, best: 0 } });
+    expect(ohne.szenarien.worst.gewinn! + 30_000).toBeCloseTo(e.szenarien.worst.gewinn!, 6);
+    expect(ohne.szenarien.worst.preisJeQm).toBe(e.szenarien.worst.preisJeQm);
   });
 });
 
