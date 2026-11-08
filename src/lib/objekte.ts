@@ -7,6 +7,7 @@
  */
 
 import type { EtwKalkulation } from "./kalkulationEtw";
+import type { Pruefung } from "./pruefung";
 
 export type Ankaufsstufe =
   | "neu"
@@ -829,6 +830,8 @@ export interface Objekt {
    * Objekt noch keine Planung hat.
    */
   verkaufsplan?: Verkaufsplan | null;
+  /** Objektprüfung im Ankauf. Siehe `pruefung.ts`. */
+  pruefung?: Pruefung | null;
   /** Kalkulation nach Timos Excel (nur ETW). Siehe `kalkulationEtw.ts`. */
   kalkulationEtw?: EtwKalkulation | null;
   angebote: Angebot[];

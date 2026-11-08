@@ -45,6 +45,13 @@ Vorgabe ist `KALKULATION_ETW.md` (Timos Excel). Der Rechenkern steht in
 nach jeder Änderung an der Rechnung `bun run test` laufen lassen. Standardwerte und
 Katalogpreise liegen in den Einstellungen, Abweichungen je Objekt in `kalkulationEtw`.
 
+## Objektprüfung
+
+Listen, Pflichtpunkte, Ampel und Warnregel stehen in `src/lib/pruefung.ts` (Tests daneben).
+Wer irgendwo eine Stufe setzt, nimmt `useStufenwechsel()` aus `components/Pruefung.tsx`
+statt `stufeSetzen` direkt und rendert dessen `dialog` mit — sonst fehlt der Prüfhinweis
+beim Wechsel nach „Angebot abgegeben“ oder „Gekauft“.
+
 ## Anlegemaske
 
 Offen stehen nur Lage, Objekt, Preis und Miete, Bilder, Notiz. Alles weitere liegt in

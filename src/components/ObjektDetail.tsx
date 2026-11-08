@@ -61,6 +61,7 @@ import {
 import { useAufgaben } from "../lib/aufgabenStore";
 import { useEinstellungen } from "../lib/einstellungenStore";
 import { SZENARIEN, SZENARIO_TITEL, berechneEtw, etwEingabe } from "../lib/kalkulationEtw";
+import { pruefstand } from "../lib/pruefung";
 import { useObjekte } from "../lib/objekteStore";
 import { cn } from "../lib/utils";
 import { berechneGarantie } from "../lib/vermietung";
@@ -75,9 +76,11 @@ import { Teilung, TeilungAnstossen } from "./Teilung";
 import { Ruecknahmedialog, Verkaufsdialog } from "./Verkaufsdialog";
 import { Verkaufsplanung } from "./Verkaufsplanung";
 import { KalkulationEtwBlatt } from "./KalkulationEtw";
+import { Pruefblatt, Pruefzeichen, useStufenwechsel } from "./Pruefung";
 
 type Reiter =
   | "uebersicht"
+  | "pruefung"
   | "aufgaben"
   | "kontakt"
   | "verkauf"
@@ -102,6 +105,7 @@ type Reiter =
  */
 const ANKAUF_REITER: Reiter[] = [
   "uebersicht",
+  "pruefung",
   "aufgaben",
   "kontakt",
   "verkauf",
@@ -137,6 +141,7 @@ function reiterTitel(r: Reiter, projekt: boolean): string {
 
 const REITER_TITEL: Record<Reiter, string> = {
   uebersicht: "Übersicht",
+  pruefung: "Prüfung",
   aufgaben: "Aufgaben",
   kontakt: "Kontakt",
   verkauf: "Kalkulation",
@@ -178,6 +183,11 @@ export function ObjektDetail({
   const zahlen = useMemo<Record<Reiter, number | null>>(
     () => ({
       uebersicht: null,
+      // Was noch zu klären ist — offene Pflichtpunkte und kritische.
+      pruefung: (() => {
+        const s = pruefstand(objekt);
+        return s.offenePflicht.length + s.kritisch.length;
+      })(),
       aufgaben: aufgaben.filter((a) => a.objektId === objekt.id && !a.erledigtAm).length,
       kontakt: objekt.kontakte.length,
       verkauf: objekt.verkaufsplan?.posten.length ?? 0,
@@ -319,6 +329,7 @@ export function ObjektDetail({
         {sichtbar === "uebersicht" && (
           <Uebersicht objekt={objekt} kennzahlen={k} zuReiter={setReiter} />
         )}
+        {sichtbar === "pruefung" && <Pruefblatt objekt={objekt} />}
         {sichtbar === "aufgaben" && <Objektaufgaben objekt={objekt} />}
         {sichtbar === "kontakt" && <Kontaktblatt objekt={objekt} />}
         {sichtbar === "verkauf" &&
@@ -408,10 +419,11 @@ function Uebersicht({
   kennzahlen: ReturnType<typeof berechneKennzahlen>;
   zuReiter: (r: Reiter) => void;
 }) {
-  const { stufeSetzen } = useObjekte();
+  const wechsel = useStufenwechsel(() => zuReiter("pruefung"));
 
   return (
     <div className="divide-y divide-linie">
+      {wechsel.dialog}
       <div className="grid gap-px bg-linie lg:grid-cols-3">
         <KontaktSpalte objekt={objekt} zuReiter={zuReiter} />
         <NotizSpalte objekt={objekt} />
@@ -434,7 +446,7 @@ function Uebersicht({
               <button
                 key={st}
                 type="button"
-                onClick={() => stufeSetzen(objekt.id, st)}
+                onClick={() => wechsel.setze(objekt, st)}
                 aria-pressed={aktiv}
                 className={cn(
                   "druckbar flex items-center gap-2 rounded-full border px-3.5 py-2 text-[0.66rem] font-medium whitespace-nowrap",
@@ -653,6 +665,16 @@ function SteckbriefSpalte({
 
   return (
     <section className="bg-grund px-6 py-8 md:px-9">
+      {objekt.stufe !== "angekauft" && (
+        <button
+          type="button"
+          onClick={() => zuReiter("pruefung")}
+          className="druckbar mb-6 flex w-full items-center justify-between gap-3 rounded-xl border border-linie bg-flaeche px-3.5 py-2.5 text-left"
+        >
+          <span className="mini-label">Prüfung</span>
+          <Pruefzeichen objekt={objekt} />
+        </button>
+      )}
       <div className="mini-label">Steckbrief</div>
       <dl className="mt-3">
         <Reihe titel="Objektart" wert={OBJEKTARTEN[objekt.objektart]} />
@@ -1798,6 +1820,7 @@ export function ObjektKachel({
           <span className="mt-1 block truncate text-[0.7rem] text-grau">
             {objekt.plz} {objekt.stadt} · {objekt.stadtteil} · {OBJEKTARTEN[objekt.objektart]}
           </span>
+          {objekt.stufe !== "angekauft" && <Pruefzeichen objekt={objekt} className="mt-2.5" />}
         </span>
 
         {/* ----- Die drei Zahlen, die den Vergleich erlauben ----- */}

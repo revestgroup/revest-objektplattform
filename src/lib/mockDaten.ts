@@ -372,6 +372,26 @@ export const MOCK_OBJEKTE: Objekt[] = [
     umriss: umrissAusMitte(9.9717, 48.39621, 18, 12, 24),
     bezeichnung: "WHG – 4Z – Weststadt",
     strasse: "Ahornhof 15",
+    pruefung: {
+      unterlagen: {
+        grundbuch: { status: "liegt_vor" },
+        teilungserklaerung: { status: "liegt_vor" },
+        aufteilungsplan: { status: "liegt_vor" },
+        weg_protokolle: { status: "liegt_vor" },
+        wirtschaftsplan: { status: "liegt_vor" },
+        hausgeldabrechnung: { status: "liegt_vor" },
+        energieausweis: { status: "liegt_vor" },
+        grundriss: { status: "liegt_vor" },
+      },
+      punkte: {
+        sonderumlagen: { status: "ok", notiz: "Keine beschlossen, Dach 2019 saniert" },
+        erhaltungsruecklage: { status: "ok" },
+        beschluesse: { status: "ok" },
+        hausgeld: { status: "ok", notiz: "360 € im Monat, passt zur Größe" },
+        stellplatz: { status: "ok", notiz: "Kein Stellplatz dabei" },
+        mietverhaeltnis: { status: "ok", notiz: "Leerstand" },
+      },
+    },
     kalkulationEtw: {
       verkauf: { worst: 449_000, mid: 479_000, best: 499_000 },
       marktwerte: { pricehubble: 468_000, eigene: 485_000 },
@@ -445,6 +465,19 @@ export const MOCK_OBJEKTE: Objekt[] = [
     umriss: umrissAusMitte(9.95825, 48.41379, 16, 12, -22),
     bezeichnung: "WHG – 5Z – Eselsberg",
     strasse: "Rebhangweg 9",
+    pruefung: {
+      unterlagen: {
+        grundbuch: { status: "liegt_vor" },
+        teilungserklaerung: { status: "angefordert" },
+        weg_protokolle: { status: "angefordert" },
+        energieausweis: { status: "liegt_vor" },
+        mietvertrag: { status: "liegt_vor" },
+      },
+      punkte: {
+        stellplatz: { status: "kritisch", notiz: "TG-Platz ohne eigenes Grundbuch — nur Sondernutzungsrecht?" },
+        mietverhaeltnis: { status: "ok", notiz: "5 WG-Verträge, je 3 Monate Kündigungsfrist" },
+      },
+    },
     kalkulationEtw: {
       verkauf: { worst: 545_000, mid: 579_000, best: 598_000 },
       monate: 3,

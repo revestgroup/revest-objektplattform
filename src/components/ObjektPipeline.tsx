@@ -38,6 +38,7 @@ import {
 import { useObjekte } from "../lib/objekteStore";
 import { cn } from "../lib/utils";
 import { Bildflaeche } from "./Bilder";
+import { useStufenwechsel } from "./Pruefung";
 
 export function ObjektPipeline({
   objekte,
@@ -49,7 +50,8 @@ export function ObjektPipeline({
   stufen: Ankaufsstufe[];
   oeffnen: (id: string) => void;
 }) {
-  const { stufeSetzen } = useObjekte();
+  // Stufe setzen mit Prüfhinweis; „Zur Prüfung“ öffnet das Objekt.
+  const wechsel = useStufenwechsel(oeffnen);
   // Was gerade in der Hand liegt, und über welcher Spalte. Beides nur für die
   // Dauer des Ziehens — danach zählt allein die Stufe am Objekt.
   const [zieht, setZieht] = useState<string | null>(null);
@@ -71,130 +73,134 @@ export function ObjektPipeline({
   }
 
   function ablegen(stufe: Ankaufsstufe) {
-    if (zieht) stufeSetzen(zieht, stufe);
+    const o = zieht ? objekte.find((x) => x.id === zieht) : undefined;
+    if (o) wechsel.setze(o, stufe);
     setZieht(null);
     setUeber(null);
   }
 
   return (
-    <div className="scroll-reihe flex snap-x snap-mandatory items-start gap-3 overflow-x-auto px-4 py-5 sm:gap-4 sm:px-6 md:px-10">
-      {stufen.map((s) => {
-        const spalte = objekte.filter((o) => o.stufe === s);
-        const summe = spalte.reduce((x, o) => x + (o.kaufpreis ?? 0), 0);
-        const ziel = ueber === s && zieht !== null;
-        const zu = STUFEN[s].bereich === "ablage" && !offeneAblage.has(s);
+    <>
+      {wechsel.dialog}
+      <div className="scroll-reihe flex snap-x snap-mandatory items-start gap-3 overflow-x-auto px-4 py-5 sm:gap-4 sm:px-6 md:px-10">
+        {stufen.map((s) => {
+          const spalte = objekte.filter((o) => o.stufe === s);
+          const summe = spalte.reduce((x, o) => x + (o.kaufpreis ?? 0), 0);
+          const ziel = ueber === s && zieht !== null;
+          const zu = STUFEN[s].bereich === "ablage" && !offeneAblage.has(s);
 
-        if (zu) {
+          if (zu) {
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => ablageUmschalten(s)}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setUeber(s);
+                }}
+                onDragLeave={() => setUeber((alt) => (alt === s ? null : alt))}
+                onDrop={() => ablegen(s)}
+                aria-label={`${STUFEN[s].titel} aufklappen, ${spalte.length} Objekte`}
+                className={cn(
+                  "druckbar flex w-12 shrink-0 flex-col items-center gap-3 self-stretch overflow-hidden rounded-2xl bg-flaeche-hoch pb-4 transition-colors duration-150 ease-out",
+                  ziel && "bg-flaeche-aktiv",
+                )}
+              >
+                <span aria-hidden className="h-1 w-full" style={{ background: STUFEN[s].farbe }} />
+                <span className="zahl rounded-full bg-flaeche px-2 py-0.5 text-[0.64rem] font-semibold text-grau-stark tabular-nums">
+                  {spalte.length}
+                </span>
+                <span className="text-[0.66rem] font-semibold tracking-[0.1em] whitespace-nowrap uppercase text-grau-stark [writing-mode:vertical-rl]">
+                  {STUFEN[s].titel}
+                </span>
+              </button>
+            );
+          }
+
           return (
-            <button
+            <section
               key={s}
-              type="button"
-              onClick={() => ablageUmschalten(s)}
               onDragOver={(e) => {
+                // Ohne preventDefault lehnt der Browser das Ablegen ab.
                 e.preventDefault();
                 setUeber(s);
               }}
               onDragLeave={() => setUeber((alt) => (alt === s ? null : alt))}
               onDrop={() => ablegen(s)}
-              aria-label={`${STUFEN[s].titel} aufklappen, ${spalte.length} Objekte`}
               className={cn(
-                "druckbar flex w-12 shrink-0 flex-col items-center gap-3 self-stretch overflow-hidden rounded-2xl bg-flaeche-hoch pb-4 transition-colors duration-150 ease-out",
+                // Auf dem Telefon füllt eine Spalte den Blick und rastet ein;
+                // darüber feste Breite. Fünf Stufen passen auf keinen Schirm,
+                // ohne dass die Karten unlesbar werden — also wird gescrollt.
+                "flex w-[80vw] max-w-[19rem] shrink-0 snap-start flex-col overflow-hidden rounded-2xl bg-flaeche-hoch transition-colors duration-150 ease-out sm:w-[17.5rem]",
                 ziel && "bg-flaeche-aktiv",
               )}
             >
-              <span aria-hidden className="h-1 w-full" style={{ background: STUFEN[s].farbe }} />
-              <span className="zahl rounded-full bg-flaeche px-2 py-0.5 text-[0.64rem] font-semibold text-grau-stark tabular-nums">
-                {spalte.length}
-              </span>
-              <span className="text-[0.66rem] font-semibold tracking-[0.1em] whitespace-nowrap uppercase text-grau-stark [writing-mode:vertical-rl]">
-                {STUFEN[s].titel}
-              </span>
-            </button>
-          );
-        }
-
-        return (
-          <section
-            key={s}
-            onDragOver={(e) => {
-              // Ohne preventDefault lehnt der Browser das Ablegen ab.
-              e.preventDefault();
-              setUeber(s);
-            }}
-            onDragLeave={() => setUeber((alt) => (alt === s ? null : alt))}
-            onDrop={() => ablegen(s)}
-            className={cn(
-              // Auf dem Telefon füllt eine Spalte den Blick und rastet ein;
-              // darüber feste Breite. Fünf Stufen passen auf keinen Schirm,
-              // ohne dass die Karten unlesbar werden — also wird gescrollt.
-              "flex w-[80vw] max-w-[19rem] shrink-0 snap-start flex-col overflow-hidden rounded-2xl bg-flaeche-hoch transition-colors duration-150 ease-out sm:w-[17.5rem]",
-              ziel && "bg-flaeche-aktiv",
-            )}
-          >
-            {/* Der farbige Streifen trägt die Stufe. Dadurch bleibt im Kopf
+              {/* Der farbige Streifen trägt die Stufe. Dadurch bleibt im Kopf
                 Platz für Namen und Zahl, und die Spalte ist beim Wischen auch
                 dann erkennbar, wenn nur ihr Rand im Bild steht. */}
-            <span aria-hidden className="h-1 w-full" style={{ background: STUFEN[s].farbe }} />
+              <span aria-hidden className="h-1 w-full" style={{ background: STUFEN[s].farbe }} />
 
-            <header className="flex items-center gap-2 px-3.5 pt-3.5 pb-2">
-              <h3 className="min-w-0 flex-1 truncate text-[0.72rem] font-semibold tracking-[0.1em] uppercase text-tinte">
-                {STUFEN[s].titel}
-              </h3>
-              <span className="zahl shrink-0 rounded-full bg-flaeche px-2 py-0.5 text-[0.64rem] font-semibold text-grau-stark tabular-nums">
-                {spalte.length}
-              </span>
-              {STUFEN[s].bereich === "ablage" && (
-                <button
-                  type="button"
-                  onClick={() => ablageUmschalten(s)}
-                  aria-label={`${STUFEN[s].titel} zuklappen`}
-                  className="druckbar flex size-6 shrink-0 items-center justify-center rounded-full text-grau hover:text-tinte"
-                >
-                  <ChevronRight size={13} strokeWidth={2.2} />
-                </button>
+              <header className="flex items-center gap-2 px-3.5 pt-3.5 pb-2">
+                <h3 className="min-w-0 flex-1 truncate text-[0.72rem] font-semibold tracking-[0.1em] uppercase text-tinte">
+                  {STUFEN[s].titel}
+                </h3>
+                <span className="zahl shrink-0 rounded-full bg-flaeche px-2 py-0.5 text-[0.64rem] font-semibold text-grau-stark tabular-nums">
+                  {spalte.length}
+                </span>
+                {STUFEN[s].bereich === "ablage" && (
+                  <button
+                    type="button"
+                    onClick={() => ablageUmschalten(s)}
+                    aria-label={`${STUFEN[s].titel} zuklappen`}
+                    className="druckbar flex size-6 shrink-0 items-center justify-center rounded-full text-grau hover:text-tinte"
+                  >
+                    <ChevronRight size={13} strokeWidth={2.2} />
+                  </button>
+                )}
+              </header>
+
+              <p className="zahl px-3.5 pb-3 text-[0.66rem] text-grau tabular-nums">
+                {summe > 0 ? f.eurKurz(summe) : "—"}
+              </p>
+
+              {/* ----- Stapel ----- */}
+              {spalte.length === 0 ? (
+                <div className="px-2.5 pb-2.5">
+                  <p
+                    className={cn(
+                      "rounded-xl border border-dashed px-3 py-10 text-center text-[0.7rem]",
+                      ziel ? "border-tinte text-tinte" : "border-linie-stark text-grau",
+                    )}
+                  >
+                    {ziel ? "Hier ablegen" : "Leer"}
+                  </p>
+                </div>
+              ) : (
+                <ul className="flex flex-col gap-2.5 px-2.5 pb-2.5">
+                  {spalte.map((o, i) => (
+                    <Pipelinekarte
+                      key={o.id}
+                      objekt={o}
+                      stufen={ablauf}
+                      verzoegerung={Math.min(i, 8) * 20}
+                      haengt={zieht === o.id}
+                      beiKlick={() => oeffnen(o.id)}
+                      beiAnfassen={() => setZieht(o.id)}
+                      beiLoslassen={() => {
+                        setZieht(null);
+                        setUeber(null);
+                      }}
+                      beiStufe={(neu) => wechsel.setze(o, neu)}
+                    />
+                  ))}
+                </ul>
               )}
-            </header>
-
-            <p className="zahl px-3.5 pb-3 text-[0.66rem] text-grau tabular-nums">
-              {summe > 0 ? f.eurKurz(summe) : "—"}
-            </p>
-
-            {/* ----- Stapel ----- */}
-            {spalte.length === 0 ? (
-              <div className="px-2.5 pb-2.5">
-                <p
-                  className={cn(
-                    "rounded-xl border border-dashed px-3 py-10 text-center text-[0.7rem]",
-                    ziel ? "border-tinte text-tinte" : "border-linie-stark text-grau",
-                  )}
-                >
-                  {ziel ? "Hier ablegen" : "Leer"}
-                </p>
-              </div>
-            ) : (
-              <ul className="flex flex-col gap-2.5 px-2.5 pb-2.5">
-                {spalte.map((o, i) => (
-                  <Pipelinekarte
-                    key={o.id}
-                    objekt={o}
-                    stufen={ablauf}
-                    verzoegerung={Math.min(i, 8) * 20}
-                    haengt={zieht === o.id}
-                    beiKlick={() => oeffnen(o.id)}
-                    beiAnfassen={() => setZieht(o.id)}
-                    beiLoslassen={() => {
-                      setZieht(null);
-                      setUeber(null);
-                    }}
-                    beiStufe={(neu) => stufeSetzen(o.id, neu)}
-                  />
-                ))}
-              </ul>
-            )}
-          </section>
-        );
-      })}
-    </div>
+            </section>
+          );
+        })}
+      </div>
+    </>
   );
 }
 
@@ -301,8 +307,17 @@ function Pipelinekarte({
           übrig ist. */}
       {(zurueck || vor) && (
         <div className="flex gap-px border-t border-linie bg-linie">
-          {zurueck && <Stufenknopf richtung="zurueck" ziel={zurueck} beiKlick={beiStufe} strasse={objekt.strasse} />}
-          {vor && <Stufenknopf richtung="vor" ziel={vor} beiKlick={beiStufe} strasse={objekt.strasse} />}
+          {zurueck && (
+            <Stufenknopf
+              richtung="zurueck"
+              ziel={zurueck}
+              beiKlick={beiStufe}
+              strasse={objekt.strasse}
+            />
+          )}
+          {vor && (
+            <Stufenknopf richtung="vor" ziel={vor} beiKlick={beiStufe} strasse={objekt.strasse} />
+          )}
         </div>
       )}
     </li>

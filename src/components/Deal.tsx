@@ -29,6 +29,8 @@ import { useObjekte } from "../lib/objekteStore";
 import { cn } from "../lib/utils";
 import { Dialog, Leiste } from "./Dialog";
 import { Auswahlfeld, Schalter, Segmente, Textfeld, Zahlfeld } from "./Felder";
+import { Pruefhinweis } from "./Pruefung";
+import { warnungFuer } from "../lib/pruefung";
 
 /** Heute als ISO-Datum — die Vorbelegung für jeden Notartermin. */
 function heute() {
@@ -93,6 +95,7 @@ function DealDialog({ objekt, schliessen }: { objekt: Objekt; schliessen: () => 
   const { objekte, dealAbschliessen } = useObjekte();
   const wohnung = istEinzelwohnung(objekt);
   const vergeben = andereKuerzel(objekte, objekt.id);
+  const pruefwarnung = warnungFuer(objekt, "angekauft");
 
   const [preis, setPreis] = useState(objekt.kaufpreis !== null ? String(objekt.kaufpreis) : "");
   const [datum, setDatum] = useState(heute());
@@ -154,6 +157,12 @@ function DealDialog({ objekt, schliessen }: { objekt: Objekt; schliessen: () => 
       unterzeile={`${objekt.strasse}, ${objekt.stadt} · ${OBJEKTARTEN[objekt.objektart]}. Danach liegt das Objekt in den Projekten.`}
       schliessen={schliessen}
     >
+      {/* Ein Hinweis, keine Sperre: wer trotzdem kauft, hat es gesehen. */}
+      {pruefwarnung && (
+        <div className="mb-6">
+          <Pruefhinweis stand={pruefwarnung} />
+        </div>
+      )}
       <div className="grid gap-6 sm:grid-cols-2">
         <Zahlfeld
           id="deal-preis"
