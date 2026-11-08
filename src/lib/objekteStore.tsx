@@ -167,8 +167,12 @@ function neueId(praefix: string) {
   return `${praefix}-${zaehler.toString(36)}`;
 }
 
-function eintrag(art: Verlaufseintrag["art"], text: string): Verlaufseintrag {
-  return { id: neueId("v"), zeitpunkt: new Date().toISOString(), art, text };
+function eintrag(
+  art: Verlaufseintrag["art"],
+  text: string,
+  vonHand?: boolean,
+): Verlaufseintrag {
+  return { id: neueId("v"), zeitpunkt: new Date().toISOString(), art, text, vonHand };
 }
 
 export function ObjekteProvider({ children }: { children: ReactNode }) {
@@ -225,7 +229,9 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
         mutieren(id, (o) => ({
           ...o,
           ...teil,
-          verlauf: verlaufstext ? [...o.verlauf, eintrag("notiz", verlaufstext)] : o.verlauf,
+          verlauf: verlaufstext
+            ? [...o.verlauf, eintrag("notiz", verlaufstext, false)]
+            : o.verlauf,
         })),
 
       loeschen: (id) => setObjekte((alt) => alt.filter((o) => o.id !== id)),
@@ -248,7 +254,7 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
               ...o,
               stufe,
               kuerzel,
-              verlauf: [...verlauf, eintrag("notiz", `Kürzel ${kuerzel} vergeben`)],
+              verlauf: [...verlauf, eintrag("notiz", `Kürzel ${kuerzel} vergeben`, false)],
             };
           }),
         ),
@@ -342,7 +348,7 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
         }),
 
       notizAnhaengen: (id, text) =>
-        mutieren(id, (o) => ({ ...o, verlauf: [...o.verlauf, eintrag("notiz", text)] })),
+        mutieren(id, (o) => ({ ...o, verlauf: [...o.verlauf, eintrag("notiz", text, true)] })),
 
       dokumenteAnhaengen: (id, neue) =>
         mutieren(id, (o) => {

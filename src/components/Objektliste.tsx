@@ -23,8 +23,9 @@
  * und nicht erst vier Kacheln wegscrollen; die Zahlen zum Bestand stehen in
  * der Auswertung.
  */
+import { useNavigate } from "@tanstack/react-router";
 import { Columns3, LayoutGrid, Plus, Search, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Schublade, Seitenkopf } from "./AppLayout";
 import type { NeuesDokument } from "./Dokumente";
@@ -138,6 +139,31 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
   const [modus, setModus] = useState<Modus>(() =>
     oeffne ? { art: "detail", id: oeffne } : { art: "zu" },
   );
+  const navigate = useNavigate();
+
+  // Das offene Objekt steht in der Adresse (`?objekt=`): so schließt „Zurück“
+  // im Browser das Objekt, Neuladen behält es offen, und ein Link führt direkt
+  // hin. Anlegen bleibt ohne Adresse — es gibt noch nichts zu verlinken.
+  function wechsle(neu: Modus) {
+    setModus(neu);
+    const id = neu.art === "detail" || neu.art === "bearbeiten" ? neu.id : undefined;
+    if (id !== oeffne) {
+      void navigate({
+        to: bereich === "ankauf" ? "/ankauf" : "/projekte",
+        search: id ? { objekt: id } : {},
+      });
+    }
+  }
+
+  // Umgekehrt: ändert sich die Adresse von außen (Zurück, Vor), folgt die Ansicht.
+  useEffect(() => {
+    setModus((alt) => {
+      const offenId = alt.art === "detail" || alt.art === "bearbeiten" ? alt.id : undefined;
+      if (oeffne && oeffne !== offenId) return { art: "detail", id: oeffne };
+      if (!oeffne && offenId) return { art: "zu" };
+      return alt;
+    });
+  }, [oeffne]);
 
   // Der Bestand dieses Bereichs. Alles Weitere — Suche, Stadt, Stufe — filtert
   // nur noch darin, damit die Zahl unter der Liste eine ehrliche Bezugsgröße hat.
@@ -206,12 +232,12 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
     if (modus.art === "bearbeiten") {
       aendern(modus.id, entwurf, "Objektdaten bearbeitet");
       if (dokumente.length > 0) dokumenteAnhaengen(modus.id, dokumente);
-      setModus({ art: "detail", id: modus.id });
+      wechsle({ art: "detail", id: modus.id });
       return;
     }
     const neu = anlegen(entwurf);
     if (dokumente.length > 0) dokumenteAnhaengen(neu.id, dokumente);
-    setModus({ art: "detail", id: neu.id });
+    wechsle({ art: "detail", id: neu.id });
   }
 
   // Zwei Dinge gehören in der Pipeline nicht mehr: ein Stufenfilter, der
@@ -246,7 +272,7 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
           bereich === "ankauf" ? (
             <button
               type="button"
-              onClick={() => setModus({ art: "anlegen" })}
+              onClick={() => wechsle({ art: "anlegen" })}
               className="druckbar flex items-center gap-2 rounded-full bg-tinte px-5 py-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-grund shadow-karte"
             >
               <Plus size={14} strokeWidth={2.25} />
@@ -412,7 +438,7 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
             <ObjektPipeline
               objekte={liste}
               stufen={b.pipelineStufen}
-              oeffnen={(id) => setModus({ art: "detail", id })}
+              oeffnen={(id) => wechsle({ art: "detail", id })}
             />
           ) : (
             /* Auf dem Telefon eine Kachel pro Reihe: Straßenname, Preis und
@@ -422,7 +448,7 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
                 <ObjektKachel
                   key={o.id}
                   objekt={o}
-                  beiKlick={() => setModus({ art: "detail", id: o.id })}
+                  beiKlick={() => wechsle({ art: "detail", id: o.id })}
                   verzoegerung={Math.min(i, 10) * 24}
                 />
               ))}
@@ -437,7 +463,7 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
 
       <Schublade
         offen={modus.art !== "zu"}
-        schliessen={() => setModus({ art: "zu" })}
+        schliessen={() => wechsle({ art: "zu" })}
         titel={
           modus.art === "anlegen"
             ? "Objekt anlegen"
@@ -447,19 +473,19 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
         }
       >
         {modus.art === "anlegen" && (
-          <ObjektFormular onSpeichern={speichern} onAbbrechen={() => setModus({ art: "zu" })} />
+          <ObjektFormular onSpeichern={speichern} onAbbrechen={() => wechsle({ art: "zu" })} />
         )}
         {modus.art === "bearbeiten" && gewaehlt && (
           <ObjektFormular
             bestehend={gewaehlt}
             onSpeichern={speichern}
-            onAbbrechen={() => setModus({ art: "detail", id: gewaehlt.id })}
+            onAbbrechen={() => wechsle({ art: "detail", id: gewaehlt.id })}
           />
         )}
         {modus.art === "detail" && gewaehlt && (
           <ObjektDetail
             objekt={gewaehlt}
-            onBearbeiten={() => setModus({ art: "bearbeiten", id: gewaehlt.id })}
+            onBearbeiten={() => wechsle({ art: "bearbeiten", id: gewaehlt.id })}
           />
         )}
       </Schublade>

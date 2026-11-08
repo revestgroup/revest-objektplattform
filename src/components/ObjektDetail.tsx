@@ -16,8 +16,10 @@ import {
   Crosshair,
   Hammer,
   Lock,
+  Mail,
   MapPin,
   Pencil,
+  Phone,
   Plus,
   Send,
   ShieldCheck,
@@ -36,6 +38,7 @@ import {
   GEWERKE,
   GEWERKSTATUS,
   GEWERK_TITEL,
+  KONTAKTROLLEN,
   OBJEKTARTEN,
   STUFEN,
   STUFEN_REIHENFOLGE,
@@ -43,12 +46,14 @@ import {
   adresse,
   aufteilungText,
   berechneKennzahlen,
-  eigentuemerVon,
+  berechneVerkaufsplan,
   f,
+  notizverlauf,
   type Angebot,
   type Angebotsergebnis,
   type Einheit,
   type Einheitsstatus,
+  type Kontakt,
   type Objekt,
   type Sanierungsposten,
 } from "../lib/objekte";
@@ -183,42 +188,42 @@ export function ObjektDetail({
   return (
     <div className="flex min-h-full flex-col">
       {/* ----- Kopf ----- */}
+      {/* Was beim Öffnen sofort zählt: Bild, Bezeichnung, Adresse, Fläche,
+          Angebotspreis, Stufe. Der Rest steht im Steckbrief darunter. */}
       <div className="border-b border-linie px-6 py-7 md:px-9">
-        <div className="flex flex-wrap items-center gap-2">
-          <Stufenzeichen stufe={objekt.stufe} gross />
-          {objekt.kuerzel && <Marke>{objekt.kuerzel}</Marke>}
-          <Fristzeichen objekt={objekt} />
-          {objekt.denkmalschutz && <Marke>Denkmal</Marke>}
-          {objekt.erbbaurecht && <Marke>Erbbaurecht</Marke>}
-        </div>
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+          <div className="h-32 w-full shrink-0 overflow-hidden rounded-xl bg-flaeche-hoch sm:h-28 sm:w-44">
+            <Bildflaeche eintrag={objekt.bilder[0] ?? "Kein Bild"} />
+          </div>
 
-        <h1 className="headline mt-4 text-[1.7rem] md:text-[2.1rem]">{objekt.strasse}</h1>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <Stufenzeichen stufe={objekt.stufe} gross />
+              {objekt.kuerzel && <Marke>{objekt.kuerzel}</Marke>}
+              <Fristzeichen objekt={objekt} />
+              {objekt.denkmalschutz && <Marke>Denkmal</Marke>}
+              {objekt.erbbaurecht && <Marke>Erbbaurecht</Marke>}
+            </div>
 
-        <div className="mt-2.5 flex items-center gap-2 text-[0.78rem] text-grau">
-          <MapPin size={13} strokeWidth={1.75} className="shrink-0" />
-          <span>
-            {objekt.plz} {objekt.stadt} · {objekt.stadtteil}
-          </span>
-        </div>
+            <h1 className="headline mt-3 text-[1.5rem] md:text-[1.9rem]">
+              {objekt.bezeichnung?.trim() || objekt.strasse}
+            </h1>
 
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.72rem] text-grau">
-          <span className="text-grau-stark">{OBJEKTARTEN[objekt.objektart]}</span>
-          <Punkt />
-          <span>{ZUSTAENDE[objekt.zustand]}</span>
-          {objekt.baujahr && (
-            <>
-              <Punkt />
-              <span className="zahl">Baujahr {objekt.baujahr}</span>
-            </>
-          )}
-          <Punkt />
-          <span>{BUNDESLAND_NAMEN[objekt.bundesland]}</span>
-          {verwertung && (
-            <>
-              <Punkt />
-              <span className="text-grau-stark">{verwertung}</span>
-            </>
-          )}
+            <div className="mt-2 flex items-center gap-2 text-[0.78rem] text-grau">
+              <MapPin size={13} strokeWidth={1.75} className="shrink-0" />
+              <span className="truncate">
+                {objekt.strasse}, {objekt.plz} {objekt.stadt} · {objekt.stadtteil}
+              </span>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+              <span className="zahl text-[1.15rem] font-semibold text-tinte">
+                {f.eur(objekt.kaufpreis)}
+              </span>
+              <span className="zahl text-[0.82rem] text-grau-stark">{f.qm(objekt.wohnflaeche)}</span>
+              {verwertung && <span className="text-[0.72rem] text-grau">{verwertung}</span>}
+            </div>
+          </div>
         </div>
 
         {/* Der Deal steht über dem Bearbeiten, weil er die Entscheidung ist
@@ -305,7 +310,9 @@ export function ObjektDetail({
       </div>
 
       <div className="flex-1">
-        {sichtbar === "uebersicht" && <Uebersicht objekt={objekt} kennzahlen={k} />}
+        {sichtbar === "uebersicht" && (
+          <Uebersicht objekt={objekt} kennzahlen={k} zuReiter={setReiter} />
+        )}
         {sichtbar === "aufgaben" && <Objektaufgaben objekt={objekt} />}
         {sichtbar === "kontakt" && <Kontaktblatt objekt={objekt} />}
         {sichtbar === "verkauf" && <Verkaufsplanung objekt={objekt} />}
@@ -336,116 +343,34 @@ function Punkt() {
 /* Übersicht                                                            */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Drei Spalten, in der Reihenfolge der Arbeit: wen rufe ich an, was weiß ich
+ * schon, was kostet es. Am Telefon stehen sie in derselben Reihenfolge
+ * untereinander. Alles Weitere liegt in den Reitern — die Übersicht ist der
+ * Arbeitsplatz, nicht das Archiv.
+ */
 function Uebersicht({
   objekt,
   kennzahlen,
+  zuReiter,
 }: {
   objekt: Objekt;
   kennzahlen: ReturnType<typeof berechneKennzahlen>;
+  zuReiter: (r: Reiter) => void;
 }) {
-  const k = kennzahlen;
   const { stufeSetzen } = useObjekte();
 
   return (
     <div className="divide-y divide-linie">
-      {objekt.bilder.length > 0 && (
-        <div className="px-6 py-7 md:px-9">
-          <Bildergalerie bilder={objekt.bilder} />
-        </div>
-      )}
-
-      {/* Die drei Zahlen, nach denen jede Ankaufsentscheidung fällt. */}
-      <div className="grid grid-cols-3 gap-x-6 px-6 py-8 md:px-9">
-        <GrossZahl titel="Kaufpreis" wert={f.eurKurz(objekt.kaufpreis)} />
-        <GrossZahl titel="Faktor" wert={f.faktor(k.faktor)} />
-        <GrossZahl titel="Rendite" wert={f.prozent(k.bruttoMietrendite)} />
+      <div className="grid gap-px bg-linie lg:grid-cols-3">
+        <KontaktSpalte objekt={objekt} zuReiter={zuReiter} />
+        <NotizSpalte objekt={objekt} />
+        <SteckbriefSpalte objekt={objekt} kennzahlen={kennzahlen} zuReiter={zuReiter} />
       </div>
 
-      <Block titel="Miete und Rendite">
-        <Reihe titel="Jahresnettokaltmiete" wert={f.eur(objekt.jahresNettokaltmiete)} />
-        <Reihe
-          titel="Potenzialmiete"
-          wert={f.eur(objekt.potenzialMiete)}
-          unter={
-            k.mietePotenzialDelta !== null && k.mietePotenzialDelta > 0
-              ? `${f.eur(k.mietePotenzialDelta)} Luft nach oben`
-              : undefined
-          }
-        />
-        <Reihe titel="Nicht umlagefähig" wert={f.eur(objekt.nichtUmlagefaehig)} />
-        <Reihe titel="Nettomietrendite" wert={f.prozent(k.nettoMietrendite)} stark />
-        <Reihe titel="Kaufpreis je m²" wert={f.eur(k.kaufpreisJeQm)} />
-        {objekt.einheiten.length > 0 && (
-          <Reihe titel="Leerstandsquote" wert={f.prozent(k.leerstandsquote)} />
-        )}
-      </Block>
-
-      <Block titel="Flächen und Substanz">
-        <Reihe titel="Wohnfläche" wert={f.qm(objekt.wohnflaeche)} />
-        {objekt.gewerbeflaeche ? (
-          <Reihe titel="Gewerbefläche" wert={f.qm(objekt.gewerbeflaeche)} />
-        ) : null}
-        <Reihe titel="Grundstück" wert={f.qm(objekt.grundstuecksflaeche)} />
-        <Reihe titel="Einheiten" wert={f.zahl(objekt.anzahlEinheiten)} />
-        <Reihe titel="Baujahr" wert={objekt.baujahr ? String(objekt.baujahr) : "—"} />
-        <Reihe
-          titel="Letzte Sanierung"
-          wert={objekt.letzteSanierung ? String(objekt.letzteSanierung) : "keine"}
-        />
-        <Reihe
-          titel="Energie"
-          wert={objekt.energieklasse ?? "—"}
-          unter={objekt.energiekennwert ? `${objekt.energiekennwert} kWh/m²a` : undefined}
-        />
-        <Reihe titel="Instandhaltungsrücklage" wert={f.eur(objekt.instandhaltungsruecklage)} />
-      </Block>
-
-      {/* Die Beteiligten stehen im Reiter „Kontakt“, wo sie auch bearbeitet
-          werden. Hier bleibt nur der Name als Orientierung — zwei Orte für
-          dieselbe Telefonnummer wären einer zu viel. */}
-      {/* Erst ab dem Ankauf von Belang — vorher gibt es kein Kürzel und keinen Ordner. */}
-      {(objekt.stufe === "angekauft" || objekt.kuerzel) && (
-        <Block titel="Ablage">
-          <Reihe titel="Kürzel" wert={objekt.kuerzel ?? "—"} stark />
-          <Reihe
-            titel="Gesellschaft"
-            wert={objekt.gesellschaft ? GESELLSCHAFTEN[objekt.gesellschaft] : "nicht hinterlegt"}
-          />
-          <Reihe titel="Beurkundet" wert={objekt.angekauftAm ? f.datum(objekt.angekauftAm) : "—"} />
-          <Reihe titel="Besitzübergang" wert={objekt.besitzuebergangAm ? f.datum(objekt.besitzuebergangAm) : "offen"} />
-          <div className="flex items-baseline justify-between gap-4 py-2">
-            <dt className="text-[0.76rem] text-grau">Drive-Ordner</dt>
-            <dd className="text-[0.82rem]">
-              {objekt.driveOrdnerUrl ? (
-                <a
-                  href={objekt.driveOrdnerUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-tinte underline-offset-2 hover:underline"
-                >
-                  Öffnen
-                  <ArrowUpRight size={12} strokeWidth={2} />
-                </a>
-              ) : (
-                <span className="text-grau-stark">nicht verknüpft</span>
-              )}
-            </dd>
-          </div>
-        </Block>
-      )}
-
-      <Block titel="Herkunft">
-        <Reihe titel="Eigentümer" wert={eigentuemerVon(objekt)?.name ?? "nicht hinterlegt"} />
-        <Reihe titel="Quelle" wert={objekt.quelle ?? "—"} />
-        <Reihe titel="Angelegt" wert={f.datum(objekt.angelegtAm)} />
-      </Block>
-
-      {objekt.notiz && (
-        <div className="px-6 py-9 md:px-9">
-          <div className="mini-label">Notiz</div>
-          <p className="mt-3 text-[0.82rem] leading-relaxed whitespace-pre-line text-grau-stark">
-            {objekt.notiz}
-          </p>
+      {objekt.bilder.length > 1 && (
+        <div className="px-6 py-7 md:px-9">
+          <Bildergalerie bilder={objekt.bilder} />
         </div>
       )}
 
@@ -483,14 +408,282 @@ function Uebersicht({
   );
 }
 
+/** Makler zuerst, dann Eigentümer — in der Reihenfolge, in der man anruft. */
+const ROLLEN_FOLGE: Kontakt["rolle"][] = ["makler", "eigentuemer", "verwalter", "notar", "handwerker", "sonst"];
+
 /**
- * Kennzahl ohne Rahmen. Drei umrandete Kästen neben drei weiteren Blöcken mit
- * Rahmen ergeben ein Gitter, in dem nichts mehr hervorsticht — die Zahl trägt
- * sich durch ihre Größe, nicht durch eine Linie.
- *
- * Auf dem Telefon sind drei Spalten knapp 110 px breit; Schriftgrad und
- * Abstand müssen dort mitgeben, sonst steht „2,45 Mi…".
+ * Gmail-Entwurf statt `mailto:`: Revest arbeitet in Google Workspace, und
+ * `mailto:` öffnet auf vielen Rechnern ein Mailprogramm, das niemand nutzt.
  */
+function gmailLink(an: string, betreff: string): string {
+  const q = new URLSearchParams({ view: "cm", fs: "1", to: an, su: betreff });
+  return `https://mail.google.com/mail/?${q.toString()}`;
+}
+
+function KontaktSpalte({ objekt, zuReiter }: { objekt: Objekt; zuReiter: (r: Reiter) => void }) {
+  const kontakte = objekt.kontakte
+    .filter((k) => k.name.trim() !== "")
+    .sort((a, b) => ROLLEN_FOLGE.indexOf(a.rolle) - ROLLEN_FOLGE.indexOf(b.rolle));
+  const empfaenger = kontakte.find((k) => k.email)?.email ?? "";
+  const titel = objekt.bezeichnung?.trim() || objekt.strasse;
+  const betreff = objekt.kuerzel ? `[${objekt.kuerzel}] ${titel}` : titel;
+
+  return (
+    <section className="bg-grund px-6 py-8 md:px-9">
+      <div className="mini-label">Kontakt &amp; Mail</div>
+
+      {kontakte.length === 0 ? (
+        <p className="mt-4 text-[0.76rem] text-grau">Noch kein Ansprechpartner hinterlegt.</p>
+      ) : (
+        <ul className="mt-4 flex flex-col gap-2.5">
+          {kontakte.map((k) => (
+            <li key={k.id} className="rounded-xl border border-linie bg-flaeche px-3.5 py-3">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="min-w-0 truncate text-[0.8rem] font-medium text-tinte">{k.name}</span>
+                <span className="shrink-0 text-[0.6rem] tracking-[0.14em] uppercase text-grau">
+                  {KONTAKTROLLEN[k.rolle]}
+                </span>
+              </div>
+              {(k.telefon || k.email) && (
+                <div className="mt-2 flex flex-col gap-1">
+                  {k.telefon && (
+                    <a
+                      href={`tel:${k.telefon.replace(/\s+/g, "")}`}
+                      className="flex items-center gap-2 text-[0.74rem] text-grau-stark hover:text-tinte"
+                    >
+                      <Phone size={12} strokeWidth={1.75} className="shrink-0" />
+                      <span className="zahl">{k.telefon}</span>
+                    </a>
+                  )}
+                  {k.email && (
+                    <a
+                      href={`mailto:${k.email}`}
+                      className="flex min-w-0 items-center gap-2 text-[0.74rem] text-grau-stark hover:text-tinte"
+                    >
+                      <Mail size={12} strokeWidth={1.75} className="shrink-0" />
+                      <span className="truncate">{k.email}</span>
+                    </a>
+                  )}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <a
+          href={gmailLink(empfaenger, betreff)}
+          target="_blank"
+          rel="noreferrer"
+          className="druckbar flex items-center gap-2 rounded-full bg-tinte px-4 py-2 text-[0.66rem] font-medium tracking-[0.12em] uppercase text-grund"
+        >
+          <Mail size={12} strokeWidth={2} />
+          E-Mail schreiben
+        </a>
+        <button
+          type="button"
+          onClick={() => zuReiter("kontakt")}
+          className="druckbar flex items-center gap-2 rounded-full border border-linie px-4 py-2 text-[0.66rem] font-medium tracking-[0.12em] uppercase text-grau-stark"
+        >
+          <Pencil size={11} strokeWidth={2} />
+          Kontakte
+        </button>
+      </div>
+      {!empfaenger && kontakte.length > 0 && (
+        <p className="mt-2 text-[0.64rem] text-grau">Keine E-Mail-Adresse hinterlegt — der Entwurf öffnet ohne Empfänger.</p>
+      )}
+    </section>
+  );
+}
+
+function NotizSpalte({ objekt }: { objekt: Objekt }) {
+  const { aendern, notizAnhaengen } = useObjekte();
+  const [kurz, setKurz] = useState(objekt.kurznotiz ?? "");
+  const [neu, setNeu] = useState("");
+  const notizen = notizverlauf(objekt);
+
+  // Gespeichert wird beim Verlassen des Felds — die Kurznotiz wird
+  // überschrieben, nicht fortgeschrieben, deshalb kein Verlaufseintrag.
+  function kurzSpeichern() {
+    const wert = kurz.trim() || null;
+    if (wert !== (objekt.kurznotiz ?? null)) aendern(objekt.id, { kurznotiz: wert });
+  }
+
+  function anhaengen(e: React.FormEvent) {
+    e.preventDefault();
+    if (!neu.trim()) return;
+    notizAnhaengen(objekt.id, neu.trim());
+    setNeu("");
+  }
+
+  return (
+    <section className="bg-grund px-6 py-8 md:px-9">
+      <label htmlFor="kurznotiz" className="mini-label block">
+        Kurznotiz
+      </label>
+      <textarea
+        id="kurznotiz"
+        rows={2}
+        value={kurz}
+        onChange={(e) => setKurz(e.target.value)}
+        onBlur={kurzSpeichern}
+        placeholder="Das Wesentliche in einer Zeile, z. B. „18k für TG locker, eigenes Grundbuch TG?“"
+        className="mt-2.5 w-full resize-y rounded-xl border border-[#EFD9A6] bg-[#FDF8EC] px-3.5 py-2.5 text-[0.8rem] leading-relaxed text-tinte placeholder:text-grau focus:border-[#E0B85C] focus:outline-none"
+      />
+
+      <div className="mini-label mt-7">Notizen</div>
+      <form onSubmit={anhaengen} className="mt-2.5 flex gap-2">
+        <input
+          type="text"
+          value={neu}
+          onChange={(e) => setNeu(e.target.value)}
+          placeholder="Neue Notiz …"
+          aria-label="Neue Notiz"
+          className="min-w-0 flex-1 rounded-xl border border-linie bg-flaeche px-3.5 py-2.5 text-[0.78rem] text-tinte focus:border-linie-stark focus:outline-none"
+        />
+        <button
+          type="submit"
+          disabled={!neu.trim()}
+          aria-label="Notiz speichern"
+          className="druckbar flex size-10 shrink-0 items-center justify-center rounded-full bg-tinte text-grund disabled:opacity-30"
+        >
+          <Send size={14} strokeWidth={2} />
+        </button>
+      </form>
+
+      {notizen.length === 0 ? (
+        <p className="mt-4 text-[0.74rem] text-grau">Noch keine Notizen.</p>
+      ) : (
+        <ul className="mt-4 flex flex-col gap-3.5">
+          {notizen.map((n) => (
+            <li key={n.id}>
+              <div className="zahl text-[0.62rem] text-grau">
+                {f.datum(n.zeitpunkt)}
+                {n.verfasser && ` · ${n.verfasser}`}
+              </div>
+              <p className="mt-0.5 text-[0.78rem] leading-relaxed whitespace-pre-line text-grau-stark">
+                {n.text}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {objekt.notiz && (
+        <div className="mt-7">
+          <div className="mini-label">Beschreibung</div>
+          <p className="mt-2.5 text-[0.76rem] leading-relaxed whitespace-pre-line text-grau-stark">
+            {objekt.notiz}
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function SteckbriefSpalte({
+  objekt,
+  kennzahlen,
+  zuReiter,
+}: {
+  objekt: Objekt;
+  kennzahlen: ReturnType<typeof berechneKennzahlen>;
+  zuReiter: (r: Reiter) => void;
+}) {
+  const k = kennzahlen;
+  const plan = berechneVerkaufsplan(objekt, k);
+  const ruecklage = objekt.instandhaltungsruecklage;
+
+  return (
+    <section className="bg-grund px-6 py-8 md:px-9">
+      <div className="mini-label">Steckbrief</div>
+      <dl className="mt-3">
+        <Reihe titel="Objektart" wert={OBJEKTARTEN[objekt.objektart]} />
+        <Reihe titel="Baujahr" wert={objekt.baujahr ? String(objekt.baujahr) : "—"} />
+        <Reihe titel="Wohnfläche" wert={f.qm(objekt.wohnflaeche)} />
+        <Reihe
+          titel="Zimmer"
+          wert={f.zahl(objekt.zimmer ?? (objekt.vertriebsweg === "wg" ? objekt.wgZimmer : null) ?? null)}
+        />
+        <Reihe titel="Etage" wert={objekt.etage ?? "—"} />
+        <Reihe
+          titel="Zustand"
+          wert={ZUSTAENDE[objekt.zustand]}
+          unter={
+            objekt.jahresNettokaltmiete
+              ? `${f.eur(objekt.jahresNettokaltmiete)} Kaltmiete im Jahr`
+              : undefined
+          }
+        />
+        <Reihe titel="Hausgeld" wert={objekt.hausgeld ? `${f.eur(objekt.hausgeld)} / Monat` : "—"} />
+        <Reihe titel="Erhaltungsrücklage" wert={ruecklage ? f.eur(ruecklage) : "—"} />
+        <Reihe titel="Stellplatz / TG" wert={objekt.stellplatz ?? "—"} />
+        <Reihe titel="Energieklasse" wert={objekt.energieklasse ?? "—"} />
+        <Reihe titel="Quelle" wert={objekt.quelle ?? "—"} />
+      </dl>
+
+      <div className="mini-label mt-8">Kalkulation</div>
+      <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-5">
+        <GrossZahl titel="Kaufpreis" wert={f.eurKurz(objekt.kaufpreis)} />
+        <GrossZahl titel="Gesamtinvestition" wert={f.eurKurz(plan.gesamtkosten ?? k.gesamtinvestition)} />
+        <GrossZahl titel="Gewinn" wert={f.eurKurz(plan.rohgewinn)} />
+        <GrossZahl titel="Gewinn %" wert={f.prozent(plan.margeProzent)} />
+      </div>
+      {/* Worst/Mid/Best kommen mit der ETW-Kalkulation (2c-3). Bis dahin steht
+          hier die eine Rechnung aus der Verkaufsplanung. */}
+      <p className="mt-3 text-[0.64rem] leading-relaxed text-grau">
+        Aus der Verkaufsplanung. Worst / Mid / Best folgen mit der ETW-Kalkulation.
+      </p>
+      <button
+        type="button"
+        onClick={() => zuReiter("verkauf")}
+        className="druckbar mt-4 flex items-center gap-2 rounded-full border border-linie-stark px-4 py-2 text-[0.66rem] font-medium tracking-[0.12em] uppercase text-tinte"
+      >
+        Zur Kalkulation
+        <ArrowRight size={12} strokeWidth={2} />
+      </button>
+
+      {/* Erst ab dem Ankauf von Belang — vorher gibt es kein Kürzel und keinen Ordner. */}
+      {(objekt.stufe === "angekauft" || objekt.kuerzel) && (
+        <>
+          <div className="mini-label mt-8">Ablage</div>
+          <dl className="mt-3">
+            <Reihe titel="Kürzel" wert={objekt.kuerzel ?? "—"} stark />
+            <Reihe
+              titel="Gesellschaft"
+              wert={objekt.gesellschaft ? GESELLSCHAFTEN[objekt.gesellschaft] : "nicht hinterlegt"}
+            />
+            <Reihe titel="Beurkundet" wert={objekt.angekauftAm ? f.datum(objekt.angekauftAm) : "—"} />
+            <Reihe
+              titel="Besitzübergang"
+              wert={objekt.besitzuebergangAm ? f.datum(objekt.besitzuebergangAm) : "offen"}
+            />
+            <div className="flex items-baseline justify-between gap-4 py-2">
+              <dt className="text-[0.76rem] text-grau">Drive-Ordner</dt>
+              <dd className="text-[0.82rem]">
+                {objekt.driveOrdnerUrl ? (
+                  <a
+                    href={objekt.driveOrdnerUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-tinte underline-offset-2 hover:underline"
+                  >
+                    Öffnen
+                    <ArrowUpRight size={12} strokeWidth={2} />
+                  </a>
+                ) : (
+                  <span className="text-grau-stark">nicht verknüpft</span>
+                )}
+              </dd>
+            </div>
+          </dl>
+        </>
+      )}
+    </section>
+  );
+}
+
 function GrossZahl({ titel, wert }: { titel: string; wert: string }) {
   return (
     <div className="min-w-0">

@@ -32,7 +32,9 @@ Lies zuerst `AGENTS.md` und halte dich an die Design-Regeln (deutsche Benennung,
 | 1. Ordnerstruktur | erledigt | `aufgabe-1/ordnerstruktur` |
 | 2. Neue Felder am Objekt | erledigt | `aufgabe-2/objektfelder` |
 | 2b. Ankauf-Pipeline | erledigt | `aufgabe-2b/pipeline` |
-| 2c. Objektkarte im Ankauf | offen | |
+| 2c-1. Übersicht in drei Spalten, Kopf, Objekt in der Adresse | erledigt | `aufgabe-2c1/uebersicht` |
+| 2c-2. Reiter „Dateien“ im Ankauf | offen | |
+| 2c-3. Kalkulation ETW (braucht `KALKULATION_ETW.md`) | offen | |
 | 3. Objektprüfung | offen | |
 | 4. Ummeldungen | offen | |
 | 4b. Ankauf-Eingang | offen, erst nach 4 | |

@@ -30,11 +30,12 @@ Das ist Absicht — das Design wird erst final gemacht, dann kommt das Backend.
 Schmale Kacheln bekommen `f.eurKurz` („2,45 Mio €"), nicht `f.eur`. Ausgeschrieben
 läuft ein Millionenbetrag auf dem Telefon über den Rand.
 
-## Schubladen sind schmal
+## Objektansicht ist breit
 
-Die Objektschublade ist rund 480 px breit — unabhängig vom Fenster. `md:`-Klassen messen
-aber das Fenster, nicht die Schublade. Darin also **keine** `md:`-Umbrüche verwenden,
-sondern gleich für die schmale Spalte gestalten.
+Die „Schublade“ (`Schublade` in `AppLayout.tsx`) öffnet vollflächig mit einer Inhaltsbreite
+bis 1240 px. Die Übersicht eines Objekts steht ab `lg:` in drei Spalten (Kontakt & Mail,
+Notizen, Steckbrief + Kalkulation), darunter untereinander. Das geöffnete Objekt steht in der
+Adresse (`?objekt=`), damit Zurück, Neuladen und Links funktionieren.
 
 ## Anlegemaske
 

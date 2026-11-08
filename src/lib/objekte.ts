@@ -682,6 +682,24 @@ export interface Verlaufseintrag {
   zeitpunkt: string;
   text: string;
   art: "status" | "notiz" | "dokument" | "anlage";
+  /**
+   * `false` heißt: die Plattform hat das selbst notiert („Objektdaten
+   * bearbeitet“). Solche Einträge gehören in den Verlauf, aber nicht in den
+   * Notizverlauf der Übersicht. Fehlt bei älteren Einträgen.
+   */
+  vonHand?: boolean;
+  /** Wer die Notiz geschrieben hat — kommt mit echter Anmeldung in Phase 2. */
+  verfasser?: string | null;
+}
+
+/** Systemtexte aus der Zeit vor `vonHand` — damit alte Stände sauber bleiben. */
+const ALTE_SYSTEMNOTIZEN = /^(Objektdaten bearbeitet|Kontakte gepflegt|Kürzel [A-Z0-9]+ vergeben)$/;
+
+/** Die Notizen, die ein Mensch geschrieben hat, neueste zuerst. */
+export function notizverlauf(o: Objekt): Verlaufseintrag[] {
+  return o.verlauf
+    .filter((v) => v.art === "notiz" && v.vonHand !== false && !ALTE_SYSTEMNOTIZEN.test(v.text))
+    .sort((a, b) => b.zeitpunkt.localeCompare(a.zeitpunkt));
 }
 
 export interface Objekt {
@@ -729,6 +747,21 @@ export interface Objekt {
 
   denkmalschutz: boolean;
   erbbaurecht: boolean;
+
+  /* Steckbrief — optional, damit gespeicherte Bestände gültig bleiben. */
+  zimmer?: number | null;
+  /** Freitext, weil „2. OG“, „DG“ und „EG + Keller“ alle vorkommen. */
+  etage?: string | null;
+  /** Monatliches Hausgeld in Euro. */
+  hausgeld?: number | null;
+  /** Freitext, z. B. „TG-Stellplatz, eigenes Grundbuch“. */
+  stellplatz?: string | null;
+  /**
+   * Das Wesentliche in einer Zeile, oben in der Übersicht: „18k für TG
+   * locker, eigenes Grundbuch TG?“. Anders als `notiz` (die Beschreibung)
+   * wird sie überschrieben, nicht fortgeschrieben.
+   */
+  kurznotiz?: string | null;
 
   /**
    * Alle Beteiligten an diesem Objekt — Eigentümer, Makler, Verwalter, Notar.

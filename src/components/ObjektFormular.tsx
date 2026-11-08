@@ -94,6 +94,10 @@ interface FormularZustand {
   notiz: string;
   /** 48-Stunden-Uhr starten? Nur bei frischen Objekten sinnvoll. */
   fristStarten: boolean;
+  zimmer: string;
+  etage: string;
+  hausgeld: string;
+  stellplatz: string;
   kuerzel: string;
   gesellschaft: Gesellschaft;
   driveOrdnerUrl: string;
@@ -149,6 +153,10 @@ function leerZustand(): FormularZustand {
     wgZimmer: "",
     notiz: "",
     fristStarten: true,
+    zimmer: "",
+    etage: "",
+    hausgeld: "",
+    stellplatz: "",
     kuerzel: "",
     gesellschaft: STANDARD_GESELLSCHAFT,
     driveOrdnerUrl: "",
@@ -191,6 +199,10 @@ function ausObjekt(o: Objekt): FormularZustand {
     wgZimmer: t(o.wgZimmer ?? null),
     notiz: o.notiz ?? "",
     fristStarten: o.fristBis !== null,
+    zimmer: t(o.zimmer ?? null),
+    etage: o.etage ?? "",
+    hausgeld: t(o.hausgeld ?? null),
+    stellplatz: o.stellplatz ?? "",
     kuerzel: o.kuerzel ?? "",
     gesellschaft: o.gesellschaft ?? STANDARD_GESELLSCHAFT,
     driveOrdnerUrl: o.driveOrdnerUrl ?? "",
@@ -316,6 +328,10 @@ export function ObjektFormular({
       notiz: s(v.notiz),
       // Ab „Gekauft“ ist das Kürzel Pflicht — leer gelassen gilt der Vorschlag.
       kuerzel: s(v.kuerzel) ?? (v.stufe === "angekauft" ? vorschlag : null),
+      zimmer: z(v.zimmer),
+      etage: s(v.etage),
+      hausgeld: z(v.hausgeld),
+      stellplatz: s(v.stellplatz),
       gesellschaft: v.gesellschaft,
       driveOrdnerUrl: s(v.driveOrdnerUrl),
       besitzuebergangAm: s(v.besitzuebergangAm),
@@ -626,9 +642,47 @@ export function ObjektFormular({
           kein Feld.
         */}
         <Klappbereich
-          titel="Weitere Flächen und Gebäude"
-          gefuellt={zaehle(v.gewerbeflaeche, v.grundstuecksflaeche, v.letzteSanierung)}
+          titel="Steckbrief und Gebäude"
+          gefuellt={zaehle(
+            v.zimmer,
+            v.etage,
+            v.hausgeld,
+            v.stellplatz,
+            v.gewerbeflaeche,
+            v.grundstuecksflaeche,
+            v.letzteSanierung,
+          )}
         >
+          <Zahlfeld
+            id="zimmer"
+            label="Zimmer"
+            wert={v.zimmer}
+            setWert={(x) => setze("zimmer", x)}
+            schritt="0.5"
+            platzhalter="3"
+          />
+          <Textfeld
+            id="etage"
+            label="Etage"
+            wert={v.etage}
+            setWert={(x) => setze("etage", x)}
+            platzhalter="2. OG"
+          />
+          <Zahlfeld
+            id="hausgeld"
+            label="Hausgeld im Monat"
+            wert={v.hausgeld}
+            setWert={(x) => setze("hausgeld", x)}
+            einheit="€"
+            platzhalter="320"
+          />
+          <Textfeld
+            id="stellplatz"
+            label="Stellplatz / TG"
+            wert={v.stellplatz}
+            setWert={(x) => setze("stellplatz", x)}
+            platzhalter="TG-Stellplatz, eigenes Grundbuch"
+          />
           <Zahlfeld
             id="gewerbeflaeche"
             label="Gewerbefläche"
