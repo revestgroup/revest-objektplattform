@@ -75,7 +75,7 @@ export function DealKnoepfe({ objekt }: { objekt: Objekt }) {
           className="druckbar flex items-center gap-2 rounded-full border border-linie px-4 py-2.5 text-[0.7rem] font-medium text-grau-stark hover:border-linie-stark hover:text-tinte"
         >
           <X size={13} strokeWidth={2} />
-          Kein Deal
+          No Deal
         </button>
       )}
 
@@ -342,7 +342,7 @@ function AbsageDialog({ objekt, schliessen }: { objekt: Objekt; schliessen: () =
 
   return (
     <Dialog
-      titel="Kein Deal"
+      titel="No Deal"
       unterzeile={`${objekt.strasse}, ${objekt.stadt}. Das Objekt bleibt im Ankauf stehen — mitsamt allen Kontakten.`}
       schliessen={schliessen}
     >

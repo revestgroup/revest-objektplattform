@@ -13,25 +13,31 @@
  *    nicht und scrollt stattdessen die halbe Pipeline weg.
  *
  * Auf den Knöpfen steht der volle Name der Zielstufe, nicht ein Kürzel: wer
- * „Kein Deal“ antippt, muss vorher gelesen haben, was passiert. Und eine
+ * „No Deal“ antippt, muss vorher gelesen haben, was passiert. Und eine
  * Richtung, die es nicht gibt, bekommt keinen blassen Knopf, sondern gar
  * keinen — ein ausgegrauter Knopf ist eine Frage, die niemand gestellt hat.
  *
  * Beides schreibt dasselbe: `stufeSetzen`. Es gibt keinen zweiten Zustand,
  * den man synchron halten müsste.
+ *
+ * Die Ablage (Watchlist, Unqualifiziert, No Deal) steht rechts und schmal
+ * eingeklappt: sie soll erreichbar sein, aber die aktive Pipeline nicht
+ * verdrängen. Auch eine zugeklappte Spalte nimmt Karten an.
  */
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Phone } from "lucide-react";
 import { useState } from "react";
 
 import {
+  KONTAKTROLLEN,
   STUFEN,
-  berechneKennzahlen,
+  ansprechpartnerVon,
   f,
   type Ankaufsstufe,
   type Objekt,
 } from "../lib/objekte";
 import { useObjekte } from "../lib/objekteStore";
 import { cn } from "../lib/utils";
+import { Bildflaeche } from "./Bilder";
 
 export function ObjektPipeline({
   objekte,
@@ -48,6 +54,21 @@ export function ObjektPipeline({
   // Dauer des Ziehens — danach zählt allein die Stufe am Objekt.
   const [zieht, setZieht] = useState<string | null>(null);
   const [ueber, setUeber] = useState<Ankaufsstufe | null>(null);
+  const [offeneAblage, setOffeneAblage] = useState<Set<Ankaufsstufe>>(new Set());
+
+  // Vor und zurück nur entlang des Ablaufs bis „Gekauft“. In die Ablage
+  // kommt man per Ziehen oder über die Stufen im Objekt — ein Knopf
+  // „Unqualifiziert“ an jeder Karte wäre eine Einladung zum Fehlgriff.
+  const ablauf = stufen.filter((s) => STUFEN[s].bereich !== "ablage");
+
+  function ablageUmschalten(s: Ankaufsstufe) {
+    setOffeneAblage((alt) => {
+      const neu = new Set(alt);
+      if (neu.has(s)) neu.delete(s);
+      else neu.add(s);
+      return neu;
+    });
+  }
 
   function ablegen(stufe: Ankaufsstufe) {
     if (zieht) stufeSetzen(zieht, stufe);
@@ -61,6 +82,36 @@ export function ObjektPipeline({
         const spalte = objekte.filter((o) => o.stufe === s);
         const summe = spalte.reduce((x, o) => x + (o.kaufpreis ?? 0), 0);
         const ziel = ueber === s && zieht !== null;
+        const zu = STUFEN[s].bereich === "ablage" && !offeneAblage.has(s);
+
+        if (zu) {
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => ablageUmschalten(s)}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setUeber(s);
+              }}
+              onDragLeave={() => setUeber((alt) => (alt === s ? null : alt))}
+              onDrop={() => ablegen(s)}
+              aria-label={`${STUFEN[s].titel} aufklappen, ${spalte.length} Objekte`}
+              className={cn(
+                "druckbar flex w-12 shrink-0 flex-col items-center gap-3 self-stretch overflow-hidden rounded-2xl bg-flaeche-hoch pb-4 transition-colors duration-150 ease-out",
+                ziel && "bg-flaeche-aktiv",
+              )}
+            >
+              <span aria-hidden className="h-1 w-full" style={{ background: STUFEN[s].farbe }} />
+              <span className="zahl rounded-full bg-flaeche px-2 py-0.5 text-[0.64rem] font-semibold text-grau-stark tabular-nums">
+                {spalte.length}
+              </span>
+              <span className="text-[0.66rem] font-semibold tracking-[0.1em] whitespace-nowrap uppercase text-grau-stark [writing-mode:vertical-rl]">
+                {STUFEN[s].titel}
+              </span>
+            </button>
+          );
+        }
 
         return (
           <section
@@ -92,6 +143,16 @@ export function ObjektPipeline({
               <span className="zahl shrink-0 rounded-full bg-flaeche px-2 py-0.5 text-[0.64rem] font-semibold text-grau-stark tabular-nums">
                 {spalte.length}
               </span>
+              {STUFEN[s].bereich === "ablage" && (
+                <button
+                  type="button"
+                  onClick={() => ablageUmschalten(s)}
+                  aria-label={`${STUFEN[s].titel} zuklappen`}
+                  className="druckbar flex size-6 shrink-0 items-center justify-center rounded-full text-grau hover:text-tinte"
+                >
+                  <ChevronRight size={13} strokeWidth={2.2} />
+                </button>
+              )}
             </header>
 
             <p className="zahl px-3.5 pb-3 text-[0.66rem] text-grau tabular-nums">
@@ -116,7 +177,7 @@ export function ObjektPipeline({
                   <Pipelinekarte
                     key={o.id}
                     objekt={o}
-                    stufen={stufen}
+                    stufen={ablauf}
                     verzoegerung={Math.min(i, 8) * 20}
                     haengt={zieht === o.id}
                     beiKlick={() => oeffnen(o.id)}
@@ -142,8 +203,10 @@ export function ObjektPipeline({
 /* ------------------------------------------------------------------ */
 
 /**
- * Bewusst ohne Bild. In der Pipeline zählt, wie viele Objekte auf einer Stufe
- * liegen — mit Bild passen zwei Karten auf den Schirm, ohne Bild sechs.
+ * Die Karte zeigt nur, was beim Durchgehen der Pipeline zählt: Bild,
+ * Bezeichnung, Adresse, Fläche, Angebotspreis und wen man anruft. Kennzahlen
+ * stehen in der Liste und im Objekt — hier würden sie den Stapel aufblähen.
+ * Das Bild bleibt flach, damit trotzdem mehrere Karten auf den Schirm passen.
  */
 function Pipelinekarte({
   objekt,
@@ -156,6 +219,7 @@ function Pipelinekarte({
   beiStufe,
 }: {
   objekt: Objekt;
+  /** Der Ablauf ohne Ablage — daraus kommen die Vor- und Zurück-Knöpfe. */
   stufen: Ankaufsstufe[];
   verzoegerung: number;
   haengt: boolean;
@@ -164,10 +228,12 @@ function Pipelinekarte({
   beiLoslassen: () => void;
   beiStufe: (neu: Ankaufsstufe) => void;
 }) {
-  const k = berechneKennzahlen(objekt);
   const stelle = stufen.indexOf(objekt.stufe);
-  const zurueck = stelle > 0 ? stufen[stelle - 1] : null;
+  // Aus der Ablage führt der Weg zurück an den Anfang.
+  const zurueck = stelle > 0 ? stufen[stelle - 1] : stelle === -1 ? stufen[0] : null;
   const vor = stelle >= 0 && stelle < stufen.length - 1 ? stufen[stelle + 1] : null;
+  const kontakt = ansprechpartnerVon(objekt);
+  const titel = objekt.bezeichnung?.trim() || objekt.strasse;
 
   return (
     <li
@@ -185,42 +251,49 @@ function Pipelinekarte({
       <button
         type="button"
         onClick={beiKlick}
-        className="block w-full cursor-grab px-3.5 pt-3 pb-3 text-left active:cursor-grabbing"
+        className="block w-full cursor-grab text-left active:cursor-grabbing"
       >
-        <span className="flex items-start gap-2">
-          <span className="min-w-0 flex-1 truncate text-[0.84rem] font-semibold text-tinte">
-            {objekt.strasse}
+        <div className="h-[5.5rem] w-full overflow-hidden bg-flaeche-hoch">
+          <Bildflaeche eintrag={objekt.bilder[0] ?? "Kein Bild"} />
+        </div>
+
+        <span className="block px-3.5 pt-3">
+          <span className="block truncate text-[0.84rem] font-semibold text-tinte">{titel}</span>
+          <span className="mt-0.5 block truncate text-[0.68rem] text-grau">
+            {objekt.strasse}, {objekt.plz} {objekt.stadt}
           </span>
-          {/* Nicht nur „zu teuer“, sondern um wie viel — sonst sieht die halbe
-              Spalte gleich aus und das Zeichen nutzt sich ab. */}
-          {k.zuTeuer && (
-            <span
-              title={`Forderung liegt ${f.eur(k.preisAbstand)} über dem Ankaufslimit`}
-              className="zahl shrink-0 rounded-full bg-[#FBE2E2] px-2 py-0.5 text-[0.58rem] font-semibold text-[#9A2727] tabular-nums"
-            >
-              +{f.eurKurz(k.preisAbstand)}
-            </span>
-          )}
         </span>
 
-        <span className="mt-1 block truncate text-[0.68rem] text-grau">
-          {objekt.stadt} · {objekt.stadtteil}
-        </span>
-
-        <span className="mt-3 flex items-baseline justify-between gap-2">
+        <span className="flex items-baseline justify-between gap-2 px-3.5 pt-2.5 pb-3">
           <span className="zahl text-[0.84rem] font-semibold text-tinte tabular-nums">
             {f.eur(objekt.kaufpreis)}
           </span>
-          {/* Ohne hinterlegte Miete steht hier nichts statt zweimal einem
-              Strich — ein leerer Platz liest sich schneller als eine Zeile,
-              die nur sagt, dass sie nichts sagt. */}
-          {k.faktor !== null && (
-            <span className="zahl shrink-0 text-[0.64rem] text-grau tabular-nums">
-              {f.faktor(k.faktor)} · {f.prozent(k.bruttoMietrendite)}
-            </span>
-          )}
+          <span className="zahl shrink-0 text-[0.68rem] text-grau-stark tabular-nums">
+            {f.qm(objekt.wohnflaeche)}
+          </span>
         </span>
       </button>
+
+      {/* Der Ansprechpartner liegt außerhalb des Kartenknopfs: die Nummer
+          antippen soll anrufen, nicht das Objekt öffnen. */}
+      {kontakt && (
+        <div className="flex items-center gap-2 border-t border-linie px-3.5 py-2">
+          <span className="min-w-0 flex-1 truncate text-[0.68rem] text-grau-stark">
+            {kontakt.name}
+            <span className="text-grau"> · {KONTAKTROLLEN[kontakt.rolle]}</span>
+          </span>
+          {kontakt.telefon && (
+            <a
+              href={`tel:${kontakt.telefon.replace(/\s+/g, "")}`}
+              aria-label={`${kontakt.name} anrufen`}
+              className="druckbar flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[0.64rem] text-tinte hover:bg-flaeche-hoch"
+            >
+              <Phone size={11} strokeWidth={2} />
+              <span className="zahl tabular-nums">{kontakt.telefon}</span>
+            </a>
+          )}
+        </div>
+      )}
 
       {/* ----- Stufe wechseln ----- */}
       {/* `gap-px` über dem Linienton zeichnet die Trenner zwischen den Knöpfen

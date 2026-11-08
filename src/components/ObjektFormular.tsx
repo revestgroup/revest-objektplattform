@@ -60,6 +60,7 @@ type Stadt = "Ulm" | "Neu-Ulm";
 const BUNDESLAND: Record<Stadt, string> = { Ulm: "BW", "Neu-Ulm": "BY" };
 
 interface FormularZustand {
+  bezeichnung: string;
   strasse: string;
   plz: string;
   stadt: Stadt;
@@ -116,6 +117,7 @@ function zaehle(...werte: string[]): number {
 
 function leerZustand(): FormularZustand {
   return {
+    bezeichnung: "",
     strasse: "",
     plz: "",
     stadt: "Ulm",
@@ -124,7 +126,7 @@ function leerZustand(): FormularZustand {
     breite: "",
     objektart: "mfh",
     zustand: "vermietet",
-    stufe: "beobachtung",
+    stufe: "neu",
     kaufpreis: "",
     ankaufslimit: "",
     wohnflaeche: "",
@@ -157,6 +159,7 @@ function leerZustand(): FormularZustand {
 function ausObjekt(o: Objekt): FormularZustand {
   const t = (v: number | null) => (v === null ? "" : String(v));
   return {
+    bezeichnung: o.bezeichnung ?? "",
     strasse: o.strasse,
     plz: o.plz,
     stadt: o.stadt as Stadt,
@@ -257,7 +260,7 @@ export function ObjektFormular({
     } else if (ln < 9.7 || ln > 10.3 || br < 48.2 || br > 48.55) {
       m.laenge = "Der Punkt liegt außerhalb von Ulm und Neu-Ulm.";
     }
-    // Leer ist erlaubt — ab „Angekauft“ springt dann der Vorschlag ein.
+    // Leer ist erlaubt — ab „Gekauft“ springt dann der Vorschlag ein.
     if (v.kuerzel && !KUERZEL_MUSTER.test(v.kuerzel)) {
       m.kuerzel = "2 bis 12 Zeichen, nur Großbuchstaben und Ziffern.";
     } else if (v.kuerzel && vergeben.includes(v.kuerzel)) {
@@ -280,6 +283,7 @@ export function ObjektFormular({
       breite: br,
       // Umriss bleibt erhalten, wenn er schon mal aus der Karte kam.
       umriss: bestehend?.umriss ?? umrissAusMitte(ln, br),
+      bezeichnung: s(v.bezeichnung),
       strasse: v.strasse.trim(),
       plz: v.plz.trim(),
       stadt: v.stadt,
@@ -310,7 +314,7 @@ export function ObjektFormular({
       wgZimmer:
         v.objektart === "etw" && v.vertriebsweg === "wg" ? z(v.wgZimmer) : null,
       notiz: s(v.notiz),
-      // Ab „Angekauft“ ist das Kürzel Pflicht — leer gelassen gilt der Vorschlag.
+      // Ab „Gekauft“ ist das Kürzel Pflicht — leer gelassen gilt der Vorschlag.
       kuerzel: s(v.kuerzel) ?? (v.stufe === "angekauft" ? vorschlag : null),
       gesellschaft: v.gesellschaft,
       driveOrdnerUrl: s(v.driveOrdnerUrl),
@@ -440,12 +444,22 @@ export function ObjektFormular({
         </Bereich>
 
         <Bereich titel="Objekt">
-          <Segmente
+          <Textfeld
+            id="bezeichnung"
+            label="Bezeichnung"
+            wert={v.bezeichnung}
+            setWert={(x) => setze("bezeichnung", x)}
+            platzhalter="WHG – 2Z – Eselsberg"
+            hinweis="Titel auf der Pipeline-Karte. Leer gelassen steht dort die Straße."
+            breit
+          />
+          {/* Zehn Stufen sprengen jede Segmentleiste — deshalb eine Auswahl. */}
+          <Auswahlfeld
+            id="stufe"
             label="Ankaufsstufe"
             wert={v.stufe}
             setWert={(x) => setze("stufe", x)}
             optionen={STUFEN_REIHENFOLGE.map((st) => ({ wert: st, titel: STUFEN[st].titel }))}
-            breit
           />
           <Auswahlfeld
             id="objektart"
@@ -725,7 +739,7 @@ export function ObjektFormular({
             hinweis={
               v.stufe === "angekauft" && !v.kuerzel
                 ? `Leer gelassen wird ${vorschlag} vergeben.`
-                : "Schlüssel für Drive-Dateinamen und Qonto-Label. Pflicht ab „Angekauft“."
+                : "Schlüssel für Drive-Dateinamen und Qonto-Label. Pflicht ab „Gekauft“."
             }
           />
           <Auswahlfeld

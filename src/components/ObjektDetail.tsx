@@ -253,7 +253,7 @@ export function ObjektDetail({
             sie dort, wo sie gelesen wird, und nicht nur im Verlauf. */}
         {objekt.stufe === "abgesagt" && objekt.absagegrund && (
           <p className="mt-4 rounded-xl border border-[#E3BDB9] bg-[#F8DEDC] px-3.5 py-2.5 text-[0.74rem] leading-relaxed text-[#8A2822]">
-            Kein Deal: {objekt.absagegrund}
+            No Deal: {objekt.absagegrund}
           </p>
         )}
       </div>

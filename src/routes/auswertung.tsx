@@ -17,6 +17,7 @@ import {
   OBJEKTARTEN,
   STUFEN,
   STUFEN_REIHENFOLGE,
+  istAktiv,
   berechneKennzahlen,
   f,
   type Einheitsstatus,
@@ -229,7 +230,7 @@ function AuswertungSeite() {
 function auswerten(objekte: Objekt[]) {
   const angekauft = objekte.filter((o) => o.stufe === "angekauft");
   const abgesagt = objekte.filter((o) => o.stufe === "abgesagt");
-  const inPruefung = objekte.filter((o) => STUFEN[o.stufe].aktiv);
+  const inPruefung = objekte.filter((o) => istAktiv(o.stufe));
   const aktiv = inPruefung.length;
 
   // Was noch zur Entscheidung ansteht, und wo die Forderung über dem eigenen

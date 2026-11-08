@@ -35,8 +35,10 @@ import {
   STUFEN,
   STUFEN_REIHENFOLGE,
   berechneKennzahlen,
+  gekauftSeit,
   kontakteAlsText,
   type Ankaufsstufe,
+  type Objekt,
 } from "../lib/objekte";
 import { useObjekte, type ObjektEntwurf } from "../lib/objekteStore";
 import { cn } from "../lib/utils";
@@ -67,10 +69,25 @@ interface Bereichsangaben {
   stufenfilter: boolean;
   /** Pipeline nur dort, wo es Stufen zum Verschieben gibt. */
   pipeline: boolean;
+  /** Womit der Bereich aufgeht. */
+  startAnsicht: Ansicht;
+  /**
+   * Spalten der Pipeline. Im Ankauf kommt „Gekauft“ als Abschluss dazu —
+   * dort liegen aber nur frische Käufe, ältere stehen in den Projekten.
+   */
+  pipelineStufen: Ankaufsstufe[];
   leer: string;
 }
 
 const VOR_DEM_KAUF = STUFEN_REIHENFOLGE.filter((s) => s !== "angekauft");
+
+/** So lange bleibt ein Kauf in der Pipeline-Spalte „Gekauft“ stehen. */
+const FRISCH_GEKAUFT_TAGE = 30;
+
+function frischGekauft(o: Objekt, jetzt: number): boolean {
+  const seit = gekauftSeit(o);
+  return seit !== null && jetzt - new Date(seit).getTime() <= FRISCH_GEKAUFT_TAGE * 86_400_000;
+}
 
 const BEREICHE: Record<Bereich, Bereichsangaben> = {
   ankauf: {
@@ -80,6 +97,9 @@ const BEREICHE: Record<Bereich, Bereichsangaben> = {
     standardSortierung: "neu",
     stufenfilter: true,
     pipeline: true,
+    // Die Pipeline ist Timos Arbeitsfläche im Ankauf, die Liste das Archiv.
+    startAnsicht: "pipeline",
+    pipelineStufen: STUFEN_REIHENFOLGE,
     leer: "Noch kein Objekt in Prüfung.",
   },
   projekte: {
@@ -91,6 +111,8 @@ const BEREICHE: Record<Bereich, Bereichsangaben> = {
     // Alle Projekte stehen auf derselben Stufe. Eine Pipeline mit einer Spalte
     // wäre eine Liste mit Rahmen drumherum.
     pipeline: false,
+    startAnsicht: "liste",
+    pipelineStufen: ["angekauft"],
     leer: "Noch kein Objekt angekauft.",
   },
 };
@@ -109,7 +131,7 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
   const [stufen, setStufen] = useState<Set<Ankaufsstufe>>(new Set());
   const [stadt, setStadt] = useState<"" | "Ulm" | "Neu-Ulm">("");
   const [sortierung, setSortierung] = useState<Sortierung>(b.standardSortierung);
-  const [ansicht, setAnsicht] = useState<Ansicht>("liste");
+  const [ansicht, setAnsicht] = useState<Ansicht>(b.startAnsicht);
   // Kommt eine Objekt-ID aus der Adresse — etwa aus einer Aufgabe —, öffnet
   // sich das Detail sofort. Danach ist es normaler Zustand: Zumachen soll
   // nicht die Adresse umschreiben müssen.
@@ -119,10 +141,14 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
 
   // Der Bestand dieses Bereichs. Alles Weitere — Suche, Stadt, Stufe — filtert
   // nur noch darin, damit die Zahl unter der Liste eine ehrliche Bezugsgröße hat.
-  const bestand = useMemo(
-    () => objekte.filter((o) => b.stufen.includes(o.stufe)),
-    [objekte, b.stufen],
-  );
+  const bestand = useMemo(() => {
+    const jetzt = Date.now();
+    return objekte.filter(
+      (o) =>
+        b.stufen.includes(o.stufe) ||
+        (ansicht === "pipeline" && b.pipelineStufen.includes(o.stufe) && frischGekauft(o, jetzt)),
+    );
+  }, [objekte, b.stufen, b.pipelineStufen, ansicht]);
 
   const gewaehlt =
     modus.art === "detail" || modus.art === "bearbeiten"
@@ -139,6 +165,7 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
       // noch weiß, dass der Makler so hieß.
       return [
         o.kuerzel ?? "",
+        o.bezeichnung ?? "",
         o.strasse,
         o.stadtteil,
         o.stadt,
@@ -384,7 +411,7 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
           {ansicht === "pipeline" ? (
             <ObjektPipeline
               objekte={liste}
-              stufen={b.stufen}
+              stufen={b.pipelineStufen}
               oeffnen={(id) => setModus({ art: "detail", id })}
             />
           ) : (

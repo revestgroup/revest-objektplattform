@@ -6,7 +6,7 @@
  * Keine Laufzeit-Abfrage — die Grenzen ändern sich praktisch nie.
  */
 import rohdaten from "./stadtteile.json";
-import type { Objekt } from "./objekte";
+import { istAktiv, type Objekt } from "./objekte";
 
 export interface StadtteilEigenschaften {
   name: string;
@@ -119,7 +119,7 @@ export function bilanzJeStadtteil(objekte: Objekt[]): Map<string, StadtteilBilan
       b.investiert += o.kaufpreis ?? 0;
     } else if (o.stufe === "abgesagt") {
       b.abgesagt += 1;
-    } else {
+    } else if (istAktiv(o.stufe)) {
       b.aktiv += 1;
     }
   }

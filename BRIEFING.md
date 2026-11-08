@@ -31,12 +31,16 @@ Lies zuerst `AGENTS.md` und halte dich an die Design-Regeln (deutsche Benennung,
 | 0. Sicherheit | erledigt (Repo auf privat stellen macht Timo) | `sicherheit/zugang-und-mockdaten` |
 | 1. Ordnerstruktur | erledigt | `aufgabe-1/ordnerstruktur` |
 | 2. Neue Felder am Objekt | erledigt | `aufgabe-2/objektfelder` |
-| 2b. Ankauf-Pipeline | offen | |
+| 2b. Ankauf-Pipeline | erledigt | `aufgabe-2b/pipeline` |
 | 3. Objektprüfung | offen | |
 | 4. Ummeldungen | offen | |
 | 4b. Ankauf-Eingang | offen, erst nach 4 | |
 
 Die Branches bauen aufeinander auf; der jüngste enthält alle vorherigen.
+
+Hinweis für Aufgabe 3: Die Stufe „Verhandlung“ gibt es seit 2b nicht mehr. Die Warnung gilt
+beim Wechsel nach „Angebot abgegeben“ bzw. „Gekauft“. Intern heißen „Gekauft“ und „No Deal“
+weiter `angekauft` und `abgesagt`.
 
 ## Aufgaben in Reihenfolge
 

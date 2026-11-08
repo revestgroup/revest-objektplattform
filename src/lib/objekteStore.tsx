@@ -23,7 +23,15 @@ import type {
   Verkaufsplan,
   Verlaufseintrag,
 } from "./objekte";
-import { TEILUNGSSTATUS, andereKuerzel, f, kuerzelVorschlag, ordnerUmziehen } from "./objekte";
+import {
+  STUFEN,
+  TEILUNGSSTATUS,
+  andereKuerzel,
+  f,
+  kuerzelVorschlag,
+  ordnerUmziehen,
+  stufeUmstellen,
+} from "./objekte";
 import { MOCK_OBJEKTE } from "./mockDaten";
 
 /**
@@ -36,12 +44,14 @@ const SPEICHER = "revest.objekte.v6";
 /**
  * Gespeicherte Stände an die aktuelle Form anpassen, statt sie über eine neue
  * Version zu verwerfen: Dokumente aus der alten flachen Ablage ziehen in die
- * Drive-Ordner um, und gekaufte Objekte ohne Kürzel bekommen den Vorschlag —
- * ab „Angekauft“ ist es Pflicht.
+ * Drive-Ordner um, alte Stufen werden auf die neuen abgebildet, und gekaufte
+ * Objekte ohne Kürzel bekommen den Vorschlag — ab „Gekauft“ ist es Pflicht.
  */
 function ausSpeicher(objekte: Objekt[]): Objekt[] {
   const vergeben = objekte.flatMap((o) => (o.kuerzel ? [o.kuerzel] : []));
-  return objekte.map((o) => {
+  return objekte.map((alt) => {
+    // Stufen der ersten Fassung (beobachtung, kontakt …) auf Timos Ablauf umstellen.
+    const o = { ...alt, stufe: stufeUmstellen(alt.stufe) };
     let kuerzel = o.kuerzel ?? null;
     if (!kuerzel && o.stufe === "angekauft") {
       kuerzel = kuerzelVorschlag(o.strasse, vergeben);
@@ -228,7 +238,10 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
         setObjekte((alle) =>
           alle.map((o) => {
             if (o.id !== id || o.stufe === stufe) return o;
-            const verlauf = [...o.verlauf, eintrag("status", `Stufe auf ${stufe} gesetzt`)];
+            const verlauf = [
+              ...o.verlauf,
+              eintrag("status", `Stufe auf ${STUFEN[stufe].titel} gesetzt`),
+            ];
             if (stufe !== "angekauft" || o.kuerzel) return { ...o, stufe, verlauf };
             const kuerzel = kuerzelVorschlag(o.strasse, andereKuerzel(alle, o.id));
             return {

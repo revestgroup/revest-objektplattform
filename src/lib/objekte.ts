@@ -7,91 +7,154 @@
  */
 
 export type Ankaufsstufe =
-  | "beobachtung"
-  | "kontakt"
-  | "pruefung"
-  | "verhandlung"
+  | "neu"
+  | "unterlagen"
+  | "qualifiziert"
+  | "besichtigt"
+  | "angebot"
+  | "nachfassen"
   | "angekauft"
+  | "watchlist"
+  | "unqualifiziert"
   | "abgesagt";
 
-/** Reihenfolge = Fortschritt. Bestimmt zugleich die Position in der Legende. */
+/**
+ * Reihenfolge = Timos Ablauf, links nach rechts. Bestimmt zugleich die
+ * Position in Legende und Pipeline. Die Ablage steht bewusst hinten.
+ *
+ * „angekauft“ und „abgesagt“ heißen intern weiter so (angezeigt: „Gekauft“,
+ * „No Deal“) — an ihnen hängen Projekte, Karte und Deal-Dialog.
+ */
 export const STUFEN_REIHENFOLGE: Ankaufsstufe[] = [
-  "beobachtung",
-  "kontakt",
-  "pruefung",
-  "verhandlung",
+  "neu",
+  "unterlagen",
+  "qualifiziert",
+  "besichtigt",
+  "angebot",
+  "nachfassen",
   "angekauft",
+  "watchlist",
+  "unqualifiziert",
   "abgesagt",
 ];
+
+/** Aktiv = läuft noch, Abschluss = gekauft, Ablage = liegt beiseite. */
+export type Stufenbereich = "aktiv" | "abschluss" | "ablage";
 
 /**
  * Ampel statt Graustufen.
  *
- * Drei Zustände, die ohne Legende lesbar sind:
  *   GELB  — interessant, läuft noch
  *   GRÜN  — gekauft
  *   ROT   — kein Deal
  *
- * Innerhalb von Gelb bleibt das alte Prinzip erhalten: derselbe Farbton,
- * nur die Tiefe wächst mit dem Fortschritt. So sieht Timo auch innerhalb
- * der Pipeline, welches Objekt am weitesten ist.
+ * Innerhalb von Gelb wächst die Tiefe mit dem Fortschritt — so sieht Timo
+ * auch innerhalb der Pipeline, welches Objekt am weitesten ist. Die Ablage
+ * ist kühl (Watchlist blaugrau, Unqualifiziert grau), damit sie neben dem
+ * Gelb nicht nach Arbeit aussieht.
  *
  * `weich` ist die Flächenvariante für Plaketten auf hellem Grund,
  * `tief` die Textvariante darauf — beide mit genug Kontrast für AA.
  */
 export const STUFEN: Record<
   Ankaufsstufe,
-  { titel: string; farbe: string; weich: string; tief: string; kurz: string; aktiv: boolean }
+  { titel: string; farbe: string; weich: string; tief: string; kurz: string; bereich: Stufenbereich }
 > = {
-  beobachtung: {
-    titel: "Beobachtung",
-    farbe: "#EFC063",
-    weich: "#FDF3DF",
-    tief: "#8A6410",
-    kurz: "BEO",
-    aktiv: true,
+  neu: { titel: "Neu", farbe: "#F2CC70", weich: "#FDF5E1", tief: "#8A6410", kurz: "NEU", bereich: "aktiv" },
+  unterlagen: {
+    titel: "Unterlagen angefordert",
+    farbe: "#EAB44A",
+    weich: "#FCEFD7",
+    tief: "#8A600C",
+    kurz: "UNT",
+    bereich: "aktiv",
   },
-  kontakt: {
-    titel: "Kontakt",
-    farbe: "#E5A32E",
-    weich: "#FBEBD1",
-    tief: "#8A5A08",
-    kurz: "KON",
-    aktiv: true,
+  qualifiziert: {
+    titel: "Qualifiziert",
+    farbe: "#E0992A",
+    weich: "#FAE8CD",
+    tief: "#8A5608",
+    kurz: "QUA",
+    bereich: "aktiv",
   },
-  pruefung: {
-    titel: "Prüfung",
+  besichtigt: {
+    titel: "Terminiert/Besichtigt",
     farbe: "#CE8206",
     weich: "#F9E2C4",
     tief: "#7A4D04",
-    kurz: "PRÜ",
-    aktiv: true,
+    kurz: "BES",
+    bereich: "aktiv",
   },
-  verhandlung: {
-    titel: "Verhandlung",
-    farbe: "#A66305",
-    weich: "#F2DAB9",
-    tief: "#663C02",
-    kurz: "VER",
-    aktiv: true,
+  angebot: {
+    titel: "Angebot abgegeben",
+    farbe: "#B46E06",
+    weich: "#F4DDBD",
+    tief: "#6B4003",
+    kurz: "ANB",
+    bereich: "aktiv",
+  },
+  nachfassen: {
+    titel: "Nachfassen",
+    farbe: "#8F5404",
+    weich: "#EFD6B4",
+    tief: "#5A3402",
+    kurz: "NAC",
+    bereich: "aktiv",
   },
   angekauft: {
-    titel: "Angekauft",
+    titel: "Gekauft",
     farbe: "#17935C",
     weich: "#DBF2E6",
     tief: "#0C5E3A",
-    kurz: "ANG",
-    aktiv: false,
+    kurz: "GEK",
+    bereich: "abschluss",
+  },
+  watchlist: {
+    titel: "Watchlist",
+    farbe: "#6F8AA6",
+    weich: "#E3EAF2",
+    tief: "#3A5068",
+    kurz: "WAT",
+    bereich: "ablage",
+  },
+  unqualifiziert: {
+    titel: "Unqualifiziert",
+    farbe: "#9A9A9A",
+    weich: "#EDEDED",
+    tief: "#555555",
+    kurz: "UNQ",
+    bereich: "ablage",
   },
   abgesagt: {
-    titel: "Kein Deal",
+    titel: "No Deal",
     farbe: "#CF4848",
     weich: "#FBE2E2",
     tief: "#9A2727",
-    kurz: "ABG",
-    aktiv: false,
+    kurz: "NOD",
+    bereich: "ablage",
   },
 };
+
+export function istAktiv(stufe: Ankaufsstufe): boolean {
+  return STUFEN[stufe].bereich === "aktiv";
+}
+
+/**
+ * Stufen aus der ersten Fassung. Gespeicherte Objekte tragen sie noch —
+ * beim Laden werden sie hierüber umgestellt.
+ */
+const ALTE_STUFEN: Record<string, Ankaufsstufe> = {
+  beobachtung: "watchlist",
+  kontakt: "neu",
+  pruefung: "qualifiziert",
+  verhandlung: "angebot",
+};
+
+/** Alte oder unbekannte Stufe → gültige. Unbekanntes landet auf „Neu“. */
+export function stufeUmstellen(stufe: string): Ankaufsstufe {
+  if (stufe in STUFEN) return stufe as Ankaufsstufe;
+  return ALTE_STUFEN[stufe] ?? "neu";
+}
 
 export type Objektart = "mfh" | "etw" | "whg_geschaeftshaus" | "grundstueck";
 
@@ -573,6 +636,32 @@ export function eigentuemerVon(o: Objekt): Kontakt | null {
   return o.kontakte.find((k) => k.rolle === "eigentuemer" && k.name.trim() !== "") ?? null;
 }
 
+/**
+ * Wen man anruft: der Makler, wenn es einen gibt, sonst der Eigentümer,
+ * sonst wer eben eingetragen ist. Für die Pipeline-Karte.
+ */
+export function ansprechpartnerVon(o: Objekt): Kontakt | null {
+  const benannt = o.kontakte.filter((k) => k.name.trim() !== "");
+  return (
+    benannt.find((k) => k.rolle === "makler") ??
+    benannt.find((k) => k.rolle === "eigentuemer") ??
+    benannt[0] ??
+    null
+  );
+}
+
+/**
+ * Seit wann ein Objekt gekauft ist: die Beurkundung, ersatzweise der letzte
+ * Stufenwechsel — wer per Drag & Drop auf „Gekauft“ schiebt, trägt kein
+ * Beurkundungsdatum ein.
+ */
+export function gekauftSeit(o: Objekt): string | null {
+  if (o.stufe !== "angekauft") return null;
+  if (o.angekauftAm) return o.angekauftAm;
+  const wechsel = o.verlauf.filter((v) => v.art === "status").at(-1);
+  return wechsel?.zeitpunkt ?? null;
+}
+
 /** Alles, wonach man einen Kontakt suchen würde — als eine Zeile. */
 export function kontakteAlsText(o: Objekt): string {
   return o.kontakte
@@ -603,6 +692,8 @@ export interface Objekt {
   /** Umriss als Snapshot zum Zeitpunkt der Anlage. Bleibt gültig, auch wenn OSM sich ändert. */
   umriss: [number, number][] | null;
 
+  /** Kurzer Titel für die Pipeline, z. B. „WHG – 2Z – Eselsberg“. Ohne ihn steht die Straße. */
+  bezeichnung?: string | null;
   strasse: string;
   plz: string;
   stadt: string;
@@ -675,7 +766,7 @@ export interface Objekt {
 
   /**
    * Objektkürzel wie „RAV134“: Schlüssel für Drive-Dateinamen und Qonto-Labels.
-   * Pflicht ab „Angekauft“ und eindeutig über alle Objekte (siehe `kuerzelVorschlag`).
+   * Pflicht ab „Gekauft“ und eindeutig über alle Objekte (siehe `kuerzelVorschlag`).
    */
   kuerzel?: string | null;
   /** Welche Gesellschaft kauft. Optional, damit gespeicherte Bestände gültig bleiben. */
@@ -1017,9 +1108,11 @@ export function berechneKennzahlen(o: Objekt): Kennzahlen {
     letzteForderung !== null && o.ankaufslimit !== null
       ? letzteForderung.preis - o.ankaufslimit
       : null;
-  // „Zu teuer“ ist eine Aussage über laufende Verhandlungen. Ein gekauftes
-  // Objekt hat seinen Preis hinter sich, ein abgesagtes ist ohnehin raus.
-  const zuTeuer = STUFEN[o.stufe].aktiv && preisAbstand !== null && preisAbstand > 0;
+  // „Zu teuer“ ist eine Aussage über laufende Verhandlungen — und über die
+  // Watchlist, die genau dafür da ist. Ein gekauftes Objekt hat seinen Preis
+  // hinter sich, ein abgesagtes ist ohnehin raus.
+  const zuTeuer =
+    (istAktiv(o.stufe) || o.stufe === "watchlist") && preisAbstand !== null && preisAbstand > 0;
 
   return {
     kaufpreisJeQm: kp !== null && o.wohnflaeche ? kp / o.wohnflaeche : null,
@@ -1142,8 +1235,9 @@ export interface Fristinfo {
  */
 export function fristinfo(o: Objekt, jetzt: Date = new Date()): Fristinfo | null {
   if (!o.fristBis) return null;
-  if (o.stufe === "angekauft" || o.stufe === "abgesagt") return null;
-  if (o.stufe === "verhandlung") return null;
+  // Die Uhr läuft, solange noch geprüft wird: bis zur Besichtigung. Mit dem
+  // Angebot ist die Prüfung erledigt, und in der Ablage gibt es nichts zu prüfen.
+  if (!istAktiv(o.stufe) || o.stufe === "angebot" || o.stufe === "nachfassen") return null;
 
   const ziel = new Date(o.fristBis).getTime();
   const diffStunden = (ziel - jetzt.getTime()) / 3_600_000;
