@@ -69,6 +69,27 @@ export function Ummeldungsblatt({ objekt }: { objekt: Objekt }) {
     );
   }
 
+  // Besitzübergang steht, aber die Liste fehlt (etwa nach einem Import):
+  // ein Knopf statt einer leeren Seite. Jede Änderung legt sie an.
+  if (an.length === 0) {
+    return (
+      <div className="px-6 py-10 md:px-9">
+        <div className="max-w-md rounded-2xl border border-linie bg-flaeche px-5 py-5">
+          <div className="text-[0.84rem] font-medium text-tinte">
+            Besitzübergang am {f.datum(objekt.besitzuebergangAm!)}, aber noch keine Ummeldungen
+          </div>
+          <button
+            type="button"
+            onClick={() => aendern(objekt.id, {})}
+            className="druckbar mt-4 rounded-full bg-tinte px-4 py-2.5 text-[0.66rem] font-medium tracking-[0.12em] uppercase text-grund"
+          >
+            Ummeldungen anlegen
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const verkaufte = objekt.einheiten.filter((e) =>
     liste.some((u) => u.richtung === "ab" && u.einheitId === e.id),
   );

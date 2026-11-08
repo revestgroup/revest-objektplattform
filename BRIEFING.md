@@ -43,7 +43,7 @@ Lies zuerst `AGENTS.md` und halte dich an die Design-Regeln (deutsche Benennung,
 | 4b. Ankauf-Eingang | offen, nach Feinschliff 1 | |
 | Feinschliff 1 · A Ankauf | erledigt | `feinschliff/a-ankauf` |
 | Feinschliff 1 · B Kalkulation | erledigt | `feinschliff/b-kalkulation` |
-| Feinschliff 1 · C Projekte | offen | |
+| Feinschliff 1 · C Projekte | erledigt | `feinschliff/c-projekte` |
 | Feinschliff 1 · D Kontaktregister | offen | |
 | Feinschliff 1 · E Backoffice | offen | |
 

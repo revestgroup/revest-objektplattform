@@ -230,6 +230,8 @@ export interface Einheit {
   kaltmiete: number | null;
   status: Einheitsstatus;
 
+  /** Eigentumswohnung zum Verkauf oder WG zur Vermietung. Fehlt bei älteren Ständen. */
+  nutzung?: "etw" | "wg" | null;
   /** Ab `verkauft` gesetzt. Vorher weiß niemand, wer kauft. */
   kaeufer: string | null;
   /** E-Mail oder Telefon. Der Weg, auf dem der Käufer später angeschrieben wird. */
@@ -893,6 +895,18 @@ export function kuerzelVorschlag(strasse: string, vergeben: Iterable<string>): s
 /** Alle Kürzel außer dem des Objekts selbst — für Eindeutigkeit beim Bearbeiten. */
 export function andereKuerzel(objekte: Objekt[], eigeneId: string | null): string[] {
   return objekte.flatMap((o) => (o.id !== eigeneId && o.kuerzel ? [o.kuerzel] : []));
+}
+
+/**
+ * Ordner-ID aus einem Drive-Link: `…/drive/folders/<ID>` oder `…?id=<ID>`.
+ * Eine nackte ID wird auch genommen. Null, wenn nichts Brauchbares drinsteht.
+ */
+export function driveOrdnerId(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const s = url.trim();
+  const treffer = s.match(/\/folders\/([\w-]{10,})/) ?? s.match(/[?&]id=([\w-]{10,})/);
+  if (treffer) return treffer[1];
+  return /^[\w-]{20,}$/.test(s) ? s : null;
 }
 
 /**

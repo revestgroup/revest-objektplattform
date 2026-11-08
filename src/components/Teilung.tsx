@@ -9,7 +9,7 @@
  * Er wird nur nutzbar, wenn die Teilung beim Deal angestoßen wurde. Ein Haus,
  * das als Ganzes gehalten oder verkauft wird, hat hier nichts abzulegen.
  */
-import { Scale } from "lucide-react";
+import { Check, Scale } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -81,74 +81,53 @@ function Teilungsblatt({ objekt, t }: { objekt: Objekt; t: Teilungserklaerung })
   return (
     <div className="divide-y divide-linie">
       {/* ----- Wo es steht ----- */}
-      <div className="px-6 py-8 md:px-9">
-        <div className="mini-label">Stand</div>
-
-        {/* Der Weg als Kette. Vier Stationen passen auf dem Telefon nicht
-            nebeneinander, also untereinander — so bleibt jede lesbar und
-            anklickbar, ohne zu wischen. */}
-        <ol className="mt-5 grid gap-2 sm:grid-cols-2">
+      {/* Vier Stufen klein nebeneinander als Schrittleiste; am Telefon wischbar. */}
+      <div className="px-4 py-5 md:px-7">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <div className="mini-label">Stand</div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.7rem] text-grau">
+            <span>Angestoßen am {f.datum(t.gestartetAm)}</span>
+            {verwertung && <span>{verwertung}</span>}
+          </div>
+        </div>
+        <ol className="scroll-reihe mt-3 flex items-center overflow-x-auto">
           {TEILUNGSSTATUS_REIHENFOLGE.map((s, i) => {
             const erledigt = i < aktuell;
             const an = i === aktuell;
-            const st = TEILUNGSSTATUS[s];
             return (
-              <li key={s}>
+              <li key={s} className="flex min-w-max flex-1 items-center">
                 <button
                   type="button"
                   onClick={() => teilungSetzen(objekt.id, { ...t, status: s })}
                   aria-current={an ? "step" : undefined}
                   className={cn(
-                    "druckbar flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left",
-                    an
-                      ? "border-linie-stark bg-flaeche-hoch shadow-karte"
-                      : "border-linie bg-flaeche",
+                    "druckbar flex shrink-0 items-center gap-2 rounded-full py-1 pr-3 pl-1 text-[0.74rem]",
+                    an ? "bg-tinte text-grund" : erledigt ? "text-grau-stark" : "text-grau",
                   )}
                 >
                   <span
                     aria-hidden
                     className={cn(
-                      "flex size-6 shrink-0 items-center justify-center rounded-full text-[0.6rem] font-semibold",
-                      an
-                        ? "bg-tinte text-grund"
-                        : erledigt
-                          ? "bg-linie-stark text-flaeche"
-                          : "bg-flaeche-hoch text-grau",
+                      "flex size-5 items-center justify-center rounded-full text-[0.58rem] font-semibold",
+                      an ? "bg-grund text-tinte" : erledigt ? "bg-[#17935C] text-white" : "bg-flaeche-hoch text-grau",
                     )}
                   >
-                    {i + 1}
+                    {erledigt ? <Check size={11} strokeWidth={2.5} /> : i + 1}
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span
-                      className={cn(
-                        "block truncate text-[0.78rem] font-medium",
-                        an ? "text-tinte" : erledigt ? "text-grau-stark" : "text-grau",
-                      )}
-                    >
-                      {st.titel}
-                    </span>
-                  </span>
+                  {TEILUNGSSTATUS[s].titel}
                 </button>
+                {i < TEILUNGSSTATUS_REIHENFOLGE.length - 1 && (
+                  <span aria-hidden className={cn("mx-2 h-px min-w-6 flex-1", erledigt ? "bg-[#17935C]" : "bg-linie-stark")} />
+                )}
               </li>
             );
           })}
         </ol>
-
-        <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.72rem] text-grau">
-          <span>Angestoßen am {f.datum(t.gestartetAm)}</span>
-          {verwertung && (
-            <>
-              <span aria-hidden className="size-[3px] rounded-full bg-linie-stark" />
-              <span>{verwertung}</span>
-            </>
-          )}
-        </div>
       </div>
 
       {/* ----- Angaben ----- */}
-      <div className="px-6 py-8 md:px-9">
-        <div className="mini-label">Angaben</div>
-        <div className="mt-4 grid gap-5 sm:grid-cols-2">
+      <div className="px-4 py-5 md:px-7">
+        <div className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr]">
           <Feld label="Notariat" id="teil-notar">
             <input
               id="teil-notar"
@@ -157,6 +136,16 @@ function Teilungsblatt({ objekt, t }: { objekt: Objekt; t: Teilungserklaerung })
               onChange={(e) => setNotar(e.target.value)}
               placeholder="Notariat Dr. Winterberg, Ulm"
               className={EINGABE}
+            />
+          </Feld>
+          <Feld label="Wohnungsgrundbücher" id="teil-einheiten">
+            <input
+              id="teil-einheiten"
+              type="number"
+              inputMode="numeric"
+              value={einheiten}
+              onChange={(e) => setEinheiten(e.target.value)}
+              className={cn(EINGABE, "zahl [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none")}
             />
           </Feld>
           <Feld label="Eintragung erwartet" id="teil-erwartet">
@@ -168,30 +157,16 @@ function Teilungsblatt({ objekt, t }: { objekt: Objekt; t: Teilungserklaerung })
               className={cn(EINGABE, "zahl")}
             />
           </Feld>
-          <Feld label="Wohnungsgrundbücher" id="teil-einheiten">
-            <input
-              id="teil-einheiten"
-              type="number"
-              inputMode="numeric"
-              value={einheiten}
-              onChange={(e) => setEinheiten(e.target.value)}
-              className={cn(
-                EINGABE,
-                "zahl [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none",
-              )}
-            />
-          </Feld>
         </div>
-
-        <div className="mt-5">
+        <div className="mt-3">
           <Feld label="Notiz" id="teil-notiz">
-            <textarea
+            <input
               id="teil-notiz"
-              rows={3}
+              type="text"
               value={notiz}
               onChange={(e) => setNotiz(e.target.value)}
               placeholder="Was zuletzt besprochen wurde"
-              className={cn(EINGABE, "resize-y leading-relaxed")}
+              className={EINGABE}
             />
           </Feld>
         </div>
@@ -202,7 +177,7 @@ function Teilungsblatt({ objekt, t }: { objekt: Objekt; t: Teilungserklaerung })
           <button
             type="button"
             onClick={speichern}
-            className="druckbar eintritt mt-5 rounded-full bg-tinte px-5 py-2.5 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-grund shadow-karte"
+            className="druckbar eintritt mt-3 rounded-full bg-tinte px-5 py-2 text-[0.66rem] font-semibold tracking-[0.14em] uppercase text-grund shadow-karte"
           >
             Speichern
           </button>
@@ -210,22 +185,19 @@ function Teilungsblatt({ objekt, t }: { objekt: Objekt; t: Teilungserklaerung })
       </div>
 
       {/* ----- Was gebraucht wird ----- */}
-      <div className="px-6 py-8 md:px-9">
+      <div className="px-4 py-5 md:px-7">
         <div className="mini-label">Was gebraucht wird</div>
-        <ul className="mt-4 grid gap-2.5">
+        <ul className="mt-2.5 flex flex-wrap gap-1.5">
           {UNTERLAGEN.map((u) => (
-            <li
-              key={u.titel}
-              className="rounded-2xl border border-linie bg-flaeche px-4 py-3.5 shadow-karte"
-            >
-              <div className="text-[0.8rem] font-medium text-tinte">{u.titel}</div>
+            <li key={u.titel} className="rounded-full bg-flaeche-hoch px-3 py-1 text-[0.72rem] text-grau-stark">
+              {u.titel}
             </li>
           ))}
         </ul>
       </div>
 
       {/* ----- Ablage ----- */}
-      <div className="px-6 py-8 md:px-9">
+      <div className="px-4 py-5 md:px-7">
         <div className="mini-label">Ablage</div>
         <div className="mt-4">
           <Dokumentenablage
@@ -252,7 +224,7 @@ function Teilungsblatt({ objekt, t }: { objekt: Objekt; t: Teilungserklaerung })
 }
 
 const EINGABE =
-  "w-full rounded-xl border border-linie bg-flaeche px-3 py-2.5 text-[0.82rem] text-tinte transition-colors duration-150 ease-out placeholder:text-grau focus:border-linie-stark focus:outline-none";
+  "w-full rounded-xl border border-linie bg-flaeche px-3 py-1.5 text-[0.8rem] text-tinte transition-colors duration-150 ease-out placeholder:text-grau focus:border-linie-stark focus:outline-none";
 
 function Feld({
   label,
@@ -268,7 +240,7 @@ function Feld({
       <label htmlFor={id} className="mini-label block">
         {label}
       </label>
-      <div className="mt-2">{children}</div>
+      <div className="mt-1">{children}</div>
     </div>
   );
 }
