@@ -1,0 +1,1 @@
+import{o as e}from"./auth-IypvAx_1.js";import{t}from"./Objektliste-DAbz88jI.js";import{o as n}from"./index-yeBVJVZd.js";var r=e();function i(){let{objekt:e}=n.useSearch();return(0,r.jsx)(t,{bereich:`ankauf`,oeffne:e})}export{i as component};
