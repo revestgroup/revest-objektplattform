@@ -352,7 +352,7 @@ export const MOCK_OBJEKTE: Objekt[] = [
     vertriebsweg: "etw",
     notiz: "Einzelne ETW in Wiblingen, klassischer Weiterverkauf nach Renovierung. Niedrige Priorität.",
     bilder: ["Portalbild Wohnzimmer"],
-    dokumente: [dok("Portalexpose_Wiesengrund_41.pdf", "01_Unterlagen/01_Unterlagen zum Objekt", 1_240, 22)],
+    dokumente: [dok("Portalexpose_Wiesengrund_41.pdf", "", 1_240, 22)],
     einheiten: [],
     angebote: ang("obj-018", [
       [16, "forderung", 318_000, "Makler Sonnfeld & Partner", "zu_teuer", "Deutlich über unserem Ankaufslimit — beobachten, ob der Preis fällt."],
@@ -408,7 +408,7 @@ export const MOCK_OBJEKTE: Objekt[] = [
     notiz:
       "4-Zimmer-Wohnung in der Weststadt, ideal geschnitten für WG-Vermietung an Studierende — vier gleich große Zimmer, zwei Bäder. Leerstand, Renovierung überschaubar.",
     bilder: ["Portalbild Wohnzimmer"],
-    dokumente: [dok("Portalexpose_Ahornhof_15.pdf", "01_Unterlagen/01_Unterlagen zum Objekt", 2_640, 118)],
+    dokumente: [dok("Portalexpose_Ahornhof_15.pdf", "", 2_640, 118)],
     einheiten: [],
     angebote: ang("obj-013", [
       [16, "forderung", 385_000, "Immobilien Morgentau", "offen", "Preis aus dem Inserat, noch nicht verhandelt."],
@@ -491,8 +491,10 @@ export const MOCK_OBJEKTE: Objekt[] = [
       "Große 5-Zimmer-Wohnung am Eselsberg, läuft bereits als Studenten-WG — fünf Zimmer vermietet, Nähe Uni und Science Park. WG-Vermietung einfach fortführen.",
     bilder: ["Straßenansicht", "WG-Küche"],
     dokumente: [
-      dok("Kurzexpose_Rebhangweg.pdf", "01_Unterlagen/01_Unterlagen zum Objekt", 1_840, 16),
-      dok("Mietaufstellung_WG_Zimmer.xlsx", "01_Unterlagen/01_Unterlagen zum Objekt", 64, 14),
+      dok("Kurzexpose_Rebhangweg.pdf", "", 1_840, 16),
+      dok("Mietaufstellung_WG_Zimmer.xlsx", "", 64, 14),
+      dok("Grundbuchauszug_Eselsberg.pdf", "", 720, 10),
+      dok("WEG_Protokoll_2025.pdf", "", 380, 9),
     ],
     einheiten: [],
     // Eine Wohnung, zwei Varianten im Kopf — hier steht die, die wir rechnen:

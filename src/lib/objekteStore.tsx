@@ -141,6 +141,8 @@ interface StoreWert {
   notizAnhaengen: (id: string, text: string) => void;
   dokumenteAnhaengen: (id: string, dokumente: Omit<Dokument, "id" | "hochgeladenAm">[]) => void;
   dokumentLoeschen: (id: string, dokumentId: string) => void;
+  /** Ankaufsdateien in die Projektstruktur einsortieren: Dokument-ID → Ordner. */
+  dokumenteEinsortieren: (id: string, ziele: Record<string, string>) => void;
   einheitenSetzen: (id: string, einheiten: Einheit[]) => void;
   /** Eine Einheit verkaufen. Setzt Status, Käufer, Preis und Datum in einem Zug. */
   einheitVerkaufen: (id: string, einheitId: string, verkauf: Einheitverkauf) => void;
@@ -373,6 +375,23 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
           ...o,
           dokumente: o.dokumente.filter((d) => d.id !== dokumentId),
         })),
+
+      dokumenteEinsortieren: (id, ziele) =>
+        mutieren(id, (o) => {
+          const anzahl = o.dokumente.filter((d) => d.id in ziele).length;
+          if (anzahl === 0) return o;
+          return {
+            ...o,
+            dokumente: o.dokumente.map((d) => (d.id in ziele ? { ...d, ordner: ziele[d.id] } : d)),
+            verlauf: [
+              ...o.verlauf,
+              eintrag(
+                "dokument",
+                anzahl === 1 ? "1 Datei einsortiert" : `${anzahl} Dateien einsortiert`,
+              ),
+            ],
+          };
+        }),
 
       einheitenSetzen: (id, einheiten) => mutieren(id, (o) => ({ ...o, einheiten })),
 

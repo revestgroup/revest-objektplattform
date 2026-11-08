@@ -834,7 +834,11 @@ export function ObjektFormular({
           gefuellt={dokumente.length}
           spalten={1}
         >
-          <Dokumentenfeld dokumente={dokumente} setDokumente={setDokumente} />
+          <Dokumentenfeld
+            dokumente={dokumente}
+            setDokumente={setDokumente}
+            mitOrdnerwahl={bestehend?.stufe === "angekauft"}
+          />
         </Klappbereich>
       </div>
 

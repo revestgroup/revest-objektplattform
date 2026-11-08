@@ -8,7 +8,7 @@
  * Phase 1 speichert keine Dateien. Was hochgeladen wird, erscheint als
  * Eintrag mit Name und Größe; der Inhalt bleibt im Browser der Sitzung.
  */
-import { ChevronDown, FileText, FolderOpen, Trash2, Upload } from "lucide-react";
+import { Check, ChevronDown, FileText, FolderOpen, Trash2, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 
 import {
@@ -16,8 +16,11 @@ import {
   ORDNER_BEISPIELE,
   STANDARD_ORDNER,
   f,
+  UNSORTIERT,
+  istUnsortiert,
   liegtIn,
   ordnerVon,
+  ordnerVorschlag,
   type Dokument,
   type Dokumentordner,
 } from "../lib/objekte";
@@ -91,7 +94,8 @@ export function Dokumentenablage({
  * Einzug beginnt dort bei null, egal wie tief er im Drive liegt.
  */
 function sichtbareOrdner(nurOrdner: readonly string[] | undefined, offen: Set<string>) {
-  const wurzeln = nurOrdner ?? DOKUMENT_ORDNER.filter((o) => o.tiefe === 0).map((o) => o.schluessel);
+  const wurzeln =
+    nurOrdner ?? DOKUMENT_ORDNER.filter((o) => o.tiefe === 0).map((o) => o.schluessel);
   return DOKUMENT_ORDNER.flatMap((ordner) => {
     const wurzel = wurzeln.find((w) => liegtIn(ordner.schluessel, w));
     if (!wurzel) return [];
@@ -174,9 +178,7 @@ function Ordner({
               !offen && "-rotate-90",
             )}
           />
-          <span className="zahl shrink-0 text-[0.62rem] tracking-wider text-grau">
-            {nummer}
-          </span>
+          <span className="zahl shrink-0 text-[0.62rem] tracking-wider text-grau">{nummer}</span>
           <span
             className={cn(
               "min-w-0 flex-1 truncate text-[0.8rem]",
@@ -219,10 +221,7 @@ function Ordner({
       {/* Ein Elternordner zeigt nur seine eigenen Dateien — die Unterordner
           stehen ohnehin direkt darunter. Leer bleibt er dann stumm. */}
       {offen && (dokumente.length > 0 || !hatUnterordner) && (
-        <div
-          className="px-4 pb-4"
-          style={{ paddingLeft: `${2.6 + einzug * 1.25}rem` }}
-        >
+        <div className="px-4 pb-4" style={{ paddingLeft: `${2.6 + einzug * 1.25}rem` }}>
           {dokumente.length === 0 ? (
             <button
               type="button"
@@ -284,12 +283,16 @@ function Ordner({
 export function Dokumentenfeld({
   dokumente,
   setDokumente,
+  mitOrdnerwahl = true,
 }: {
   dokumente: NeuesDokument[];
   setDokumente: (d: NeuesDokument[]) => void;
+  /** Im Ankauf gibt es keine Ordner — dort landet alles unsortiert. */
+  mitOrdnerwahl?: boolean;
 }) {
   const eingabeRef = useRef<HTMLInputElement>(null);
-  const [ziel, setZiel] = useState<string>(STANDARD_ORDNER);
+  const [gewaehlt, setZiel] = useState<string>(STANDARD_ORDNER);
+  const ziel = mitOrdnerwahl ? gewaehlt : UNSORTIERT;
   const [ueber, setUeber] = useState(false);
 
   function uebernehmen(dateien: FileList | null) {
@@ -314,20 +317,22 @@ export function Dokumentenfeld({
       </div>
 
       <div className="mt-2.5 flex flex-col gap-2 sm:flex-row">
-        <select
-          value={ziel}
-          onChange={(e) => setZiel(e.target.value)}
-          aria-label="Zielordner"
-          className="w-full border border-linie bg-flaeche px-3 py-2.5 text-[0.78rem] text-tinte focus:border-linie-stark focus:outline-none sm:w-auto sm:flex-1"
-        >
-          {/* <option> kennt kein Padding — der Einzug kommt aus geschützten Leerzeichen. */}
-          {DOKUMENT_ORDNER.map((o) => (
-            <option key={o.schluessel} value={o.schluessel}>
-              {"\u00a0\u00a0\u00a0".repeat(o.tiefe)}
-              {o.nummer} · {o.titel}
-            </option>
-          ))}
-        </select>
+        {mitOrdnerwahl && (
+          <select
+            value={ziel}
+            onChange={(e) => setZiel(e.target.value)}
+            aria-label="Zielordner"
+            className="w-full border border-linie bg-flaeche px-3 py-2.5 text-[0.78rem] text-tinte focus:border-linie-stark focus:outline-none sm:w-auto sm:flex-1"
+          >
+            {/* <option> kennt kein Padding — der Einzug kommt aus geschützten Leerzeichen. */}
+            {DOKUMENT_ORDNER.map((o) => (
+              <option key={o.schluessel} value={o.schluessel}>
+                {"\u00a0\u00a0\u00a0".repeat(o.tiefe)}
+                {o.nummer} · {o.titel}
+              </option>
+            ))}
+          </select>
+        )}
         <button
           type="button"
           onClick={() => eingabeRef.current?.click()}
@@ -338,9 +343,9 @@ export function Dokumentenfeld({
         </button>
       </div>
 
-      <p className="mt-2 text-[0.62rem] leading-relaxed text-grau">
-        {ORDNER_BEISPIELE[ziel]}
-      </p>
+      {mitOrdnerwahl && (
+        <p className="mt-2 text-[0.62rem] leading-relaxed text-grau">{ORDNER_BEISPIELE[ziel]}</p>
+      )}
 
       <div
         onDragOver={(e) => {
@@ -360,7 +365,9 @@ export function Dokumentenfeld({
       >
         {dokumente.length === 0 ? (
           <p className="px-4 py-6 text-center text-[0.72rem] text-grau">
-            Dateien hierher ziehen — sie landen im gewählten Ordner
+            {mitOrdnerwahl
+              ? "Dateien hierher ziehen — sie landen im gewählten Ordner"
+              : "Dateien hierher ziehen — einsortiert wird beim Kauf"}
           </p>
         ) : (
           <ul className="divide-y divide-linie">
@@ -371,7 +378,7 @@ export function Dokumentenfeld({
                   {d.name}
                 </span>
                 <span className="shrink-0 text-[0.6rem] tracking-wider uppercase text-grau">
-                  {ordnerVon(d.ordner)?.titel}
+                  {ordnerVon(d.ordner)?.titel ?? "Ankauf"}
                 </span>
                 <button
                   type="button"
@@ -387,5 +394,204 @@ export function Dokumentenfeld({
         )}
       </div>
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Ankauf: eine flache Liste                                            */
+/* ------------------------------------------------------------------ */
+
+function groesse(kb: number): string {
+  return kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb} KB`;
+}
+
+/**
+ * Im Ankauf gibt es genau einen Ordner je Objekt und keine Unterordner —
+ * wer noch nicht weiß, ob er kauft, sortiert nicht vor. Einsortiert wird
+ * erst beim Kauf (siehe `Einsortieren`).
+ */
+export function Dateiliste({
+  dokumente,
+  onHochladen,
+  onLoeschen,
+}: {
+  dokumente: Dokument[];
+  onHochladen: (neue: NeuesDokument[]) => void;
+  onLoeschen?: (id: string) => void;
+}) {
+  const eingabeRef = useRef<HTMLInputElement>(null);
+  const [ueber, setUeber] = useState(false);
+  const liste = [...dokumente].sort((a, b) => b.hochgeladenAm.localeCompare(a.hochgeladenAm));
+
+  function uebernehmen(dateien: FileList | null) {
+    if (!dateien || dateien.length === 0) return;
+    onHochladen(
+      Array.from(dateien).map((d) => ({
+        name: d.name,
+        ordner: UNSORTIERT,
+        groesseKb: Math.max(1, Math.round(d.size / 1024)),
+      })),
+    );
+  }
+
+  return (
+    <div
+      onDragOver={(e) => {
+        e.preventDefault();
+        setUeber(true);
+      }}
+      onDragLeave={() => setUeber(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setUeber(false);
+        uebernehmen(e.dataTransfer.files);
+      }}
+      className={cn(
+        "overflow-hidden rounded-2xl border transition-colors duration-150 ease-out",
+        ueber ? "border-tinte bg-flaeche-aktiv" : "border-linie bg-flaeche",
+      )}
+    >
+      <div className="flex items-center justify-between gap-3 border-b border-linie px-4 py-3">
+        <span className="zahl text-[0.68rem] text-grau">
+          {liste.length === 0
+            ? "Noch keine Dateien"
+            : `${liste.length} ${liste.length === 1 ? "Datei" : "Dateien"}`}
+        </span>
+        <button
+          type="button"
+          onClick={() => eingabeRef.current?.click()}
+          className="druckbar flex items-center gap-2 rounded-full border border-linie-stark px-3.5 py-1.5 text-[0.64rem] font-medium tracking-[0.12em] uppercase text-tinte"
+        >
+          <Upload size={12} strokeWidth={2} />
+          Dateien wählen
+        </button>
+        <input
+          ref={eingabeRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            uebernehmen(e.target.files);
+            e.target.value = "";
+          }}
+        />
+      </div>
+
+      {liste.length === 0 ? (
+        <p className="px-4 py-10 text-center text-[0.74rem] text-grau">
+          Exposé, Grundbuch, Fotos … einfach hierher ziehen.
+        </p>
+      ) : (
+        <ul className="divide-y divide-linie">
+          {liste.map((d, i) => (
+            <li
+              key={d.id}
+              className="eintritt group flex items-center gap-3 px-4 py-2.5"
+              style={{ animationDelay: `${Math.min(i, 6) * 25}ms` }}
+            >
+              <FileText size={13} strokeWidth={1.75} className="shrink-0 text-grau" />
+              <span className="min-w-0 flex-1 truncate text-[0.76rem] text-grau-stark">
+                {d.name}
+              </span>
+              <span className="zahl shrink-0 text-[0.62rem] text-grau">{groesse(d.groesseKb)}</span>
+              <span className="zahl hidden shrink-0 text-[0.62rem] text-grau sm:block">
+                {f.datum(d.hochgeladenAm)}
+              </span>
+              {onLoeschen && (
+                <button
+                  type="button"
+                  onClick={() => onLoeschen(d.id)}
+                  aria-label={`${d.name} entfernen`}
+                  className="druckbar flex size-6 shrink-0 items-center justify-center rounded-full text-grau opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100 hover:text-tinte focus-visible:opacity-100"
+                >
+                  <Trash2 size={12} strokeWidth={1.75} />
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Beim Kauf: in die Projektstruktur einsortieren                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Nach dem Kauf liegen die Ankaufsdateien noch ohne Ordner da. Die Plattform
+ * schlägt je Datei einen Projektordner vor; Timo bestätigt oder ändert. Bis
+ * dahin geht nichts verloren — die Leiste bleibt stehen.
+ */
+export function Einsortieren({
+  dokumente,
+  onEinsortieren,
+}: {
+  dokumente: Dokument[];
+  onEinsortieren: (ziele: Record<string, string>) => void;
+}) {
+  const offen = dokumente.filter(istUnsortiert);
+  const [wahl, setWahl] = useState<Record<string, string>>({});
+
+  if (offen.length === 0) return null;
+
+  const ziel = (d: Dokument) => wahl[d.id] ?? ordnerVorschlag(d.name);
+
+  return (
+    <section className="mb-4 overflow-hidden rounded-2xl border border-[#EFD9A6] bg-[#FDF8EC]">
+      <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <div className="mini-label">Aus dem Ankauf</div>
+          <div className="mt-1 text-[0.78rem] text-tinte">
+            {offen.length === 1 ? "1 Datei einsortieren" : `${offen.length} Dateien einsortieren`}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => onEinsortieren(Object.fromEntries(offen.map((d) => [d.id, ziel(d)])))}
+          className="druckbar flex items-center gap-2 rounded-full bg-tinte px-4 py-2 text-[0.64rem] font-medium tracking-[0.12em] uppercase text-grund"
+        >
+          <Check size={12} strokeWidth={2.25} />
+          Alle übernehmen
+        </button>
+      </div>
+      <ul className="divide-y divide-[#EFD9A6] border-t border-[#EFD9A6]">
+        {offen.map((d) => (
+          <li
+            key={d.id}
+            className="flex flex-col gap-2 px-4 py-2.5 sm:flex-row sm:items-center sm:gap-3"
+          >
+            <span className="flex min-w-0 flex-1 items-center gap-2">
+              <FileText size={13} strokeWidth={1.75} className="shrink-0 text-grau" />
+              <span className="truncate text-[0.76rem] text-grau-stark">{d.name}</span>
+            </span>
+            <span className="flex items-center gap-2">
+              <select
+                value={ziel(d)}
+                onChange={(e) => setWahl((alt) => ({ ...alt, [d.id]: e.target.value }))}
+                aria-label={`Zielordner für ${d.name}`}
+                className="min-w-0 flex-1 rounded-xl border border-linie bg-flaeche px-2.5 py-1.5 text-[0.72rem] text-tinte focus:border-linie-stark focus:outline-none sm:w-72 sm:flex-none"
+              >
+                {DOKUMENT_ORDNER.map((o) => (
+                  <option key={o.schluessel} value={o.schluessel}>
+                    {"\u00a0\u00a0\u00a0".repeat(o.tiefe)}
+                    {o.nummer} · {o.titel}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => onEinsortieren({ [d.id]: ziel(d) })}
+                aria-label={`${d.name} übernehmen`}
+                className="druckbar flex size-8 shrink-0 items-center justify-center rounded-full border border-linie-stark bg-flaeche text-tinte"
+              >
+                <Check size={13} strokeWidth={2.25} />
+              </button>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

@@ -887,10 +887,11 @@ export function andereKuerzel(objekte: Objekt[], eigeneId: string | null): strin
 
 /**
  * Name des Objektordners nach Drive-Konvention: „JJJJ-MM_Ort_Straße Nr“.
- * Der Monat ist der Ankauf, ersatzweise die Anlage.
+ * Der Monat ist der Ankauf (Beurkundung oder Stufenwechsel auf „Gekauft“),
+ * ersatzweise die Anlage.
  */
 export function driveOrdnerName(o: Objekt): string {
-  const monat = (o.angekauftAm ?? o.angelegtAm).slice(0, 7);
+  const monat = (gekauftSeit(o) ?? o.angelegtAm).slice(0, 7);
   return `${monat}_${o.stadt}_${o.strasse}`;
 }
 
@@ -1010,8 +1011,59 @@ const ALTE_ORDNER: Record<string, string> = {
 
 /** Alter oder unbekannter Ordner → gültiger Pfad. Unbekanntes landet im Standardordner. */
 export function ordnerUmziehen(schluessel: string): string {
-  if (ordnerVon(schluessel)) return schluessel;
+  if (schluessel === UNSORTIERT || ordnerVon(schluessel)) return schluessel;
   return ALTE_ORDNER[schluessel] ?? STANDARD_ORDNER;
+}
+
+/**
+ * Im Ankauf gibt es keine Unterordner: alles liegt in einem Ordner
+ * `01 Ankauf/[Bezeichnung]`. Solche Dateien tragen diesen leeren Schlüssel
+ * und werden beim Kauf in die Projektstruktur einsortiert.
+ */
+export const UNSORTIERT = "";
+
+export function istUnsortiert(d: Dokument): boolean {
+  return d.ordner === UNSORTIERT;
+}
+
+/** Der Drive-Ordner eines Objekts im Ankauf. Abgelegte bleiben im Archiv, gelöscht wird nichts. */
+export function ankaufsOrdner(o: Objekt): string {
+  const name = o.bezeichnung?.trim() || o.strasse;
+  const archiv = o.stufe === "abgesagt" || o.stufe === "unqualifiziert";
+  return archiv ? `01 Ankauf/_Archiv/${name}` : `01 Ankauf/${name}`;
+}
+
+/**
+ * Stichwörter im Dateinamen → Projektordner. Reihenfolge zählt: das erste
+ * Muster, das passt, gewinnt — „Angebot_Versicherung“ ist eine Versicherung,
+ * kein Handwerkerangebot.
+ */
+const ORDNER_STICHWORTE: [RegExp, string][] = [
+  [/versicherung|police/, "01_Unterlagen/02_Bewirtschaftung/04_Versicherung"],
+  [/finanzierung|darlehen|bank|grundschuld/, "01_Unterlagen/04_Finanzierung_Bank"],
+  [/schornstein|feuerstaett/, "01_Unterlagen/02_Bewirtschaftung/05_Schornsteinfeger"],
+  [/grundsteuer|grundbesitzabgab|abgabenbescheid/, "01_Unterlagen/02_Bewirtschaftung/06_Grundbesitzabgaben_Stadt"],
+  [/(^|_)gas(_|\.|$)|gasvertrag/, "01_Unterlagen/02_Bewirtschaftung/01_Gas"],
+  [/strom/, "01_Unterlagen/02_Bewirtschaftung/02_Strom"],
+  [/wasser|stadtwerke|abwasser/, "01_Unterlagen/02_Bewirtschaftung/03_Wasser_Stadtwerke"],
+  [/grundbuch|kaufvertrag|notar|auflassung|teilungserkl|urkunde|eintragung/, "01_Unterlagen/03_Notar_Grundbuchsachen"],
+  [/(^|_)weg(_|\.|$)|protokoll|wirtschaftsplan|hausgeld|verwalter|ruecklage|jahresabrechnung/, "01_Unterlagen/02_Bewirtschaftung/00_Hausverwaltung"],
+  [/kalkulation|wirtschaftlichkeit|rechnung_ankauf/, "02_Kalkulation"],
+  [/angebot|kostenvoranschlag|handwerk|sanierung|renovierung|baufortschritt|abnahme/, "03_Renovierung"],
+  [/\.(jpe?g|png|heic|webp|gif)$|foto|bild/, "04_Bilder/01_Ankauf - vor Renovierung"],
+  [/expose|grundriss|energieausweis|mieterliste|mietvertrag|mietaufstellung|plan|lageplan|flurkarte/, STANDARD_ORDNER],
+];
+
+/** Vorschlag, in welchen Projektordner eine Datei aus dem Ankauf gehört. */
+export function ordnerVorschlag(dateiname: string): string {
+  const name = dateiname
+    .toLowerCase()
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .replace(/[\s-]+/g, "_");
+  return ORDNER_STICHWORTE.find(([muster]) => muster.test(name))?.[1] ?? STANDARD_ORDNER;
 }
 
 /** Typische Unterlagen je Ordner — als Hinweis in der Upload-Maske. */

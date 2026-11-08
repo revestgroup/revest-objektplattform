@@ -33,6 +33,7 @@ import {
   ANGEBOTSERGEBNISSE,
   BUNDESLAND_NAMEN,
   GESELLSCHAFTEN,
+  ankaufsOrdner,
   driveOrdnerName,
   EINHEITSSTATUS,
   GEWERKE,
@@ -64,7 +65,7 @@ import { berechneGarantie } from "../lib/vermietung";
 import { useVermietung } from "../lib/vermietungStore";
 import { Bildergalerie, Bildflaeche, istQuelle } from "./Bilder";
 import { DealKnoepfe } from "./Deal";
-import { Dokumentenablage } from "./Dokumente";
+import { Dateiliste, Dokumentenablage, Einsortieren } from "./Dokumente";
 import { Kontaktblatt } from "./Kontaktblatt";
 import { Objektaufgaben } from "./Objektaufgaben";
 import { Fristzeichen, Stufenzeichen } from "./Stufe";
@@ -126,6 +127,8 @@ const PROJEKT_REITER: Reiter[] = [
  */
 function reiterTitel(r: Reiter, projekt: boolean): string {
   if (r === "verkauf") return projekt ? "Vertrieb" : "Kalkulation";
+  // Im Ankauf eine flache Liste, im Projekt die Ablage mit Ordnern.
+  if (r === "dokumente") return projekt ? "Dokumente" : "Dateien";
   return REITER_TITEL[r];
 }
 
@@ -320,7 +323,7 @@ export function ObjektDetail({
         {sichtbar === "sanierung" && <Sanierung objekt={objekt} kennzahlen={k} />}
         {sichtbar === "kosten" && <Kosten objekt={objekt} kennzahlen={k} />}
         {sichtbar === "einheiten" && <Einheiten objekt={objekt} />}
-        {sichtbar === "dokumente" && <Dokumente objekt={objekt} />}
+        {sichtbar === "dokumente" && <Dokumente objekt={objekt} projekt={projekt} />}
         {sichtbar === "verlauf" && <Verlauf objekt={objekt} />}
       </div>
     </div>
@@ -1303,9 +1306,9 @@ function Garantiezeile({
 /* Dokumente                                                            */
 /* ------------------------------------------------------------------ */
 
-function Dokumente({ objekt }: { objekt: Objekt }) {
-  const { dokumenteAnhaengen, dokumentLoeschen } = useObjekte();
-  const ordnerName = driveOrdnerName(objekt);
+function Dokumente({ objekt, projekt }: { objekt: Objekt; projekt: boolean }) {
+  const { dokumenteAnhaengen, dokumentLoeschen, dokumenteEinsortieren } = useObjekte();
+  const ordnerName = projekt ? `02_Projekte/${driveOrdnerName(objekt)}` : ankaufsOrdner(objekt);
   const [kopiert, setKopiert] = useState(false);
 
   async function kopieren() {
@@ -1318,14 +1321,19 @@ function Dokumente({ objekt }: { objekt: Objekt }) {
     }
   }
 
+  const archiv = objekt.stufe === "abgesagt" || objekt.stufe === "unqualifiziert";
+
   return (
-    <div>
-      {/* Brücke zum Drive: der Ordnername nach Konvention zum Kopieren, und
-          sobald der Ordner verknüpft ist, der direkte Weg dorthin. */}
+    <div className="px-4 py-5 sm:px-6 md:px-9">
+      {/* Brücke zum Drive: der Ordner nach Konvention zum Kopieren, und
+          sobald er verknüpft ist, der direkte Weg dorthin. */}
       <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-linie bg-flaeche px-4 py-3">
         <div className="min-w-0 flex-1">
-          <div className="mini-label">Objektordner im Drive</div>
+          <div className="mini-label">Ordner im Drive</div>
           <div className="zahl mt-1 truncate text-[0.76rem] text-grau-stark">{ordnerName}</div>
+          {archiv && (
+            <div className="mt-0.5 text-[0.64rem] text-grau">Liegt im Archiv — gelöscht wird nichts.</div>
+          )}
         </div>
         <button
           type="button"
@@ -1348,11 +1356,26 @@ function Dokumente({ objekt }: { objekt: Objekt }) {
           </a>
         )}
       </div>
-      <Dokumentenablage
-        dokumente={objekt.dokumente}
-        onHochladen={(neue) => dokumenteAnhaengen(objekt.id, neue)}
-        onLoeschen={(id) => dokumentLoeschen(objekt.id, id)}
-      />
+
+      {projekt ? (
+        <>
+          <Einsortieren
+            dokumente={objekt.dokumente}
+            onEinsortieren={(ziele) => dokumenteEinsortieren(objekt.id, ziele)}
+          />
+          <Dokumentenablage
+            dokumente={objekt.dokumente}
+            onHochladen={(neue) => dokumenteAnhaengen(objekt.id, neue)}
+            onLoeschen={(id) => dokumentLoeschen(objekt.id, id)}
+          />
+        </>
+      ) : (
+        <Dateiliste
+          dokumente={objekt.dokumente}
+          onHochladen={(neue) => dokumenteAnhaengen(objekt.id, neue)}
+          onLoeschen={(id) => dokumentLoeschen(objekt.id, id)}
+        />
+      )}
     </div>
   );
 }
