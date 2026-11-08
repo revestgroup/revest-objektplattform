@@ -11,10 +11,15 @@
  * will man am Abend noch sehen können — aber nicht am Morgen.
  */
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Check, ChevronDown, Plus, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Check, ChevronDown, Columns3, List, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Schublade, Seitenkopf } from "../components/AppLayout";
+import {
+  AufgabenKanban,
+  type AufgabenVorgabe,
+  type KanbanSpalten,
+} from "../components/AufgabenKanban";
 import { Auswahlfeld, Bereich, Segmente, Textfeld } from "../components/Felder";
 import {
   AUFGABENARTEN,
@@ -57,6 +62,8 @@ const GRUPPEN: { schluessel: Faelligkeit; titel: string; ton: "warnung" | "jetzt
   { schluessel: "ohne", titel: "Ohne Frist", ton: "ruhig" },
 ];
 
+const ANSICHT_SPEICHER = "revest.aufgabenansicht.v1";
+
 function AufgabenSeite() {
   const { aufgaben, bereit } = useAufgaben();
   const { objekte } = useObjekte();
@@ -64,6 +71,35 @@ function AufgabenSeite() {
   const [artFilter, setArtFilter] = useState<"" | Aufgabenart>("");
   const [anlegen, setAnlegen] = useState(false);
   const [erledigteOffen, setErledigteOffen] = useState(false);
+  const [vorgabe, setVorgabe] = useState<AufgabenVorgabe>({});
+  // Liste oder Kanban, und wonach die Spalten gehen — pro Browser gemerkt.
+  const [ansicht, setAnsicht] = useState<"liste" | "kanban">("liste");
+  const [nach, setNach] = useState<KanbanSpalten>("objekt");
+  useEffect(() => {
+    try {
+      const roh = JSON.parse(localStorage.getItem(ANSICHT_SPEICHER) ?? "{}") as {
+        ansicht?: "liste" | "kanban";
+        nach?: KanbanSpalten;
+      };
+      if (roh.ansicht) setAnsicht(roh.ansicht);
+      if (roh.nach) setNach(roh.nach);
+    } catch {
+      // Ohne Speicher eben mit der Liste.
+    }
+  }, []);
+  function merken(a: "liste" | "kanban", n: KanbanSpalten) {
+    setAnsicht(a);
+    setNach(n);
+    try {
+      localStorage.setItem(ANSICHT_SPEICHER, JSON.stringify({ ansicht: a, nach: n }));
+    } catch {
+      // egal
+    }
+  }
+  function neu(v: AufgabenVorgabe = {}) {
+    setVorgabe(v);
+    setAnlegen(true);
+  }
 
   const gefiltert = useMemo(
     () =>
@@ -100,7 +136,7 @@ function AufgabenSeite() {
         aktion={
           <button
             type="button"
-            onClick={() => setAnlegen(true)}
+            onClick={() => neu()}
             className="druckbar flex items-center gap-2 rounded-full bg-tinte px-5 py-3 text-[0.68rem] font-semibold tracking-[0.14em] uppercase text-grund shadow-karte"
           >
             <Plus size={14} strokeWidth={2.25} />
@@ -112,6 +148,58 @@ function AufgabenSeite() {
       {/* ----- Filter ----- */}
       <div className="sticky top-0 z-20 border-b border-linie bg-grund/95 backdrop-blur-sm">
         <div className="scroll-reihe flex items-center gap-2 overflow-x-auto px-6 py-3 md:px-10">
+          <div className="flex shrink-0 gap-1 rounded-full border border-linie bg-flaeche-hoch p-1">
+            {(
+              [
+                { wert: "liste", titel: "Liste", Zeichen: List },
+                { wert: "kanban", titel: "Kanban", Zeichen: Columns3 },
+              ] as const
+            ).map((a) => (
+              <button
+                key={a.wert}
+                type="button"
+                onClick={() => merken(a.wert, nach)}
+                aria-pressed={ansicht === a.wert}
+                aria-label={`Ansicht ${a.titel}`}
+                title={a.titel}
+                className={cn(
+                  "druckbar flex size-7 items-center justify-center rounded-full",
+                  ansicht === a.wert
+                    ? "bg-tinte text-grund shadow-karte"
+                    : "text-grau-stark hover:text-tinte",
+                )}
+              >
+                <a.Zeichen size={13} strokeWidth={1.9} />
+              </button>
+            ))}
+          </div>
+
+          {ansicht === "kanban" && (
+            <div className="flex shrink-0 gap-1 rounded-full border border-linie bg-flaeche-hoch p-1">
+              {(
+                [
+                  ["objekt", "Je Objekt"],
+                  ["art", "Je Kategorie"],
+                ] as const
+              ).map(([w, t]) => (
+                <button
+                  key={w}
+                  type="button"
+                  onClick={() => merken("kanban", w)}
+                  aria-pressed={nach === w}
+                  className={cn(
+                    "druckbar rounded-full px-3 py-1 text-[0.68rem] whitespace-nowrap",
+                    nach === w ? "bg-tinte text-grund shadow-karte" : "text-grau-stark",
+                  )}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <span aria-hidden className="my-1 w-px shrink-0 bg-linie" />
+
           <select
             value={objektFilter}
             onChange={(e) => setObjektFilter(e.target.value)}
@@ -138,7 +226,9 @@ function AufgabenSeite() {
                 aria-pressed={an}
                 className={cn(
                   "druckbar shrink-0 rounded-full border px-3.5 py-1.5 text-[0.68rem] whitespace-nowrap",
-                  an ? "border-tinte bg-tinte text-grund" : "border-linie bg-flaeche text-grau-stark",
+                  an
+                    ? "border-tinte bg-tinte text-grund"
+                    : "border-linie bg-flaeche text-grau-stark",
                 )}
               >
                 {AUFGABENARTEN[art]}
@@ -149,7 +239,31 @@ function AufgabenSeite() {
       </div>
 
       {/* ----- Blöcke ----- */}
-      {!bereit ? (
+      {bereit && ansicht === "kanban" ? (
+        <>
+          <AufgabenKanban
+            aufgaben={gefiltert}
+            objekte={objekte}
+            nach={nach}
+            mitErledigten={erledigteOffen}
+            neu={neu}
+          />
+          {erledigt.length > 0 && (
+            <div className="px-6 pb-6 md:px-10">
+              <button
+                type="button"
+                onClick={() => setErledigteOffen((o) => !o)}
+                aria-pressed={erledigteOffen}
+                className="druckbar text-[0.68rem] font-medium tracking-[0.14em] uppercase text-grau hover:text-tinte"
+              >
+                {erledigteOffen
+                  ? "Erledigte ausblenden"
+                  : `Erledigte einblenden (${erledigt.length})`}
+              </button>
+            </div>
+          )}
+        </>
+      ) : !bereit ? (
         <div className="h-48" />
       ) : offen.length === 0 ? (
         <p className="px-6 py-20 text-center text-[0.85rem] text-grau md:px-10">
@@ -194,7 +308,7 @@ function AufgabenSeite() {
       )}
 
       {/* ----- Erledigt ----- */}
-      {bereit && erledigt.length > 0 && (
+      {bereit && ansicht === "liste" && erledigt.length > 0 && (
         <section className="border-t border-linie px-6 py-5 md:px-10">
           <button
             type="button"
@@ -230,7 +344,12 @@ function AufgabenSeite() {
       )}
 
       <Schublade offen={anlegen} schliessen={() => setAnlegen(false)} titel="To Do erstellen">
-        <AufgabenFormular onFertig={() => setAnlegen(false)} onAbbrechen={() => setAnlegen(false)} />
+        <AufgabenFormular
+          key={JSON.stringify(vorgabe) + String(anlegen)}
+          vorgabe={vorgabe}
+          onFertig={() => setAnlegen(false)}
+          onAbbrechen={() => setAnlegen(false)}
+        />
       </Schublade>
     </>
   );
@@ -279,7 +398,9 @@ function Aufgabenzeile({
           aria-pressed={erledigt}
           className={cn(
             "druckbar mt-px flex size-[22px] shrink-0 items-center justify-center rounded-full border",
-            erledigt ? "border-tinte bg-tinte text-grund" : "border-linie-stark text-transparent hover:border-tinte",
+            erledigt
+              ? "border-tinte bg-tinte text-grund"
+              : "border-linie-stark text-transparent hover:border-tinte",
           )}
         >
           <Check size={12} strokeWidth={3} />
@@ -373,9 +494,12 @@ function Aufgabenzeile({
 /* ------------------------------------------------------------------ */
 
 function AufgabenFormular({
+  vorgabe = {},
   onFertig,
   onAbbrechen,
 }: {
+  /** Aus dem Kanban: Spalte bestimmt Objekt bzw. Kategorie vor. */
+  vorgabe?: AufgabenVorgabe;
   onFertig: () => void;
   onAbbrechen: () => void;
 }) {
@@ -384,8 +508,8 @@ function AufgabenFormular({
 
   const [titel, setTitel] = useState("");
   const [beschreibung, setBeschreibung] = useState("");
-  const [objektId, setObjektId] = useState("");
-  const [art, setArt] = useState<Aufgabenart>("anruf");
+  const [objektId, setObjektId] = useState(vorgabe.objektId ?? "");
+  const [art, setArt] = useState<Aufgabenart>(vorgabe.art ?? "anruf");
   const [dringlichkeit, setDringlichkeit] = useState<Dringlichkeit>("normal");
   // Vorbelegt auf morgen: eine Aufgabe ohne Frist wird selten erledigt, und
   // „heute“ ist beim Anlegen fast immer gelogen.
@@ -416,9 +540,7 @@ function AufgabenFormular({
 
   return (
     <form onSubmit={absenden} className="pb-20">
-      <Bereich
-        titel="Aufgabe"
-      >
+      <Bereich titel="Aufgabe">
         <Textfeld
           id="titel"
           label="Titel"
