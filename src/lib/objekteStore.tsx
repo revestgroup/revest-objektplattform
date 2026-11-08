@@ -30,7 +30,7 @@ import { MOCK_OBJEKTE } from "./mockDaten";
  * erhöht — ein alter Stand ohne die neuen Felder würde sonst beim Rechnen
  * über halbe Objekte stolpern.
  */
-const SPEICHER = "revest.objekte.v5";
+const SPEICHER = "revest.objekte.v6";
 
 /** Felder, die einen Reload nicht überleben, werden vor dem Speichern geleert. */
 function fuerSpeicher(objekte: Objekt[]) {

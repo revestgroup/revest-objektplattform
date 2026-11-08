@@ -334,7 +334,7 @@ export function ObjektFormular({
             label="Straße und Hausnummer"
             wert={v.strasse}
             setWert={(x) => setze("strasse", x)}
-            platzhalter="Wagnerstraße 14"
+            platzhalter="Ahornhof 15"
             pflicht
             fehler={zeig("strasse")}
             breit

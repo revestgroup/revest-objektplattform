@@ -12,7 +12,7 @@ import type { ReactNode } from "react";
 import type { Aufgabe, AufgabenEntwurf } from "./aufgaben";
 import { MOCK_AUFGABEN } from "./mockAufgaben";
 
-const SPEICHER = "revest.aufgaben.v1";
+const SPEICHER = "revest.aufgaben.v2";
 
 interface StoreWert {
   aufgaben: Aufgabe[];

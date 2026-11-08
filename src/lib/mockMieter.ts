@@ -72,15 +72,15 @@ function vollstaendig(praefix: string): Mieterunterlage[] {
 }
 
 export const MOCK_MIETER: Mieter[] = [
-  /* ---- eingezogen: Brückenstraße 2, WE 1 ---- */
+  /* ---- eingezogen: Fährgasse 6, WE 1 ---- */
   {
     id: "mt-001",
-    name: "Lukas Brandner",
-    email: "l.brandner@posteo.de",
-    telefon: "0731 4480921",
+    name: "Lukas Ebert",
+    email: "l.ebert@beispiel.de",
+    telefon: "0731 0000006",
     geburtsdatum: "1994-03-12",
     beruf: "Mechatroniker",
-    arbeitgeber: "Wieland-Werke AG",
+    arbeitgeber: "Metallbau Süd AG",
     nettoeinkommen: 2_480,
     status: "eingezogen",
     quelle: "portal",
@@ -103,12 +103,12 @@ export const MOCK_MIETER: Mieter[] = [
     angelegtAm: vorMonaten(9),
   },
 
-  /* ---- eingezogen: Zinglerstraße 44, 5er-WG ---- */
+  /* ---- eingezogen: Kastanienallee 22, 5er-WG ---- */
   {
     id: "mt-002",
-    name: "Jonas Keller",
-    email: "jonas.keller@uni-ulm.de",
-    telefon: "0176 23114508",
+    name: "Jonas Reuter",
+    email: "jonas.reuter@beispiel.de",
+    telefon: "0176 0000007",
     geburtsdatum: "2001-07-29",
     beruf: "Student Informatik",
     arbeitgeber: null,
@@ -121,10 +121,10 @@ export const MOCK_MIETER: Mieter[] = [
     einzugAm: vorMonaten(12),
     auszugAm: null,
     buerge: {
-      name: "Reinhard Keller",
+      name: "Reinhard Reuter",
       beziehung: "Vater",
-      telefon: "07321 905512",
-      email: "r.keller@gmx.net",
+      telefon: "07321 0000008",
+      email: "r.reuter@beispiel.de",
       nettoeinkommen: 4_300,
       unterlagen: akte("mt-002-b", [
         ["buergschaft", 380, null],
@@ -151,9 +151,9 @@ export const MOCK_MIETER: Mieter[] = [
   },
   {
     id: "mt-003",
-    name: "Selin Aydin",
-    email: "selin.aydin@thu.de",
-    telefon: "0151 55280147",
+    name: "Selin Demir",
+    email: "selin.demir@beispiel.de",
+    telefon: "0151 0000009",
     geburtsdatum: "2000-11-04",
     beruf: "Studentin Medizintechnik",
     arbeitgeber: null,
@@ -166,9 +166,9 @@ export const MOCK_MIETER: Mieter[] = [
     einzugAm: vorMonaten(12),
     auszugAm: null,
     buerge: {
-      name: "Emine Aydin",
+      name: "Emine Demir",
       beziehung: "Mutter",
-      telefon: "0821 4471903",
+      telefon: "0821 0000010",
       email: null,
       nettoeinkommen: 3_100,
       unterlagen: akte("mt-003-b", [["buergschaft", 378, null]]),
@@ -193,12 +193,12 @@ export const MOCK_MIETER: Mieter[] = [
   },
   {
     id: "mt-004",
-    name: "Nils Brecht",
-    email: "nils.brecht@gmail.com",
-    telefon: "0170 8842310",
+    name: "Nils Hagen",
+    email: "nils.hagen@beispiel.de",
+    telefon: "0170 0000011",
     geburtsdatum: "1998-01-22",
     beruf: "Pflegefachkraft",
-    arbeitgeber: "Universitätsklinikum Ulm",
+    arbeitgeber: "Klinikum am Fluss",
     nettoeinkommen: 2_210,
     status: "eingezogen",
     quelle: "empfehlung",
@@ -222,12 +222,12 @@ export const MOCK_MIETER: Mieter[] = [
   },
   {
     id: "mt-005",
-    name: "Paul Kuhn",
-    email: "paul.kuhn@outlook.de",
-    telefon: "0160 3327790",
+    name: "Paul Wendland",
+    email: "paul.wendland@beispiel.de",
+    telefon: "0160 0000012",
     geburtsdatum: "1999-09-15",
     beruf: "Industriekaufmann",
-    arbeitgeber: "Seeberger GmbH",
+    arbeitgeber: "Feinkost Hartmann GmbH",
     nettoeinkommen: 2_050,
     status: "eingezogen",
     quelle: "leadseite",
@@ -250,12 +250,12 @@ export const MOCK_MIETER: Mieter[] = [
     angelegtAm: vorMonaten(4),
   },
 
-  /* ---- eingezogen: Söflinger Straße 12, 4er-WG ---- */
+  /* ---- eingezogen: Mühlbachstraße 5, 4er-WG ---- */
   {
     id: "mt-006",
-    name: "Franziska Oswald",
-    email: "f.oswald@web.de",
-    telefon: "0152 21049873",
+    name: "Franziska Ruland",
+    email: "f.ruland@beispiel.de",
+    telefon: "0152 0000013",
     geburtsdatum: "1996-05-08",
     beruf: "Grafikdesignerin",
     arbeitgeber: "freiberuflich",
@@ -282,12 +282,12 @@ export const MOCK_MIETER: Mieter[] = [
   },
   {
     id: "mt-007",
-    name: "Moritz Treiber",
-    email: "m.treiber@gmx.de",
-    telefon: "0176 40028115",
+    name: "Moritz Kaltenbach",
+    email: "m.kaltenbach@beispiel.de",
+    telefon: "0176 0000014",
     geburtsdatum: "1997-02-19",
     beruf: "Bauzeichner",
-    arbeitgeber: "Gaiser Ingenieure",
+    arbeitgeber: "Ingenieurbüro Rautenberg",
     nettoeinkommen: 2_320,
     status: "eingezogen",
     quelle: "empfehlung",
@@ -311,9 +311,9 @@ export const MOCK_MIETER: Mieter[] = [
   },
   {
     id: "mt-008",
-    name: "Laila Sayed",
-    email: "laila.sayed@proton.me",
-    telefon: "0157 83310264",
+    name: "Laila Haddad",
+    email: "laila.haddad@beispiel.de",
+    telefon: "0157 0000015",
     geburtsdatum: "2002-08-30",
     beruf: "Studentin Jura",
     arbeitgeber: null,
@@ -326,10 +326,10 @@ export const MOCK_MIETER: Mieter[] = [
     einzugAm: vorMonaten(9),
     auszugAm: null,
     buerge: {
-      name: "Dr. Yasmin Sayed",
+      name: "Dr. Yasmin Haddad",
       beziehung: "Mutter",
-      telefon: "089 55218840",
-      email: "y.sayed@praxis-sayed.de",
+      telefon: "089 0000016",
+      email: "y.haddad@praxis.beispiel.de",
       nettoeinkommen: 5_200,
       unterlagen: akte("mt-008-b", [
         ["buergschaft", 290, null],
@@ -356,12 +356,12 @@ export const MOCK_MIETER: Mieter[] = [
   },
   {
     id: "mt-009",
-    name: "Clara Wetzel",
-    email: "clara.wetzel@uni-ulm.de",
-    telefon: "0151 90047728",
+    name: "Clara Imhof",
+    email: "clara.imhof@beispiel.de",
+    telefon: "0151 0000017",
     geburtsdatum: "2001-12-03",
     beruf: "Werkstudentin",
-    arbeitgeber: "Nokia Solutions",
+    arbeitgeber: "Netztechnik Süd GmbH",
     nettoeinkommen: 1_260,
     status: "eingezogen",
     quelle: "leadseite",
@@ -384,12 +384,12 @@ export const MOCK_MIETER: Mieter[] = [
     angelegtAm: vorMonaten(5),
   },
 
-  /* ---- eingezogen: Römerstraße 9, Garantie ausgelaufen ---- */
+  /* ---- eingezogen: Kelterweg 11, Garantie ausgelaufen ---- */
   {
     id: "mt-010",
-    name: "Katrin Riedel",
-    email: "k.riedel@t-online.de",
-    telefon: "0731 3390218",
+    name: "Katrin Vossberg",
+    email: "k.vossberg@beispiel.de",
+    telefon: "0731 0000018",
     geburtsdatum: "1988-06-27",
     beruf: "Verwaltungsangestellte",
     arbeitgeber: "Stadt Ulm",
@@ -415,12 +415,12 @@ export const MOCK_MIETER: Mieter[] = [
     angelegtAm: vorMonaten(41),
   },
 
-  /* ---- Ausgezogen, Garantie vorbei: Wagnerstraße 7, WE 2 ---- */
+  /* ---- Ausgezogen, Garantie vorbei: Schilfweg 3, WE 2 ---- */
   {
     id: "mt-017",
-    name: "Elena Fuchs",
-    email: "elena.fuchs@posteo.de",
-    telefon: "0176 44120873",
+    name: "Elena Marquardt",
+    email: "elena.marquardt@beispiel.de",
+    telefon: "0176 0000019",
     geburtsdatum: "1994-02-14",
     beruf: "Logopädin",
     arbeitgeber: "Praxis am Rathaus",
@@ -446,15 +446,15 @@ export const MOCK_MIETER: Mieter[] = [
     angelegtAm: vorMonaten(22),
   },
 
-  /* ---- Vertrag raus, noch nicht eingezogen: Brückenstraße 2, WE 2 ---- */
+  /* ---- Vertrag raus, noch nicht eingezogen: Fährgasse 6, WE 2 ---- */
   {
     id: "mt-011",
-    name: "Tobias Hinrichs",
-    email: "t.hinrichs@mailbox.org",
-    telefon: "0170 2214409",
+    name: "Tobias Grunwald",
+    email: "t.grunwald@beispiel.de",
+    telefon: "0170 0000020",
     geburtsdatum: "1991-10-11",
     beruf: "Anlagenmechaniker",
-    arbeitgeber: "Ulmer Haustechnik GmbH",
+    arbeitgeber: "Haustechnik Donau GmbH",
     nettoeinkommen: 2_720,
     status: "vertrag_raus",
     quelle: "leadseite",
@@ -486,9 +486,9 @@ export const MOCK_MIETER: Mieter[] = [
   /* ---- geprüft, wartet auf das freie WG-Zimmer ---- */
   {
     id: "mt-012",
-    name: "Mia Hornung",
-    email: "mia.hornung@uni-ulm.de",
-    telefon: "0152 77410932",
+    name: "Mia Thalberg",
+    email: "mia.thalberg@beispiel.de",
+    telefon: "0152 0000021",
     geburtsdatum: "2003-04-18",
     beruf: "Studentin Psychologie",
     arbeitgeber: null,
@@ -501,10 +501,10 @@ export const MOCK_MIETER: Mieter[] = [
     einzugAm: null,
     auszugAm: null,
     buerge: {
-      name: "Andreas Hornung",
+      name: "Andreas Thalberg",
       beziehung: "Vater",
-      telefon: "0711 4408821",
-      email: "a.hornung@kanzlei-hornung.de",
+      telefon: "0711 0000022",
+      email: "a.thalberg@kanzlei.beispiel.de",
       nettoeinkommen: 6_100,
       unterlagen: akte("mt-012-b", [
         ["buergschaft", 6, null],
@@ -518,19 +518,19 @@ export const MOCK_MIETER: Mieter[] = [
       ["mietschuldenfreiheit", 7, null],
     ]),
     vertrag: null,
-    notiz: "Akte vollständig. Passt auf Zimmer 5 in der Zinglerstraße.",
+    notiz: "Akte vollständig. Passt auf Zimmer 5 in der Kastanienallee.",
     angelegtAm: vorTagen(14),
   },
 
   /* ---- Unterlagen offen: SCHUFA abgelaufen ---- */
   {
     id: "mt-013",
-    name: "Dennis Kowald",
-    email: "dennis.kowald@gmx.de",
-    telefon: "0176 60028314",
+    name: "Dennis Rademacher",
+    email: "dennis.rademacher@beispiel.de",
+    telefon: "0176 0000023",
     geburtsdatum: "1995-02-07",
     beruf: "Lagerlogistiker",
-    arbeitgeber: "Dachser SE",
+    arbeitgeber: "Spedition Kraemer",
     nettoeinkommen: 2_140,
     status: "unterlagen",
     quelle: "portal",
@@ -554,9 +554,9 @@ export const MOCK_MIETER: Mieter[] = [
   /* ---- Interessent, frisch über die Leadseite ---- */
   {
     id: "mt-014",
-    name: "Sarah Brunnhuber",
-    email: "s.brunnhuber@icloud.com",
-    telefon: "0151 28830471",
+    name: "Sarah Feldmann",
+    email: "s.feldmann@beispiel.de",
+    telefon: "0151 0000024",
     geburtsdatum: "1999-07-23",
     beruf: "Erzieherin",
     arbeitgeber: "Kita St. Georg",
@@ -576,12 +576,12 @@ export const MOCK_MIETER: Mieter[] = [
   },
   {
     id: "mt-015",
-    name: "Alexander Pfeil",
-    email: "a.pfeil@fastmail.com",
-    telefon: "0160 99217340",
+    name: "Alexander Sturm",
+    email: "a.sturm@beispiel.de",
+    telefon: "0160 0000025",
     geburtsdatum: "1993-11-30",
     beruf: "Vertriebsmitarbeiter",
-    arbeitgeber: "Beurer GmbH",
+    arbeitgeber: "Medizintechnik Albtal GmbH",
     nettoeinkommen: 2_890,
     status: "interessent",
     quelle: "empfehlung",
@@ -593,15 +593,15 @@ export const MOCK_MIETER: Mieter[] = [
     buerge: null,
     unterlagen: akte("mt-015", [["ausweis", 1, null]]),
     vertrag: null,
-    notiz: "Empfehlung von M. Treiber. Will eine eigene Wohnung, keine WG.",
+    notiz: "Empfehlung von M. Kaltenbach. Will eine eigene Wohnung, keine WG.",
     angelegtAm: vorTagen(2),
   },
 
   /* ---- abgelehnt: Quote zu hoch, kein Bürge ---- */
   {
     id: "mt-016",
-    name: "Kevin Dörr",
-    email: "kevin.doerr@gmail.com",
+    name: "Kevin Albers",
+    email: "kevin.albers@beispiel.de",
     telefon: null,
     geburtsdatum: "2000-03-05",
     beruf: "Aushilfe Gastronomie",

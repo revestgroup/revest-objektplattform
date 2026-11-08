@@ -19,9 +19,9 @@ function Anmeldung() {
     if (bereit && nutzer) navigate({ to: "/dashboard", replace: true });
   }, [bereit, nutzer, navigate]);
 
-  function absenden(e: React.FormEvent) {
+  async function absenden(e: React.FormEvent) {
     e.preventDefault();
-    const ergebnis = anmelden(kennung, kennwort);
+    const ergebnis = await anmelden(kennung, kennwort);
     if (!ergebnis.ok) {
       setFehler(ergebnis.fehler ?? "Anmeldung fehlgeschlagen.");
       return;

@@ -152,7 +152,7 @@ function Teilungsblatt({ objekt, t }: { objekt: Objekt; t: Teilungserklaerung })
               type="text"
               value={notar}
               onChange={(e) => setNotar(e.target.value)}
-              placeholder="Notariat Dr. Bäuerle, Ulm"
+              placeholder="Notariat Dr. Winterberg, Ulm"
               className={EINGABE}
             />
           </Feld>

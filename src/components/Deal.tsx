@@ -165,7 +165,7 @@ function DealDialog({ objekt, schliessen }: { objekt: Objekt; schliessen: () => 
           label="Notariat"
           wert={notar}
           setWert={setNotar}
-          platzhalter="Notariat Dr. Bäuerle, Ulm"
+          platzhalter="Notariat Dr. Winterberg, Ulm"
           breit
         />
       </div>

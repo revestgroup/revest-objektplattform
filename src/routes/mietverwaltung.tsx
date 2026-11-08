@@ -861,7 +861,7 @@ function GarantieFormular({
           label="Adresse"
           wert={adresse}
           setWert={setAdresse}
-          platzhalter="Zinglerstraße 44, 89073 Ulm"
+          platzhalter="Kastanienallee 22, 89073 Ulm"
           pflicht
           fehler={fehler.adresse}
           breit

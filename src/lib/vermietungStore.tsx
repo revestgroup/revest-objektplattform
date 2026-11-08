@@ -16,7 +16,7 @@ import { MOCK_MIETER } from "./mockMieter";
 import { MOCK_GARANTIEN } from "./mockVermietung";
 import type { Mietgarantie, Zimmer } from "./vermietung";
 
-const SPEICHER = "revest.vermietung.v2";
+const SPEICHER = "revest.vermietung.v3";
 
 export type GarantieEntwurf = Omit<Mietgarantie, "id">;
 export type MieterEntwurf = Omit<Mieter, "id">;

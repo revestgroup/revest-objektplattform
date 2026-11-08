@@ -15,7 +15,7 @@ function tage(n: number): string {
 export const MOCK_AUFGABEN: Aufgabe[] = [
   {
     id: "auf-001",
-    titel: "Rückruf Verwalter Schäufele",
+    titel: "Rückruf Verwalter Feldhaus",
     beschreibung:
       "Forderung liegt 40.000 € über unserem Limit. Fragen, ob bei 405.000 € etwas geht — sonst absagen und Kontakt für später halten.",
     objektId: "obj-011",
@@ -49,7 +49,7 @@ export const MOCK_AUFGABEN: Aufgabe[] = [
   },
   {
     id: "auf-004",
-    titel: "Besichtigung Wagnerstraße",
+    titel: "Besichtigung Ahornhof",
     beschreibung: "Termin mit dem Makler abstimmen, am besten vormittags.",
     objektId: "obj-013",
     art: "besichtigung",
@@ -105,7 +105,7 @@ export const MOCK_AUFGABEN: Aufgabe[] = [
   {
     id: "auf-009",
     titel: "Notartermin bestätigen",
-    beschreibung: "Beurkundung Brückenstraße.",
+    beschreibung: "Beurkundung Fährgasse.",
     objektId: "obj-001",
     art: "termin",
     dringlichkeit: "hoch",

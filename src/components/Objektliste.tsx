@@ -135,7 +135,7 @@ export function Objektliste({ bereich, oeffne }: { bereich: Bereich; oeffne?: st
       if (stufen.size > 0 && !stufen.has(o.stufe)) return false;
       if (stadt && o.stadt !== stadt) return false;
       if (!begriff) return true;
-      // Auch über die Kontakte: „Keller“ findet das Objekt, von dem man nur
+      // Auch über die Kontakte: „Albrecht“ findet das Objekt, von dem man nur
       // noch weiß, dass der Makler so hieß.
       return [o.strasse, o.stadtteil, o.stadt, o.plz, o.quelle ?? "", kontakteAlsText(o)]
         .join(" ")

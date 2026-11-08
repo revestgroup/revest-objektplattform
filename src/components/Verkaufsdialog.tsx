@@ -153,7 +153,7 @@ export function Verkaufsdialog({
           label="Käufer"
           wert={kaeufer}
           setWert={setKaeufer}
-          platzhalter="Fam. Özdemir"
+          platzhalter="Fam. Petersen"
           pflicht
           fehler={kaeuferFehler}
         />

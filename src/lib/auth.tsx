@@ -23,15 +23,28 @@ const TIMO: Nutzer = {
   initialen: "TB",
 };
 
-/** Phase 1: ein Zugang, fest hinterlegt. Kein Geheimnis, nur eine Tür. */
-const ZUGANG = { kennung: "timo.birk@revest-projekt.de", kennwort: "%Revest20!" };
+/**
+ * Phase 1: ein Zugang. Das Kennwort steht nicht im Code, sondern nur als
+ * SHA-256-Hash in `VITE_ZUGANG_KENNWORT_HASH` (siehe `.env.example`).
+ * Achtung: Auch der Hash landet im ausgelieferten JavaScript — das ist eine
+ * Tür, kein Schloss. Echten Schutz bringt erst Supabase Auth in Phase 2.
+ */
+const ZUGANG = {
+  kennung: "timo.birk@revest-projekt.de",
+  kennwortHash: (import.meta.env.VITE_ZUGANG_KENNWORT_HASH ?? "").trim().toLowerCase(),
+};
+
+async function sha256(text: string): Promise<string> {
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(bytes), (b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 const SPEICHER = "revest.sitzung";
 
 interface AuthWert {
   nutzer: Nutzer | null;
   bereit: boolean;
-  anmelden: (kennung: string, kennwort: string) => { ok: boolean; fehler?: string };
+  anmelden: (kennung: string, kennwort: string) => Promise<{ ok: boolean; fehler?: string }>;
   abmelden: () => void;
 }
 
@@ -51,9 +64,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setBereit(true);
   }, []);
 
-  const anmelden = useCallback((kennung: string, kennwort: string) => {
+  const anmelden = useCallback(async (kennung: string, kennwort: string) => {
+    if (!ZUGANG.kennwortHash) {
+      return { ok: false, fehler: "Kein Zugang eingerichtet (VITE_ZUGANG_KENNWORT_HASH fehlt)." };
+    }
     const passt =
-      kennung.trim().toLowerCase() === ZUGANG.kennung && kennwort === ZUGANG.kennwort;
+      kennung.trim().toLowerCase() === ZUGANG.kennung &&
+      (await sha256(kennwort)) === ZUGANG.kennwortHash;
     if (!passt) return { ok: false, fehler: "E-Mail oder Passwort stimmt nicht." };
     try {
       localStorage.setItem(SPEICHER, "1");
