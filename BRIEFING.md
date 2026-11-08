@@ -32,6 +32,7 @@ Lies zuerst `AGENTS.md` und halte dich an die Design-Regeln (deutsche Benennung,
 | 1. Ordnerstruktur | erledigt | `aufgabe-1/ordnerstruktur` |
 | 2. Neue Felder am Objekt | erledigt | `aufgabe-2/objektfelder` |
 | 2b. Ankauf-Pipeline | erledigt | `aufgabe-2b/pipeline` |
+| 2c. Objektkarte im Ankauf | offen | |
 | 3. Objektprüfung | offen | |
 | 4. Ummeldungen | offen | |
 | 4b. Ankauf-Eingang | offen, erst nach 4 | |
@@ -108,6 +109,36 @@ Alle Stellen anpassen, die `STUFEN` nutzen (Karte, Legende, Auswertung, Filter, 
 
 Drag & Drop und die Stufenknöpfe in `ObjektPipeline.tsx` bleiben erhalten.
 Bei monday-Übernahme gilt die Zuordnung jetzt 1:1 (monday nutzt dieselben Stufen).
+
+### 2c. Objektkarte im Ankauf: maximaler Fokus
+Das Objekt öffnet sich als **eigene, breite Seite** statt als schmale Schublade (480 px reichen nicht).
+
+**Reiter „Übersicht“ in drei Spalten** (am Handy untereinander, in dieser Reihenfolge):
+1. **Links: Kontakt & Mail.** Ansprechpartner (Makler, Eigentümer …) mit Telefon und E-Mail antippbar,
+   Knopf „E-Mail schreiben“ (öffnet Gmail mit Empfänger und Betreff `[Kürzel] Bezeichnung`).
+2. **Mitte: Notizen.** Oben eine feste Kurznotiz (das Wesentliche, z. B. „18k für TG locker, eigenes Grundbuch TG?“),
+   darunter der Notizverlauf mit Datum (und später Verfasser), neue Notiz direkt eintippbar.
+3. **Rechts: Objekt-Steckbrief + Kalkulations-Eckdaten.**
+   - Steckbrief: Objektart, Baujahr, Wohnfläche, Zimmer, Etage, Zustand/Mietverhältnis, Hausgeld,
+     Erhaltungsrücklage, Stellplatz/TG, Energieklasse, Quelle.
+   - Kalkulations-Eckdaten: Kaufpreis, Gesamtinvestition, Gewinn und Gewinn-% für Worst/Mid/Best,
+     Knopf „Zur Kalkulation“.
+
+Im Kopf darüber: Bild, Bezeichnung, Adresse, m², Angebotspreis, Stufe.
+
+**Die bestehenden Reiter (Unterseiten) bleiben erhalten** wie bisher. Die Übersicht wird nur aufgeräumt.
+
+**Reiter „Kalkulation“:** bleibt die große, vollständige Kalkulation, wird an `KALKULATION_ETW.md` angepasst
+(Timos Excel als Vorlage, vorerst nur ETW). Die Prüfwerte in Abschnitt 3 der Datei müssen exakt herauskommen.
+Für Mehrfamilienhäuser vorerst Hinweis „MFH-Kalkulation folgt“, bestehende Rechnung als Übergang behalten.
+
+**Reiter „Dateien“ im Ankauf:** eine einfache Liste ohne Unterordner, Hochladen per Ziehen.
+Ablauf (Speicherung in Google Drive kommt mit Phase 2, bis dahin wie bisher nur in der Sitzung):
+- Eingang: kein Ordner.
+- Ab Stufe „Neu“: **ein** Ordner `01 Ankauf/[Bezeichnung]` ohne Unterordner.
+- Bei „Gekauft“: Projektstruktur (siehe Aufgabe 1) anlegen, Ordner nach `02_Projekte/` verschieben,
+  Dateien einsortieren, die Plattform schlägt den Zielordner je Datei vor. Objekt wechselt zu „Projekte“.
+- Bei „No Deal“/„Unqualifiziert“: Ordner bleibt unter `01 Ankauf/` (bzw. `_Archiv`), nichts wird gelöscht.
 
 ### 3. Objektprüfung (Ankauf)
 Neuer Reiter „Prüfung“ im Ankauf, Checkliste mit Ampel und Zähler „x von y erledigt“.
