@@ -8,6 +8,9 @@ Interne Plattform der **Revest Projekt GmbH** (IMPERA-Gruppe) für Ankauf, Objek
 Ersetzt monday CRM und Trello. **Qonto** (Belege, Banking) und **Google Drive** (Dokumente) bleiben bestehen und
 werden angebunden. Brevo/Marketing bleibt außen vor. Nutzer: nur Revest-intern (Timo, später Halbtagskraft).
 
+Die vollständige Planung liegt in `docs/planung/` (Reihenfolge in `docs/planung/README.md`,
+aktuelle Runde `FEINSCHLIFF_1.md`). Diese Datei führt den Fortschritt.
+
 Lies zuerst `AGENTS.md` und halte dich an die Design-Regeln (deutsche Benennung, Ampel-Status, Radien usw.).
 
 ## Arbeitsweise
@@ -37,9 +40,14 @@ Lies zuerst `AGENTS.md` und halte dich an die Design-Regeln (deutsche Benennung,
 | 2c-3. Kalkulation ETW nach `KALKULATION_ETW.md` | erledigt (offen: Bedeutung „Abzug für €/m²“) | `aufgabe-2c3/kalkulation` |
 | 3. Objektprüfung | erledigt | `aufgabe-3/pruefung` |
 | 4. Ummeldungen | erledigt | `aufgabe-4/ummeldungen` |
-| 4b. Ankauf-Eingang | offen, erst nach 4 | |
+| 4b. Ankauf-Eingang | offen, nach Feinschliff 1 | |
+| Feinschliff 1 · A Ankauf | offen | |
+| Feinschliff 1 · B Kalkulation | offen | |
+| Feinschliff 1 · C Projekte | offen | |
+| Feinschliff 1 · D Kontaktregister | offen | |
+| Feinschliff 1 · E Backoffice | offen | |
 
-Die Branches bauen aufeinander auf; der jüngste enthält alle vorherigen.
+Aufgaben 0–4 sind seit 08.11.2026 in `main`. Feinschliff-Blöcke je eigener Branch ab `main`, nach Test gemergt.
 
 Hinweis für Aufgabe 3: Die Stufe „Verhandlung“ gibt es seit 2b nicht mehr. Die Warnung gilt
 beim Wechsel nach „Angebot abgegeben“ bzw. „Gekauft“. Intern heißen „Gekauft“ und „No Deal“
