@@ -159,6 +159,11 @@ interface StoreWert {
   /** Teilungserklärung nachträglich anstoßen oder ändern. */
   teilungSetzen: (id: string, teilung: Teilungserklaerung | null) => void;
   notizAnhaengen: (id: string, text: string) => void;
+  /** Mail, Telefonat, Termin oder Notiz in „Mail & Aktivitäten“ eintragen. */
+  aktivitaetEintragen: (
+    id: string,
+    eintrag: Omit<Verlaufseintrag, "id" | "zeitpunkt"> & { zeitpunkt?: string },
+  ) => void;
   dokumenteAnhaengen: (id: string, dokumente: Omit<Dokument, "id" | "hochgeladenAm">[]) => void;
   dokumentLoeschen: (id: string, dokumentId: string) => void;
   /** Ankaufsdateien in die Projektstruktur einsortieren: Dokument-ID → Ordner. */
@@ -431,6 +436,21 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
 
       notizAnhaengen: (id, text) =>
         mutieren(id, (o) => ({ ...o, verlauf: [...o.verlauf, eintrag("notiz", text, true)] })),
+
+      aktivitaetEintragen: (id, e) =>
+        mutieren(id, (o) => ({
+          ...o,
+          verlauf: [
+            ...o.verlauf,
+            {
+              vonHand: true,
+              quelle: "hand",
+              ...e,
+              id: neueId("v"),
+              zeitpunkt: e.zeitpunkt ?? new Date().toISOString(),
+            },
+          ],
+        })),
 
       dokumenteAnhaengen: (id, neue) =>
         mutieren(id, (o) => {

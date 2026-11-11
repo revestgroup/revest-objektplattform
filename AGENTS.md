@@ -84,6 +84,13 @@ RFC 2047, quoted-printable/base64, Anhänge) und erkennt das Objekt über Kürze
 Dialog `components/MailToBoard.tsx`, Karte über `mailAufnehmen` im Backoffice-Speicher.
 `BOARD_ADRESSE` ist bis Phase 2 ein Platzhalter.
 
+## Mail & Aktivitäten
+
+`src/lib/aktivitaeten.ts` (Tests daneben), Oberfläche `components/Aktivitaeten.tsx`. Der Verlauf
+ist die Zeitleiste: Einträge vom Typ `mail`, `telefonat`, `termin` tragen ihre Details in eigenen
+Feldern, `quelle`/`externeId` sind für Gmail und Kalender in Phase 2 vorbereitet. Neue Einträge
+über `aktivitaetEintragen`. Termin und Telefonat mit Wiedervorlage legen zusätzlich eine Aufgabe an.
+
 ## Ankauf-Eingang
 
 `src/lib/eingang.ts` + `eingangStore.tsx` (Tests daneben), Ansicht `components/Eingang.tsx`,

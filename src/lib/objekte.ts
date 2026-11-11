@@ -742,7 +742,26 @@ export interface Verlaufseintrag {
   id: string;
   zeitpunkt: string;
   text: string;
-  art: "status" | "notiz" | "dokument" | "anlage";
+  art: "status" | "notiz" | "dokument" | "anlage" | "mail" | "telefonat" | "termin";
+  /** Bei `mail`: ein- oder ausgehend, Kopf und Text. */
+  mail?: {
+    richtung: "ein" | "aus";
+    von: string | null;
+    an: string | null;
+    betreff: string | null;
+    text: string;
+    anhaenge?: string[];
+  };
+  /** Bei `telefonat`: mit wem, was dabei herauskam, wann nachfassen. */
+  telefonat?: { mit: string; ergebnis: string; wiedervorlage: string | null };
+  /** Bei `termin`: Art, Tag, Uhrzeit, Ort. */
+  termin?: { art: string; datum: string; uhrzeit: string | null; ort: string | null };
+  /**
+   * Woher der Eintrag kommt. Phase 2: Gmail und Kalender docken hier an,
+   * `externeId` verhindert doppelte Einträge beim Abgleich.
+   */
+  quelle?: "hand" | "gmail" | "kalender" | "system";
+  externeId?: string | null;
   /**
    * `false` heißt: die Plattform hat das selbst notiert („Objektdaten
    * bearbeitet“). Solche Einträge gehören in den Verlauf, aber nicht in den

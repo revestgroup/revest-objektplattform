@@ -69,6 +69,7 @@ import { cn, gmailLink } from "../lib/utils";
 import { useVermietung } from "../lib/vermietungStore";
 import { Bildergalerie, Bildflaeche, istQuelle } from "./Bilder";
 import { Dateiliste, Dokumentenablage, Einsortieren } from "./Dokumente";
+import { AktivitaetenReiter, AktivitaetenSpalte } from "./Aktivitaeten";
 import { Kontaktkacheln } from "./Kontaktkacheln";
 import { Objektaufgaben } from "./Objektaufgaben";
 import { Fristzeichen, Stufenzeichen } from "./Stufe";
@@ -155,7 +156,7 @@ const REITER_TITEL: Record<Reiter, string> = {
   sanierung: "Sanierung",
   einheiten: "Einheiten",
   dokumente: "Dokumente",
-  verlauf: "Verlauf",
+  verlauf: "Mail & Aktivitäten",
 };
 
 export function ObjektDetail({
@@ -381,7 +382,7 @@ export function ObjektDetail({
         {sichtbar === "kosten" && <Kosten objekt={objekt} kennzahlen={k} />}
         {sichtbar === "einheiten" && <Einheiten objekt={objekt} />}
         {sichtbar === "dokumente" && <Dokumente objekt={objekt} projekt={projekt} />}
-        {sichtbar === "verlauf" && <Verlauf objekt={objekt} />}
+        {sichtbar === "verlauf" && <AktivitaetenReiter objekt={objekt} />}
       </div>
     </div>
   );
@@ -468,7 +469,7 @@ function Uebersicht({
     <div className="divide-y divide-linie">
       <div className="grid gap-px bg-linie lg:grid-cols-3">
         <KontaktSpalte objekt={objekt} />
-        <NotizSpalte objekt={objekt} />
+        <AktivitaetenSpalte objekt={objekt} alleAnzeigen={() => zuReiter("verlauf")} />
         <SteckbriefSpalte objekt={objekt} kennzahlen={kennzahlen} zuReiter={zuReiter} />
       </div>
 
@@ -523,91 +524,6 @@ function KontaktSpalte({ objekt }: { objekt: Objekt }) {
         <p className="mt-2 text-[0.64rem] text-grau">
           Keine E-Mail-Adresse hinterlegt — der Entwurf öffnet ohne Empfänger.
         </p>
-      )}
-    </section>
-  );
-}
-
-function NotizSpalte({ objekt }: { objekt: Objekt }) {
-  const { aendern, notizAnhaengen } = useObjekte();
-  const [kurz, setKurz] = useState(objekt.kurznotiz ?? "");
-  const [neu, setNeu] = useState("");
-  const notizen = notizverlauf(objekt);
-
-  // Gespeichert wird beim Verlassen des Felds — die Kurznotiz wird
-  // überschrieben, nicht fortgeschrieben, deshalb kein Verlaufseintrag.
-  function kurzSpeichern() {
-    const wert = kurz.trim() || null;
-    if (wert !== (objekt.kurznotiz ?? null)) aendern(objekt.id, { kurznotiz: wert });
-  }
-
-  function anhaengen(e: React.FormEvent) {
-    e.preventDefault();
-    if (!neu.trim()) return;
-    notizAnhaengen(objekt.id, neu.trim());
-    setNeu("");
-  }
-
-  return (
-    <section className="bg-grund px-6 py-8 md:px-9">
-      <label htmlFor="kurznotiz" className="mini-label block">
-        Kurznotiz
-      </label>
-      <textarea
-        id="kurznotiz"
-        rows={2}
-        value={kurz}
-        onChange={(e) => setKurz(e.target.value)}
-        onBlur={kurzSpeichern}
-        placeholder="Das Wesentliche in einer Zeile, z. B. „18k für TG locker, eigenes Grundbuch TG?“"
-        className="mt-2.5 w-full resize-y rounded-xl border border-[#EFD9A6] bg-[#FDF8EC] px-3.5 py-2.5 text-[0.8rem] leading-relaxed text-tinte placeholder:text-grau focus:border-[#E0B85C] focus:outline-none"
-      />
-
-      <div className="mini-label mt-7">Notizen</div>
-      <form onSubmit={anhaengen} className="mt-2.5 flex gap-2">
-        <input
-          type="text"
-          value={neu}
-          onChange={(e) => setNeu(e.target.value)}
-          placeholder="Neue Notiz …"
-          aria-label="Neue Notiz"
-          className="min-w-0 flex-1 rounded-xl border border-linie bg-flaeche px-3.5 py-2.5 text-[0.78rem] text-tinte focus:border-linie-stark focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={!neu.trim()}
-          aria-label="Notiz speichern"
-          className="druckbar flex size-10 shrink-0 items-center justify-center rounded-full bg-tinte text-grund disabled:opacity-30"
-        >
-          <Send size={14} strokeWidth={2} />
-        </button>
-      </form>
-
-      {notizen.length === 0 ? (
-        <p className="mt-4 text-[0.74rem] text-grau">Noch keine Notizen.</p>
-      ) : (
-        <ul className="mt-4 flex flex-col gap-3.5">
-          {notizen.map((n) => (
-            <li key={n.id}>
-              <div className="zahl text-[0.62rem] text-grau">
-                {f.datum(n.zeitpunkt)}
-                {n.verfasser && ` · ${n.verfasser}`}
-              </div>
-              <p className="mt-0.5 text-[0.78rem] leading-relaxed whitespace-pre-line text-grau-stark">
-                {n.text}
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {objekt.notiz && (
-        <div className="mt-7">
-          <div className="mini-label">Beschreibung</div>
-          <p className="mt-2.5 text-[0.76rem] leading-relaxed whitespace-pre-line text-grau-stark">
-            {objekt.notiz}
-          </p>
-        </div>
       )}
     </section>
   );
@@ -1605,102 +1521,6 @@ function Dokumente({ objekt, projekt }: { objekt: Objekt; projekt: boolean }) {
 /* ------------------------------------------------------------------ */
 /* Verlauf                                                              */
 /* ------------------------------------------------------------------ */
-
-const ART_TITEL = {
-  anlage: "Anlage",
-  status: "Stufe",
-  dokument: "Dokument",
-  notiz: "Notiz",
-} as const;
-
-function Verlauf({ objekt }: { objekt: Objekt }) {
-  const { notizAnhaengen } = useObjekte();
-  const [text, setText] = useState("");
-
-  // Neueste oben — der letzte Schritt ist der, der zählt.
-  const eintraege = useMemo(
-    () =>
-      [...objekt.verlauf].sort(
-        (a, b) => new Date(b.zeitpunkt).getTime() - new Date(a.zeitpunkt).getTime(),
-      ),
-    [objekt.verlauf],
-  );
-
-  function senden(e: React.FormEvent) {
-    e.preventDefault();
-    if (!text.trim()) return;
-    notizAnhaengen(objekt.id, text.trim());
-    setText("");
-  }
-
-  return (
-    <div>
-      <form onSubmit={senden} className="border-b border-linie px-6 py-7 md:px-9">
-        <label htmlFor="neue-notiz" className="mini-label block">
-          Notiz hinzufügen
-        </label>
-        <textarea
-          id="neue-notiz"
-          rows={2}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Was ist passiert? Was ist der nächste Schritt?"
-          className="mt-2 w-full resize-y border border-linie bg-flaeche px-3 py-2.5 text-[0.8rem] leading-relaxed text-tinte placeholder:text-grau focus:border-linie-stark focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={!text.trim()}
-          className="druckbar mt-2.5 flex items-center gap-2 rounded-full border border-linie-stark px-4 py-2 text-[0.66rem] font-medium tracking-[0.14em] uppercase text-tinte disabled:opacity-35"
-        >
-          <Send size={12} strokeWidth={2} />
-          Eintragen
-        </button>
-      </form>
-
-      <ol className="px-6 py-7 md:px-9">
-        {eintraege.map((e, i) => (
-          <li
-            key={e.id}
-            className="eintritt relative flex gap-4 pb-5 last:pb-0"
-            style={{ animationDelay: `${Math.min(i, 10) * 24}ms` }}
-          >
-            {/* Zeitachse: Linie plus Punkt, gezeichnet statt Bild. */}
-            <div className="relative flex w-3 shrink-0 justify-center">
-              <span
-                aria-hidden
-                className={cn(
-                  "absolute top-[7px] size-[7px]",
-                  e.art === "status" ? "bg-tinte" : "bg-linie-stark",
-                )}
-              />
-              {i < eintraege.length - 1 && (
-                <span aria-hidden className="absolute top-[18px] bottom-[-8px] w-px bg-linie" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1 pb-1">
-              <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
-                <span className="text-[0.58rem] font-medium tracking-[0.16em] uppercase text-grau">
-                  {ART_TITEL[e.art]}
-                </span>
-                <span className="zahl text-[0.62rem] text-linie-stark">
-                  {f.datumZeit(e.zeitpunkt)}
-                </span>
-              </div>
-              <p
-                className={cn(
-                  "mt-1 text-[0.8rem] leading-relaxed",
-                  e.art === "status" ? "text-tinte" : "text-grau-stark",
-                )}
-              >
-                {e.text}
-              </p>
-            </div>
-          </li>
-        ))}
-      </ol>
-    </div>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 /* Schwebekarte der Karte                                               */
