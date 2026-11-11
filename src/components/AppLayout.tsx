@@ -470,7 +470,9 @@ export function Fenster({
             "shadow-schwebe md:inset-x-0 md:top-6 md:bottom-6 md:mx-auto md:w-[92vw] md:max-w-[1440px] md:rounded-3xl",
         )}
       >
-        <div className="flex h-12 shrink-0 items-center gap-2 border-b border-linie bg-flaeche px-3 pt-[env(safe-area-inset-top)] md:px-5">
+        {/* Eigene Ebene über dem festen Objektkopf (z-20) — sonst läge das
+            Menü „…“ dahinter. */}
+        <div className="relative z-30 flex h-12 shrink-0 items-center gap-2 border-b border-linie bg-flaeche px-3 pt-[env(safe-area-inset-top)] md:px-5">
           <button
             type="button"
             onClick={schliessen}
