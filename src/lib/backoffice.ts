@@ -6,8 +6,11 @@
  * Erledigt — oder wird weitergeleitet: an Qonto, an ein Projekt, in die
  * Ablage einer Gesellschaft. Ziel: Posteingang abends leer.
  *
- * Bis Phase 2 werden die Weiterleitungen nur vermerkt („wartet auf
- * Übergabe“), damit der Ablauf schon jetzt geübt werden kann.
+ * Grundregel (SAMMLUNG 4): Nichts verschwindet, bis die Übergabe bestätigt
+ * ist. Eine weitergeleitete Karte bleibt sichtbar — wartet → übertragen →
+ * bestätigt oder fehlgeschlagen. Erst „bestätigt“ (mit Link/Nachweis) legt
+ * sie ins Archiv. Bis Phase 2 setzt man den Status von Hand; dann melden
+ * Qonto-API und Drive ihn selbst.
  */
 
 export type Spalte = "posteingang" | "besprechung" | "in_arbeit" | "erledigt";
@@ -90,13 +93,34 @@ export interface Checkpunkt {
   erledigt: boolean;
 }
 
+export type Uebergabestatus = "wartet" | "uebertragen" | "bestaetigt" | "fehlgeschlagen";
+
+export const UEBERGABESTATUS: Record<
+  Uebergabestatus,
+  { titel: string; weich: string; tief: string }
+> = {
+  wartet: { titel: "wartet", weich: "#FBEBD1", tief: "#8A5A08" },
+  uebertragen: { titel: "übertragen", weich: "#E4EAF2", tief: "#38506E" },
+  bestaetigt: { titel: "bestätigt", weich: "#DBF2E6", tief: "#0C5E3A" },
+  fehlgeschlagen: { titel: "fehlgeschlagen", weich: "#FBE2E2", tief: "#9A2727" },
+};
+
 export interface Uebergabe {
   ziel: Weiterleitung;
-  /** Bis Phase 2 immer „wartet“: vermerkt, aber noch nicht wirklich übergeben. */
-  status: "wartet" | "erledigt";
+  /** Ältere Stände kennen noch „erledigt“ — gilt wie „bestätigt“. */
+  status: Uebergabestatus | "erledigt";
+  /** Wann weitergeleitet wurde. */
   am: string;
+  /** Letzter Statuswechsel — daran misst die 2-Tage-Regel. Fehlt bei älteren Ständen. */
+  geaendertAm?: string;
   /** Was bei der Übergabe gewählt wurde, lesbar: „Revest Projekt / 05_Finanzen & Steuer“. */
   details: string;
+  /** Link zum Ziel (Qonto-Transaktion, Drive-Datei) bzw. Nachweis. Pflicht für „bestätigt“. */
+  link?: string | null;
+  /** Bei „fehlgeschlagen“: warum. */
+  grund?: string | null;
+  /** Phase 2: ID beim Ziel (Qonto-Beleg, Drive-Datei-ID). */
+  externeId?: string | null;
 }
 
 export interface Backofficekarte {
@@ -116,6 +140,8 @@ export interface Backofficekarte {
   zugewiesen: string | null;
   uebergabe: Uebergabe | null;
   verlauf: { zeitpunkt: string; text: string }[];
+  /** Im Archiv seit — gesetzt erst mit bestätigter Übergabe bzw. bestätigtem „Erledigt“. */
+  archiviertAm?: string | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -165,9 +191,21 @@ export function istUeberfaellig(k: Backofficekarte, jetzt = new Date()): boolean
   );
 }
 
+const zielTitel = (ziel: Weiterleitung) =>
+  WEITERLEITUNGEN.find((w) => w.id === ziel)!.titel.replace("→ ", "");
+
+function mitVermerk(k: Backofficekarte, text: string, am: string): Backofficekarte {
+  return { ...k, verlauf: [...k.verlauf, { zeitpunkt: am, text }] };
+}
+
+/** Status einer Übergabe, ältere „erledigt“ als „bestätigt“ gelesen. */
+export function uebergabestatus(u: Uebergabe): Uebergabestatus {
+  return u.status === "erledigt" ? "bestaetigt" : u.status;
+}
+
 /**
- * Weiterleiten: Karte nach „Erledigt“, Übergabe vermerkt. Die eigentliche
- * Übergabe (Qonto-Beleg, Drive-Ablage) kommt mit Phase 2.
+ * Weiterleiten: die Übergabe beginnt mit „wartet“. Die Karte bleibt sichtbar
+ * — in der Spalte ihres Ziels —, bis die Übergabe bestätigt ist.
  */
 export function weiterleiten(
   k: Backofficekarte,
@@ -175,18 +213,128 @@ export function weiterleiten(
   details: string,
   jetzt = new Date(),
 ): Backofficekarte {
-  const titel = WEITERLEITUNGEN.find((w) => w.id === ziel)!.titel.replace("→ ", "");
   const am = jetzt.toISOString();
-  return {
-    ...k,
-    spalte: "erledigt",
-    uebergabe: { ziel, status: "wartet", am, details },
-    verlauf: [
-      ...k.verlauf,
-      {
-        zeitpunkt: am,
-        text: `An ${titel} übergeben${details ? `: ${details}` : ""} — wartet auf Übergabe`,
+  return mitVermerk(
+    { ...k, uebergabe: { ziel, status: "wartet", am, geaendertAm: am, details } },
+    `An ${zielTitel(ziel)} weitergeleitet${details ? `: ${details}` : ""} — wartet`,
+    am,
+  );
+}
+
+export class Uebergabefehler extends Error {}
+
+/**
+ * Status der Übergabe setzen. „bestätigt“ nur mit Link/Nachweis und legt die
+ * Karte ins Archiv, „fehlgeschlagen“ nur mit Grund.
+ */
+export function uebergabeSetzen(
+  k: Backofficekarte,
+  status: Uebergabestatus,
+  angaben: { link?: string | null; grund?: string | null } = {},
+  jetzt = new Date(),
+  wer?: string | null,
+): Backofficekarte {
+  if (!k.uebergabe) throw new Uebergabefehler("Karte wurde nicht weitergeleitet.");
+  const link = angaben.link?.trim() || k.uebergabe.link || null;
+  const grund = angaben.grund?.trim() || null;
+  if (status === "bestaetigt" && !link)
+    throw new Uebergabefehler("Bestätigen braucht einen Link oder Nachweis.");
+  if (status === "fehlgeschlagen" && !grund) throw new Uebergabefehler("Bitte den Grund angeben.");
+  const am = jetzt.toISOString();
+  const text =
+    status === "bestaetigt"
+      ? `Übergabe an ${zielTitel(k.uebergabe.ziel)} bestätigt (${link}) — ins Archiv`
+      : status === "fehlgeschlagen"
+        ? `Übergabe an ${zielTitel(k.uebergabe.ziel)} fehlgeschlagen: ${grund}`
+        : `Übergabe an ${zielTitel(k.uebergabe.ziel)}: ${UEBERGABESTATUS[status].titel}`;
+  return mitVermerk(
+    {
+      ...k,
+      uebergabe: {
+        ...k.uebergabe,
+        status,
+        geaendertAm: am,
+        link,
+        grund: status === "fehlgeschlagen" ? grund : null,
       },
-    ],
-  };
+      archiviertAm: status === "bestaetigt" ? am : (k.archiviertAm ?? null),
+    },
+    wer ? `${text} · ${wer}` : text,
+    am,
+  );
+}
+
+/** Erledigt ohne Weiterleitung: bestätigt ins Archiv legen. */
+export function archivieren(
+  k: Backofficekarte,
+  jetzt = new Date(),
+  wer?: string | null,
+): Backofficekarte {
+  const am = jetzt.toISOString();
+  return mitVermerk(
+    { ...k, spalte: "erledigt", archiviertAm: am },
+    `Ins Archiv${wer ? ` · ${wer}` : ""}`,
+    am,
+  );
+}
+
+/** Zurück in den Posteingang. Die Übergabe endet, ihr Verlauf bleibt. */
+export function zurueckholen(k: Backofficekarte, jetzt = new Date()): Backofficekarte {
+  const am = jetzt.toISOString();
+  return mitVermerk(
+    { ...k, spalte: "posteingang", archiviertAm: null, uebergabe: null },
+    "Zurückgeholt in den Posteingang",
+    am,
+  );
+}
+
+/** Wo die Karte steht: Archiv, Spalte eines Ziels (offene Übergabe) oder Board-Spalte. */
+export function ortVon(k: Backofficekarte): "archiv" | Weiterleitung | Spalte {
+  if (k.archiviertAm) return "archiv";
+  if (k.uebergabe) return k.uebergabe.ziel;
+  return k.spalte;
+}
+
+/** Länger als 2 Tage nicht bestätigt — oder fehlgeschlagen. */
+export function haengtFest(k: Backofficekarte, jetzt = new Date()): boolean {
+  if (!k.uebergabe || k.archiviertAm) return false;
+  const s = uebergabestatus(k.uebergabe);
+  if (s === "fehlgeschlagen") return true;
+  if (s === "bestaetigt") return false;
+  const seit = new Date(k.uebergabe.geaendertAm ?? k.uebergabe.am).getTime();
+  return jetzt.getTime() - seit > 2 * 86_400_000;
+}
+
+export interface Archivfilter {
+  suche?: string;
+  ziel?: Weiterleitung | "erledigt" | "";
+  gesellschaft?: string;
+  objektId?: string;
+  von?: string;
+  bis?: string;
+}
+
+/** Ziel im Archiv: das der Übergabe, sonst „Erledigt“. */
+export function archivZiel(k: Backofficekarte): Weiterleitung | "erledigt" {
+  return k.uebergabe?.ziel ?? "erledigt";
+}
+
+export function archivFiltern(karten: Backofficekarte[], f: Archivfilter): Backofficekarte[] {
+  const b = f.suche?.trim().toLowerCase() ?? "";
+  return karten
+    .filter((k) => k.archiviertAm)
+    .filter((k) => !f.ziel || archivZiel(k) === f.ziel)
+    .filter((k) => !f.gesellschaft || k.gesellschaft === f.gesellschaft)
+    .filter((k) => !f.objektId || k.objektId === f.objektId)
+    .filter((k) => !f.von || k.archiviertAm!.slice(0, 10) >= f.von)
+    .filter((k) => !f.bis || k.archiviertAm!.slice(0, 10) <= f.bis)
+    .filter(
+      (k) =>
+        !b ||
+        [k.titel, k.datei?.name, k.notizen, k.uebergabe?.details, k.uebergabe?.link]
+          .join(" ")
+          .toLowerCase()
+          .includes(b),
+    )
+    .sort((a, c) => c.archiviertAm!.localeCompare(a.archiviertAm!));
 }

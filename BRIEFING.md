@@ -52,6 +52,7 @@ Lies zuerst `AGENTS.md` und halte dich an die Design-Regeln (deutsche Benennung,
 | Feinschliff 2 (abgeschnittene Texte, Vollbild, Teilung, Gewerbe, Karte) | erledigt | `feinschliff-2` |
 | Ausbau G: Checkliste Ankauf neu (24 Unterlagen, Anfordern, Paket, Eigentümerliste) | erledigt (KI-Auslesen, Download-Paket: Phase 2) | `ausbau/g-checkliste` |
 | Ausbau H: Mail & Aktivitäten | erledigt (Gmail lesen/senden, Kalender-Sync, KI-Zusammenfassung: Phase 2) | `ausbau/h-aktivitaeten` |
+| Ausbau I: Backoffice Status und Archiv | erledigt (Qonto-/Drive-Bestätigung: Phase 2) | `ausbau/i-backoffice-archiv` |
 
 Aufgaben 0–4 sind seit 08.11.2026 in `main`. Feinschliff-Blöcke je eigener Branch ab `main`, nach Test gemergt.
 

@@ -16,6 +16,8 @@ import { STUFEN, f, type Objekt } from "../lib/objekte";
 import { useObjekte } from "../lib/objekteStore";
 import { fristText, sortiereOffen, tageBis, type Aufgabe } from "../lib/aufgaben";
 import { useAufgaben } from "../lib/aufgabenStore";
+import { UEBERGABESTATUS, WEITERLEITUNGEN, haengtFest, uebergabestatus } from "../lib/backoffice";
+import { useBackoffice } from "../lib/backofficeStore";
 import { UMMELDEARTEN, ueberfaelligeUmmeldungen } from "../lib/ummeldungen";
 import { cn } from "../lib/utils";
 
@@ -28,6 +30,9 @@ function DashboardSeite() {
   const { objekte, bereit: objekteBereit } = useObjekte();
   const { aufgaben, bereit: aufgabenBereit } = useAufgaben();
   const { nutzer } = useAuth();
+  const { karten } = useBackoffice();
+  // Übergaben, die seit über 2 Tagen nicht bestätigt sind oder fehlschlugen.
+  const haengend = karten.filter((k) => haengtFest(k));
 
   const { offen, termine } = useMemo(() => {
     const alle = aufgaben.filter((a) => !a.erledigtAm).sort(sortiereOffen);
@@ -78,6 +83,41 @@ function DashboardSeite() {
           ))}
         </Block>
 
+        {haengend.length > 0 && (
+          <Block
+            titel={`${haengend.length} ${haengend.length === 1 ? "Übergabe" : "Übergaben"} nicht bestätigt`}
+            zu="/backoffice"
+            leer=""
+          >
+            {haengend.slice(0, 6).map((k) => {
+              const st = UEBERGABESTATUS[uebergabestatus(k.uebergabe!)];
+              return (
+                <li key={k.id}>
+                  <Link
+                    to="/backoffice"
+                    search={{ karte: k.id }}
+                    className="druckbar -mx-2 flex items-center gap-3 rounded-lg px-2 py-3"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[0.82rem] text-tinte">{k.titel}</span>
+                      <span className="mt-0.5 block truncate text-[0.68rem] text-grau">
+                        {WEITERLEITUNGEN.find((w) => w.id === k.uebergabe!.ziel)?.titel} · seit{" "}
+                        {f.datum(k.uebergabe!.geaendertAm ?? k.uebergabe!.am)}
+                      </span>
+                    </span>
+                    <span
+                      className="shrink-0 rounded-full px-2 py-0.5 text-[0.62rem] font-semibold"
+                      style={{ background: st.weich, color: st.tief }}
+                    >
+                      {st.titel}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </Block>
+        )}
+
         {/* Nur wenn etwas fällig ist — ein leerer Kasten „alles gemeldet“ wäre Lärm. */}
         {ummeldungen.length > 0 && (
           <Block titel="Ummeldungen" zu="/projekte" leer="">
@@ -99,7 +139,9 @@ function DashboardSeite() {
                           const titel = UMMELDEARTEN.find((a) => a.art === u.art)?.titel ?? u.art;
                           const einheit =
                             u.richtung === "ab"
-                              ? objekt.einheiten.find((e) => e.id === u.einheitId)?.bezeichnung.split(" · ")[0]
+                              ? objekt.einheiten
+                                  .find((e) => e.id === u.einheitId)
+                                  ?.bezeichnung.split(" · ")[0]
                               : null;
                           return `${einheit ? `${einheit}: ` : ""}${titel}${u.status === "gemeldet" ? " (Bestätigung fehlt)" : ""}`;
                         })

@@ -73,8 +73,10 @@ Objektspeicher automatisch ins Register (Dubletten über E-Mail, Telefon, Name).
 ## Backoffice
 
 `src/lib/backoffice.ts` + `backofficeStore.tsx` (Tests daneben), Seite `routes/backoffice.tsx`.
-Weiterleiten (→ Qonto / Projekt / Ablage) verschiebt nach „Erledigt“ und vermerkt die Übergabe
-als „wartet“ — die echte Übergabe kommt mit Phase 2. Seitliches Ziehen für breite Boards:
+Grundregel: Nichts verschwindet, bis die Übergabe bestätigt ist. Weiterleiten (→ Qonto / Projekt /
+Ablage) startet eine Übergabe (wartet → übertragen → bestätigt | fehlgeschlagen); die Karte steht
+bis dahin in der Spalte ihres Ziels (`ortVon`). „bestätigt“ braucht einen Link/Nachweis und legt
+sie ins Archiv (`archiviertAm`); `haengtFest` (2 Tage) speist die Warnung auf der Startseite. Seitliches Ziehen für breite Boards:
 `useSeitlichScroll` in `components/SeitlichScroll.tsx` (auch die Pipeline nutzt ihn).
 
 ## Mail to Board

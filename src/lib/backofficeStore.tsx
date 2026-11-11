@@ -9,7 +9,12 @@ import type { ReactNode } from "react";
 import {
   artAusName,
   titelAusName,
+  Uebergabefehler,
+  archivieren as archivierenRein,
+  uebergabeSetzen as uebergabeSetzenRein,
   weiterleiten as weiterleitenRein,
+  zurueckholen as zurueckholenRein,
+  type Uebergabestatus,
   type Backofficekarte,
   type Spalte,
   type Weiterleitung,
@@ -37,6 +42,15 @@ interface StoreWert {
   aendern: (id: string, teil: Partial<Backofficekarte>) => void;
   verschieben: (id: string, spalte: Spalte) => void;
   weiterleiten: (id: string, ziel: Weiterleitung, details: string) => void;
+  /** Gibt den Fehlertext zurück, wenn etwas fehlt (Nachweis, Grund) — sonst null. */
+  uebergabeSetzen: (
+    id: string,
+    status: Uebergabestatus,
+    angaben: { link?: string | null; grund?: string | null },
+    wer?: string | null,
+  ) => string | null;
+  archivieren: (id: string, wer?: string | null) => void;
+  zurueckholen: (id: string) => void;
   loeschen: (id: string) => void;
 }
 
@@ -188,6 +202,23 @@ export function BackofficeProvider({ children }: { children: ReactNode }) {
         ),
 
       weiterleiten: (id, ziel, details) => mutieren(id, (k) => weiterleitenRein(k, ziel, details)),
+
+      uebergabeSetzen: (id, status, angaben, wer) => {
+        const k = karten.find((x) => x.id === id);
+        if (!k) return "Karte nicht gefunden.";
+        try {
+          const neu = uebergabeSetzenRein(k, status, angaben, new Date(), wer);
+          mutieren(id, () => neu);
+          return null;
+        } catch (e) {
+          if (e instanceof Uebergabefehler) return e.message;
+          throw e;
+        }
+      },
+
+      archivieren: (id, wer) => mutieren(id, (k) => archivierenRein(k, new Date(), wer)),
+
+      zurueckholen: (id) => mutieren(id, (k) => zurueckholenRein(k)),
 
       loeschen: (id) => setKarten((alt) => alt.filter((k) => k.id !== id)),
     }),

@@ -25,6 +25,7 @@ import { useMemo, useRef, useState } from "react";
 
 import { Fenster, Seitenkopf } from "../components/AppLayout";
 import { Dialog } from "../components/Dialog";
+import { Backofficearchiv } from "../components/Backofficearchiv";
 import { MailToBoardDialog, emlDateiLesen, istEml } from "../components/MailToBoard";
 import type { Mail } from "../lib/mailToBoard";
 import { useSeitlichScroll } from "../components/SeitlichScroll";
@@ -36,9 +37,13 @@ import {
   KARTENARTEN,
   KARTENQUELLEN,
   SPALTEN,
+  UEBERGABESTATUS,
   WEITERLEITUNGEN,
   ablageOrdnerVorschlag,
+  haengtFest,
   istUeberfaellig,
+  ortVon,
+  uebergabestatus,
   type Backofficekarte,
   type Kartenart,
   type Spalte,
@@ -65,7 +70,8 @@ const objektTitel = (o: Objekt) =>
 function BackofficeSeite() {
   const { karte: offenId } = Route.useSearch();
   const navigate = useNavigate();
-  const { karten, bereit, dateienAufnehmen, todoAnlegen, verschieben } = useBackoffice();
+  const { karten, bereit, dateienAufnehmen, todoAnlegen, verschieben, archivieren } =
+    useBackoffice();
   const { objekte } = useObjekte();
   const { nutzer } = useAuth();
 
@@ -87,6 +93,8 @@ function BackofficeSeite() {
   const dateiRef = useRef<HTMLInputElement>(null);
   // Mail to Board: offen mit optional schon gelesener .eml.
   const [mailDialog, setMailDialog] = useState<{ vorab: Mail | null } | null>(null);
+  // Board oder Archiv. Ins Archiv kommt erst, was bestätigt ist.
+  const [ansicht, setAnsicht] = useState<"board" | "archiv">("board");
 
   const sichtbar = useMemo(
     () =>
@@ -95,7 +103,8 @@ function BackofficeSeite() {
           (!filter.art || k.art === filter.art) &&
           (!filter.gesellschaft || k.gesellschaft === filter.gesellschaft) &&
           (!filter.objekt || k.objektId === filter.objekt) &&
-          (!filter.meine || k.zugewiesen === nutzer?.name),
+          (!filter.meine || k.zugewiesen === nutzer?.name) &&
+          !k.archiviertAm,
       ),
     [karten, filter, nutzer?.name],
   );
@@ -186,164 +195,246 @@ function BackofficeSeite() {
 
       {/* ----- Filter ----- */}
       <div className="flex flex-wrap items-center gap-2 border-b border-linie px-4 py-3 sm:px-6 md:px-10">
-        <select
-          aria-label="Art"
-          value={filter.art}
-          onChange={(e) => setFilter({ ...filter, art: e.target.value })}
-          className={auswahl}
-        >
-          <option value="">Alle Arten</option>
-          {Object.entries(KARTENARTEN).map(([w, t]) => (
-            <option key={w} value={w}>
+        <div className="flex gap-1 rounded-full border border-linie bg-flaeche-hoch p-1">
+          {(
+            [
+              ["board", "Board"],
+              ["archiv", `Archiv · ${karten.filter((k) => k.archiviertAm).length}`],
+            ] as const
+          ).map(([w, t]) => (
+            <button
+              key={w}
+              type="button"
+              onClick={() => setAnsicht(w)}
+              aria-pressed={ansicht === w}
+              className={cn(
+                "druckbar rounded-full px-3 py-1 text-[0.7rem] font-medium",
+                ansicht === w ? "bg-tinte text-grund" : "text-grau-stark",
+              )}
+            >
               {t}
-            </option>
+            </button>
           ))}
-        </select>
-        <select
-          aria-label="Gesellschaft"
-          value={filter.gesellschaft}
-          onChange={(e) => setFilter({ ...filter, gesellschaft: e.target.value })}
-          className={auswahl}
-        >
-          <option value="">Alle Gesellschaften</option>
-          {ABLAGE_GESELLSCHAFTEN.map((g) => (
-            <option key={g} value={g}>
-              {g}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label="Objekt"
-          value={filter.objekt}
-          onChange={(e) => setFilter({ ...filter, objekt: e.target.value })}
-          className={auswahl}
-        >
-          <option value="">Alle Objekte</option>
-          {objekte.map((o) => (
-            <option key={o.id} value={o.id}>
-              {objektTitel(o)}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          onClick={() => setFilter({ ...filter, meine: !filter.meine })}
-          aria-pressed={filter.meine}
-          className={cn(
-            "druckbar h-8 rounded-full border px-3 text-[0.72rem] font-medium",
-            filter.meine
-              ? "border-tinte bg-tinte text-grund"
-              : "border-linie bg-flaeche text-grau-stark",
-          )}
-        >
-          Mir zugewiesen
-        </button>
+        </div>
+        {ansicht === "board" && (
+          <>
+            <select
+              aria-label="Art"
+              value={filter.art}
+              onChange={(e) => setFilter({ ...filter, art: e.target.value })}
+              className={auswahl}
+            >
+              <option value="">Alle Arten</option>
+              {Object.entries(KARTENARTEN).map(([w, t]) => (
+                <option key={w} value={w}>
+                  {t}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="Gesellschaft"
+              value={filter.gesellschaft}
+              onChange={(e) => setFilter({ ...filter, gesellschaft: e.target.value })}
+              className={auswahl}
+            >
+              <option value="">Alle Gesellschaften</option>
+              {ABLAGE_GESELLSCHAFTEN.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+            <select
+              aria-label="Objekt"
+              value={filter.objekt}
+              onChange={(e) => setFilter({ ...filter, objekt: e.target.value })}
+              className={auswahl}
+            >
+              <option value="">Alle Objekte</option>
+              {objekte.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {objektTitel(o)}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setFilter({ ...filter, meine: !filter.meine })}
+              aria-pressed={filter.meine}
+              className={cn(
+                "druckbar h-8 rounded-full border px-3 text-[0.72rem] font-medium",
+                filter.meine
+                  ? "border-tinte bg-tinte text-grund"
+                  : "border-linie bg-flaeche text-grau-stark",
+              )}
+            >
+              Mir zugewiesen
+            </button>
+          </>
+        )}
       </div>
 
-      {/* ----- Board ----- */}
-      <div className="relative">
-        {seitlich.pfeile}
-        <div
-          {...seitlich.leisteProps}
-          onDragOver={(e) => zieht && seitlich.randScroll(e)}
-          className="scroll-pipeline flex items-start gap-3 overflow-x-auto px-4 pt-5 pb-3 md:cursor-grab md:px-6"
-        >
-          {SPALTEN.map((s) => {
-            const spalte = sichtbar.filter((k) => k.spalte === s.id);
-            const hier = ueber === s.id;
-            return (
-              <section
-                key={s.id}
-                {...ziel(s.id)}
-                onDrop={(e) => ablegen(e, s.id)}
-                className={cn(
-                  "flex w-[80vw] max-w-[19rem] shrink-0 flex-col overflow-hidden rounded-2xl bg-flaeche-hoch transition-colors duration-150 sm:w-[15rem]",
-                  hier && "bg-flaeche-aktiv",
-                )}
-              >
-                <header className="flex items-center gap-2 px-3 pt-3 pb-2">
-                  <h3 className="min-w-0 flex-1 truncate text-[0.68rem] font-semibold tracking-[0.1em] uppercase text-tinte">
-                    {s.titel}
-                  </h3>
-                  <span className="zahl rounded-full bg-flaeche px-2 py-0.5 text-[0.62rem] font-semibold text-grau-stark">
-                    {spalte.length}
-                  </span>
-                </header>
+      {ansicht === "archiv" ? (
+        <Backofficearchiv oeffnen={oeffnen} />
+      ) : (
+        /* ----- Board ----- */
+        <div className="relative">
+          {seitlich.pfeile}
+          <div
+            {...seitlich.leisteProps}
+            onDragOver={(e) => zieht && seitlich.randScroll(e)}
+            className="scroll-pipeline flex items-start gap-3 overflow-x-auto px-4 pt-5 pb-3 md:cursor-grab md:px-6"
+          >
+            {SPALTEN.map((s) => {
+              const spalte = sichtbar.filter((k) => ortVon(k) === s.id);
+              const hier = ueber === s.id;
+              return (
+                <section
+                  key={s.id}
+                  {...ziel(s.id)}
+                  onDrop={(e) => ablegen(e, s.id)}
+                  className={cn(
+                    "flex w-[80vw] max-w-[19rem] shrink-0 flex-col overflow-hidden rounded-2xl bg-flaeche-hoch transition-colors duration-150 sm:w-[15rem] xl:w-[13.5rem]",
+                    hier && "bg-flaeche-aktiv",
+                  )}
+                >
+                  <header className="flex items-center gap-2 px-3 pt-3 pb-2">
+                    <h3 className="min-w-0 flex-1 truncate text-[0.68rem] font-semibold tracking-[0.1em] uppercase text-tinte">
+                      {s.titel}
+                    </h3>
+                    <span className="zahl rounded-full bg-flaeche px-2 py-0.5 text-[0.62rem] font-semibold text-grau-stark">
+                      {spalte.length}
+                    </span>
+                  </header>
+                  {s.id === "erledigt" && spalte.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => spalte.forEach((k) => archivieren(k.id, nutzer?.name))}
+                      title="Erledigt bestätigen — die Karten wandern ins Archiv, gelöscht wird nichts"
+                      className="druckbar mx-2 mb-2 rounded-lg border border-linie bg-flaeche px-3 py-1.5 text-[0.64rem] font-semibold text-grau-stark hover:text-tinte"
+                    >
+                      Alle ins Archiv
+                    </button>
+                  )}
 
-                {s.id === "posteingang" && neuerTitel !== null && (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      if (!neuerTitel.trim()) return;
-                      todoAnlegen(neuerTitel.trim());
-                      setNeuerTitel(null);
-                    }}
-                    className="px-2 pb-2"
-                  >
-                    <input
-                      autoFocus
-                      value={neuerTitel}
-                      onChange={(e) => setNeuerTitel(e.target.value)}
-                      onBlur={() => !neuerTitel.trim() && setNeuerTitel(null)}
-                      placeholder="Was ist zu tun?"
-                      aria-label="Titel der neuen Karte"
-                      className="w-full rounded-xl border border-tinte bg-flaeche px-3 py-2 text-[0.78rem] text-tinte focus:outline-none"
-                    />
-                  </form>
-                )}
-
-                <ul className="flex flex-col gap-2 px-2 pb-2">
-                  {spalte.map((k) => (
-                    <Kartenkachel
-                      key={k.id}
-                      karte={k}
-                      objekt={objekte.find((o) => o.id === k.objektId)}
-                      haengt={zieht === k.id}
-                      beiKlick={() => oeffnen(k.id)}
-                      beiAnfassen={() => setZieht(k.id)}
-                      beiLoslassen={() => {
-                        setZieht(null);
-                        setUeber(null);
+                  {s.id === "posteingang" && neuerTitel !== null && (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (!neuerTitel.trim()) return;
+                        todoAnlegen(neuerTitel.trim());
+                        setNeuerTitel(null);
                       }}
-                    />
-                  ))}
-                </ul>
-                {s.id === "posteingang" && (
-                  <p
-                    className={cn(
-                      "mx-2 mb-2 rounded-lg border border-dashed px-3 py-3 text-center text-[0.66rem]",
-                      hier ? "border-tinte text-tinte" : "border-linie-stark text-grau",
-                    )}
-                  >
-                    Dateien hierher ziehen — je Datei eine Karte
-                  </p>
-                )}
-              </section>
-            );
-          })}
+                      className="px-2 pb-2"
+                    >
+                      <input
+                        autoFocus
+                        value={neuerTitel}
+                        onChange={(e) => setNeuerTitel(e.target.value)}
+                        onBlur={() => !neuerTitel.trim() && setNeuerTitel(null)}
+                        placeholder="Was ist zu tun?"
+                        aria-label="Titel der neuen Karte"
+                        className="w-full rounded-xl border border-tinte bg-flaeche px-3 py-2 text-[0.78rem] text-tinte focus:outline-none"
+                      />
+                    </form>
+                  )}
 
-          {/* Weiterleitungen: übereinander in einer schmalen Spalte, farbig,
-              nur zum Ablegen — so passt das ganze Board auf den Schirm. */}
-          <div className="flex w-36 shrink-0 flex-col gap-2 self-stretch">
-            {WEITERLEITUNGEN.map((w) => (
-              <section
-                key={w.id}
-                {...ziel(w.id)}
-                onDrop={(e) => ablegen(e, w.id)}
-                className="flex min-h-[6.5rem] flex-1 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed px-3 text-center transition-colors duration-150"
-                style={{
-                  borderColor: ueber === w.id ? w.tief : w.farbe,
-                  background: ueber === w.id ? w.farbe : w.weich,
-                  color: ueber === w.id ? "#fff" : w.tief,
-                }}
-              >
-                <span className="text-[0.8rem] font-semibold">{w.titel}</span>
-                <span className="text-[0.6rem] opacity-80">Karte hierher ziehen</span>
-              </section>
-            ))}
+                  <ul className="flex flex-col gap-2 px-2 pb-2">
+                    {spalte.map((k) => (
+                      <Kartenkachel
+                        key={k.id}
+                        karte={k}
+                        objekt={objekte.find((o) => o.id === k.objektId)}
+                        haengt={zieht === k.id}
+                        beiKlick={() => oeffnen(k.id)}
+                        beiAnfassen={() => setZieht(k.id)}
+                        beiLoslassen={() => {
+                          setZieht(null);
+                          setUeber(null);
+                        }}
+                      />
+                    ))}
+                  </ul>
+                  {s.id === "posteingang" && (
+                    <p
+                      className={cn(
+                        "mx-2 mb-2 rounded-lg border border-dashed px-3 py-3 text-center text-[0.66rem]",
+                        hier ? "border-tinte text-tinte" : "border-linie-stark text-grau",
+                      )}
+                    >
+                      Dateien hierher ziehen — je Datei eine Karte
+                    </p>
+                  )}
+                </section>
+              );
+            })}
+
+            {/* Weiterleitungen: keine Ablage, sondern Arbeitsliste. Was hier
+              liegt, wartet auf Bestätigung — erst dann geht es ins Archiv. */}
+            <div className="flex w-52 shrink-0 flex-col gap-2 self-stretch">
+              {WEITERLEITUNGEN.map((w) => {
+                const offen = sichtbar.filter((k) => ortVon(k) === w.id);
+                const haengen = offen.filter((k) => haengtFest(k)).length;
+                return (
+                  <section
+                    key={w.id}
+                    {...ziel(w.id)}
+                    onDrop={(e) => ablegen(e, w.id)}
+                    className="flex min-h-[6.5rem] flex-1 flex-col gap-1.5 rounded-2xl border-2 border-dashed px-2 py-2 transition-colors duration-150"
+                    style={{
+                      borderColor: ueber === w.id ? w.tief : w.farbe,
+                      background: ueber === w.id ? w.farbe : w.weich,
+                      color: ueber === w.id ? "#fff" : w.tief,
+                    }}
+                  >
+                    <div className="flex items-baseline gap-1.5 px-1">
+                      <span className="text-[0.8rem] font-semibold">{w.titel}</span>
+                      <span className="zahl text-[0.62rem] opacity-80">{offen.length} offen</span>
+                      {haengen > 0 && (
+                        <span className="zahl ml-auto rounded-full bg-[#FBE2E2] px-1.5 text-[0.58rem] font-semibold text-[#9A2727]">
+                          {haengen} hängt
+                        </span>
+                      )}
+                    </div>
+                    <ul className="flex flex-col gap-1">
+                      {offen.map((k) => {
+                        const st = UEBERGABESTATUS[uebergabestatus(k.uebergabe!)];
+                        return (
+                          <li key={k.id}>
+                            <button
+                              type="button"
+                              onClick={() => oeffnen(k.id)}
+                              className={cn(
+                                "druckbar flex w-full items-center gap-1.5 rounded-lg bg-flaeche px-2 py-1.5 text-left text-tinte",
+                                haengtFest(k) && "ring-1 ring-[#CF4848]",
+                              )}
+                            >
+                              <span className="min-w-0 flex-1 truncate text-[0.68rem]">
+                                {k.titel}
+                              </span>
+                              <span
+                                className="shrink-0 rounded-full px-1.5 py-px text-[0.56rem] font-semibold"
+                                style={{ background: st.weich, color: st.tief }}
+                              >
+                                {st.titel}
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    {offen.length === 0 && (
+                      <span className="mt-auto px-1 text-[0.6rem] opacity-80">
+                        Karte hierher ziehen
+                      </span>
+                    )}
+                  </section>
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <Fenster
         offen={!!offen}
@@ -452,9 +543,15 @@ function Kartenkachel({
               {erledigt}/{k.checkliste.length}
             </span>
           )}
-          {k.uebergabe?.status === "wartet" && (
-            <span className="rounded-full bg-[#FBEBD1] px-2 py-0.5 text-[0.58rem] font-semibold text-[#8A5A08]">
-              wartet auf Übergabe
+          {k.uebergabe && (
+            <span
+              className="rounded-full px-2 py-0.5 text-[0.58rem] font-semibold"
+              style={{
+                background: UEBERGABESTATUS[uebergabestatus(k.uebergabe)].weich,
+                color: UEBERGABESTATUS[uebergabestatus(k.uebergabe)].tief,
+              }}
+            >
+              {UEBERGABESTATUS[uebergabestatus(k.uebergabe)].titel}
             </span>
           )}
         </span>
@@ -667,7 +764,7 @@ function Kartenfenster({
   weiterleiten: (ziel: Weiterleitung) => void;
   schliessen: () => void;
 }) {
-  const { aendern, verschieben, loeschen } = useBackoffice();
+  const { aendern, verschieben, loeschen, archivieren, zurueckholen } = useBackoffice();
   const { objekte } = useObjekte();
   const { anlegen: aufgabeAnlegen } = useAufgaben();
   const { nutzer } = useAuth();
@@ -812,9 +909,27 @@ function Kartenfenster({
         </div>
         <p className="zahl text-[0.66rem] text-grau">
           {KARTENQUELLEN[k.quelle]} · Eingang {f.datum(k.eingangAm)}
-          {k.uebergabe &&
-            ` · ${k.uebergabe.details || WEITERLEITUNGEN.find((w) => w.id === k.uebergabe!.ziel)?.titel} (${k.uebergabe.status === "wartet" ? "wartet auf Übergabe" : "übergeben"})`}
+          {k.archiviertAm && ` · im Archiv seit ${f.datum(k.archiviertAm)}`}
         </p>
+        {k.uebergabe && <Uebergabefeld karte={k} />}
+        {!k.uebergabe && !k.archiviertAm && k.spalte === "erledigt" && (
+          <button
+            type="button"
+            onClick={() => archivieren(k.id, nutzer?.name)}
+            className="druckbar self-start rounded-full border border-linie-stark px-3.5 py-1.5 text-[0.68rem] font-semibold text-tinte"
+          >
+            Erledigt bestätigen · ins Archiv
+          </button>
+        )}
+        {k.archiviertAm && (
+          <button
+            type="button"
+            onClick={() => zurueckholen(k.id)}
+            className="druckbar self-start rounded-full border border-linie-stark px-3.5 py-1.5 text-[0.68rem] font-semibold text-tinte"
+          >
+            Zurückholen in den Posteingang
+          </button>
+        )}
       </section>
 
       {/* ----- Notizen, Checkliste, Aktionen ----- */}
@@ -937,6 +1052,120 @@ function Kartenfenster({
           Karte löschen
         </button>
       </section>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Übergabe im Kartenfenster                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * wartet → übertragen → bestätigt (mit Link/Nachweis, dann ins Archiv) oder
+ * fehlgeschlagen (mit Grund, „Erneut senden“). Phase 2 setzt das selbst.
+ */
+function Uebergabefeld({ karte: k }: { karte: Backofficekarte }) {
+  const { uebergabeSetzen } = useBackoffice();
+  const { nutzer } = useAuth();
+  const u = k.uebergabe!;
+  const status = uebergabestatus(u);
+  const w = WEITERLEITUNGEN.find((x) => x.id === u.ziel)!;
+  const [link, setLink] = useState(u.link ?? "");
+  const [grund, setGrund] = useState("");
+  const [fehler, setFehler] = useState<string | null>(null);
+  const feld =
+    "h-8 w-full rounded-lg border border-linie bg-flaeche px-2.5 text-[0.76rem] text-tinte focus:border-linie-stark focus:outline-none";
+
+  const setze = (st: Parameters<typeof uebergabeSetzen>[1]) =>
+    setFehler(uebergabeSetzen(k.id, st, { link, grund }, nutzer?.name));
+
+  return (
+    <div
+      className="flex flex-col gap-2 rounded-xl border px-3 py-2.5"
+      style={{ borderColor: w.farbe, background: w.weich }}
+    >
+      <div className="flex flex-wrap items-center gap-2 text-[0.72rem]" style={{ color: w.tief }}>
+        <span className="font-semibold">{w.titel}</span>
+        {u.details && <span className="opacity-80">{u.details}</span>}
+        <span
+          className="ml-auto rounded-full px-2 py-0.5 text-[0.62rem] font-semibold"
+          style={{ background: UEBERGABESTATUS[status].weich, color: UEBERGABESTATUS[status].tief }}
+        >
+          {UEBERGABESTATUS[status].titel}
+        </span>
+      </div>
+      {status === "fehlgeschlagen" && u.grund && (
+        <p className="text-[0.7rem] font-semibold text-[#9A2727]">Grund: {u.grund}</p>
+      )}
+      {status !== "bestaetigt" && (
+        <>
+          <input
+            className={feld}
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+            placeholder="Link zum Ziel / Nachweis (Pflicht für „bestätigt“)"
+            aria-label="Link oder Nachweis"
+          />
+          <div className="flex flex-wrap gap-1.5">
+            {status === "wartet" && (
+              <button
+                type="button"
+                onClick={() => setze("uebertragen")}
+                className="druckbar rounded-full border border-linie-stark bg-flaeche px-3 py-1 text-[0.66rem] font-semibold text-tinte"
+              >
+                übertragen
+              </button>
+            )}
+            {status === "fehlgeschlagen" && (
+              <button
+                type="button"
+                onClick={() => setze("wartet")}
+                className="druckbar rounded-full border border-linie-stark bg-flaeche px-3 py-1 text-[0.66rem] font-semibold text-tinte"
+              >
+                Erneut senden
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setze("bestaetigt")}
+              className="druckbar rounded-full px-3 py-1 text-[0.66rem] font-semibold text-white"
+              style={{ background: "#17935C" }}
+            >
+              bestätigt · ins Archiv
+            </button>
+          </div>
+          <div className="flex gap-1.5">
+            <input
+              className={feld}
+              value={grund}
+              onChange={(e) => setGrund(e.target.value)}
+              placeholder="Grund, falls fehlgeschlagen"
+              aria-label="Grund"
+            />
+            <button
+              type="button"
+              onClick={() => setze("fehlgeschlagen")}
+              className="druckbar shrink-0 rounded-full border border-[#E3BDB9] bg-[#FBE2E2] px-3 py-1 text-[0.66rem] font-semibold text-[#9A2727]"
+            >
+              fehlgeschlagen
+            </button>
+          </div>
+        </>
+      )}
+      {u.link && status === "bestaetigt" && (
+        <a
+          href={u.link}
+          target="_blank"
+          rel="noreferrer"
+          className="truncate text-[0.7rem] text-tinte underline"
+        >
+          {u.link}
+        </a>
+      )}
+      {fehler && <p className="text-[0.7rem] font-semibold text-[#9A2727]">{fehler}</p>}
+      <p className="text-[0.62rem] opacity-80" style={{ color: w.tief }}>
+        Phase 2: Qonto und Drive melden „übertragen“ und „bestätigt“ selbst.
+      </p>
     </div>
   );
 }
