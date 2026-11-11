@@ -1,17 +1,23 @@
 /**
- * Reiter „Ummeldungen“ im Projekt: oben die Ummeldungen zum Besitzübergang,
- * darunter je verkaufter Einheit die Abmeldungen an den Käufer.
+ * Reiter „Ummeldungen“ im Projekt — die Abwicklung nach Kauf und Verkauf:
+ * oben der Ankauf (Übergabe, Objektinfos, Zähler, Ummeldungen), darunter je
+ * verkaufter Einheit dasselbe für die Abmeldungen an den Käufer. Die Listen
+ * stellen sich nach der Objektart zusammen (SAMMLUNG 1).
  */
 import { AlertTriangle, FolderOpen } from "lucide-react";
 import { useState } from "react";
 
-import { f, liegtIn, type Objekt } from "../lib/objekte";
+import { f, liegtIn, type Einheit, type Gesellschaft, type Objekt } from "../lib/objekte";
+import { Objektinfofelder, Protokollvorlage, Uebergabekopf, Zaehlerstaende } from "./Abwicklung";
 import { useObjekte } from "../lib/objekteStore";
 import {
   UMMELDEARTEN,
   UMMELDESTATUS,
   istUeberfaellig,
+  objektgruppe,
+  sichtbareUmmeldungen,
   stichtag,
+  ummeldeTitel,
   type Ummeldestatus,
   type Ummeldung,
 } from "../lib/ummeldungen";
@@ -21,6 +27,11 @@ import { anzeigename } from "../lib/kontakte";
 /** Welche Kategorien im Register als Anbieter in Frage kommen. */
 const ANBIETER_KATEGORIEN: Record<Ummeldung["art"], string[]> = {
   hausverwaltung: ["Hausverwaltung"],
+  sepa_hausgeld: ["Hausverwaltung"],
+  verwaltungsliste: ["Hausverwaltung"],
+  grundsteuer_anteilig: ["Amt / Behörde"],
+  grundbuch_versicherung: ["Versicherung"],
+  versicherung_abrechnung: ["Versicherung"],
   gas: ["Versorger"],
   strom: ["Versorger"],
   wasser: ["Versorger"],
@@ -54,8 +65,8 @@ export function Ummeldungsblatt({ objekt }: { objekt: Objekt }) {
             Besitzübergang noch nicht eingetragen
           </div>
           <p className="mt-1.5 text-[0.72rem] leading-relaxed text-grau">
-            Mit dem Übergang von Besitz, Nutzen und Lasten entstehen die sieben Ummeldungen —
-            Hausverwaltung, Gas, Strom, Wasser, Versicherung, Schornsteinfeger, Grundbesitzabgaben.
+            Mit dem Übergang von Besitz, Nutzen und Lasten entsteht die Liste der Ummeldungen —
+            zusammengestellt nach der Objektart (ETW oder EFH/MFH).
           </p>
           <div className="mt-4 flex flex-wrap items-end gap-2">
             <label className="flex flex-col gap-1.5">
@@ -108,35 +119,129 @@ export function Ummeldungsblatt({ objekt }: { objekt: Objekt }) {
 
   return (
     <div className="flex flex-col gap-10 px-6 py-8 md:px-9">
+      <Protokollvorlage objekt={objekt} />
+      <Ankaufsabwicklung objekt={objekt} />
+      {verkaufte.map((e) => (
+        <Verkaufsabwicklung key={e.id} objekt={objekt} einheit={e} />
+      ))}
+    </div>
+  );
+}
+
+/** Verwalter aus den Kontakten des Objekts — Vorschläge für die Hausverwaltung. */
+function verwalterVon(o: Objekt): string[] {
+  return o.kontakte.filter((k) => k.rolle === "verwalter" && k.name).map((k) => k.name);
+}
+
+function Ankaufsabwicklung({ objekt }: { objekt: Objekt }) {
+  const { aendern } = useObjekte();
+  const gruppe = objektgruppe(objekt, "an");
+  const ue = objekt.uebergabeAnkauf ?? {};
+  return (
+    <section className="flex flex-col gap-4">
+      <Uebergabekopf
+        titel="Übergabe Ankauf"
+        gruppe={gruppe}
+        emailTitel="E-Mail Verkäufer"
+        hausverwaltungen={verwalterVon(objekt)}
+        angaben={{
+          datum: objekt.besitzuebergangAm ?? null,
+          gesellschaft: objekt.gesellschaft ?? null,
+          email:
+            ue.verkaeuferEmail ??
+            objekt.kontakte.find((k) => k.rolle === "eigentuemer")?.email ??
+            null,
+          hausverwaltung: ue.hausverwaltung ?? verwalterVon(objekt)[0] ?? null,
+        }}
+        setze={(t) =>
+          aendern(objekt.id, {
+            ...(t.datum !== undefined ? { besitzuebergangAm: t.datum } : {}),
+            ...(t.gesellschaft !== undefined
+              ? { gesellschaft: (t.gesellschaft as Gesellschaft | null) ?? null }
+              : {}),
+            ...(t.email !== undefined || t.hausverwaltung !== undefined
+              ? {
+                  uebergabeAnkauf: {
+                    ...ue,
+                    ...(t.email !== undefined ? { verkaeuferEmail: t.email } : {}),
+                    ...(t.hausverwaltung !== undefined ? { hausverwaltung: t.hausverwaltung } : {}),
+                  },
+                }
+              : {}),
+          })
+        }
+      />
+      <div className="rounded-2xl border border-linie bg-flaeche px-4 py-3.5">
+        <div className="mini-label mb-2">Objektinfos</div>
+        <Objektinfofelder
+          infos={objekt.infos}
+          setze={(t) => aendern(objekt.id, { infos: { ...objekt.infos, ...t } })}
+        />
+      </div>
+      <Zaehlerstaende objekt={objekt} richtung="an" einheitId={null} />
       <Liste
         objekt={objekt}
-        titel="Ummeldungen zum Besitzübergang"
+        titel={`Nach Einkauf · ${gruppe === "etw" ? "ETW" : gruppe === "haus" ? "EFH/MFH" : "Grundstück"}`}
         unterzeile={
           objekt.besitzuebergangAm
             ? `Besitzübergang ${f.datum(objekt.besitzuebergangAm)}`
             : undefined
         }
-        eintraege={an}
+        eintraege={sichtbareUmmeldungen(objekt, "an", null)}
       />
-      {verkaufte.map((e) => (
-        <Liste
-          key={e.id}
-          objekt={objekt}
-          titel={`Abmeldungen ${e.bezeichnung}${e.kaeufer ? ` → ${e.kaeufer}` : ""}`}
-          unterzeile={[
-            e.verkauftAm
-              ? `verkauft ${f.datum(e.verkauftAm)}`
-              : e.status !== "verkauft"
-                ? "Verkauf zurückgenommen"
-                : null,
-            e.kaeuferKontakt,
-          ]
-            .filter(Boolean)
-            .join(" · ")}
-          eintraege={liste.filter((u) => u.richtung === "ab" && u.einheitId === e.id)}
+    </section>
+  );
+}
+
+function Verkaufsabwicklung({ objekt, einheit: e }: { objekt: Objekt; einheit: Einheit }) {
+  const { aendern, einheitenSetzen } = useObjekte();
+  const setzeEinheit = (teil: Partial<Einheit>) =>
+    einheitenSetzen(
+      objekt.id,
+      objekt.einheiten.map((x) => (x.id === e.id ? { ...x, ...teil } : x)),
+    );
+  const gruppe = objektgruppe(objekt, "ab", e.id);
+  return (
+    <section className="flex flex-col gap-4 border-t border-linie pt-8">
+      <Uebergabekopf
+        titel={`Übergabe Verkauf ${e.bezeichnung}${e.kaeufer ? ` → ${e.kaeufer}` : ""}${
+          e.status !== "verkauft" ? " (Verkauf zurückgenommen)" : ""
+        }`}
+        gruppe={gruppe}
+        emailTitel="E-Mail Käufer"
+        hausverwaltungen={verwalterVon(objekt)}
+        angaben={{
+          datum: e.uebergabeAm ?? e.verkauftAm ?? null,
+          gesellschaft: objekt.gesellschaft ?? null,
+          email: e.kaeuferKontakt?.includes("@") ? e.kaeuferKontakt : null,
+          hausverwaltung: objekt.uebergabeAnkauf?.hausverwaltung ?? verwalterVon(objekt)[0] ?? null,
+        }}
+        setze={(t) => {
+          if (t.datum !== undefined) setzeEinheit({ uebergabeAm: t.datum });
+          if (t.email !== undefined) setzeEinheit({ kaeuferKontakt: t.email });
+          if (t.gesellschaft !== undefined)
+            aendern(objekt.id, { gesellschaft: (t.gesellschaft as Gesellschaft | null) ?? null });
+          if (t.hausverwaltung !== undefined)
+            aendern(objekt.id, {
+              uebergabeAnkauf: { ...objekt.uebergabeAnkauf, hausverwaltung: t.hausverwaltung },
+            });
+        }}
+      />
+      <div className="rounded-2xl border border-linie bg-flaeche px-4 py-3.5">
+        <div className="mini-label mb-2">Objektinfos {e.bezeichnung}</div>
+        <Objektinfofelder
+          infos={e.infos}
+          setze={(t) => setzeEinheit({ infos: { ...e.infos, ...t } })}
         />
-      ))}
-    </div>
+      </div>
+      <Zaehlerstaende objekt={objekt} richtung="ab" einheitId={e.id} />
+      <Liste
+        objekt={objekt}
+        titel="Nach Verkauf · ETW"
+        unterzeile={e.verkauftAm ? `verkauft ${f.datum(e.verkauftAm)}` : undefined}
+        eintraege={sichtbareUmmeldungen(objekt, "ab", e.id)}
+      />
+    </section>
   );
 }
 
@@ -166,9 +271,16 @@ function Liste({
         </div>
       </div>
       <ul className="mt-3 divide-y divide-linie overflow-hidden rounded-2xl border border-linie bg-flaeche">
-        {UMMELDEARTEN.map((a) => {
-          const u = eintraege.find((x) => x.art === a.art);
-          return u ? <Eintrag key={u.id} objekt={objekt} u={u} art={a} /> : null;
+        {eintraege.map((u) => {
+          const a = UMMELDEARTEN.find((x) => x.art === u.art)!;
+          return (
+            <Eintrag
+              key={u.id}
+              objekt={objekt}
+              u={u}
+              art={{ ...a, titel: ummeldeTitel(u.art, u.richtung) }}
+            />
+          );
         })}
       </ul>
     </section>

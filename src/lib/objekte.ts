@@ -242,6 +242,10 @@ export interface Einheit {
 
   /** Eigentumswohnung zum Verkauf oder WG zur Vermietung. Fehlt bei älteren Ständen. */
   nutzung?: Nutzung | null;
+  /** Wohnungs-, Stellplatz-, Abstellraum-Nr. und Schlüsselbox-Code (verdeckt). */
+  infos?: Objektinfos;
+  /** Übergabe an den Käufer — fehlt, gilt der Verkaufstag. */
+  uebergabeAm?: string | null;
   /** Ab `verkauft` gesetzt. Vorher weiß niemand, wer kauft. */
   kaeufer: string | null;
   /** E-Mail oder Telefon. Der Weg, auf dem der Käufer später angeschrieben wird. */
@@ -578,6 +582,56 @@ export interface Eigentuemereintrag {
   angabeAm: string | null;
   /** Verknüpfung ins Kontaktregister, sobald übernommen. */
   kontaktId: string | null;
+}
+
+/* ----- Abwicklung: Objektinfos und Zähler ----- */
+
+/**
+ * Objektinfos aus der Trello-Projektkarte. Der Schlüsselbox-Code ist nur in
+ * diesem Feld und wird nur auf Klick angezeigt — nie in Notizen, Verlauf,
+ * Listen oder Beispieldaten.
+ */
+export interface Objektinfos {
+  wohnungsNr?: string | null;
+  stellplatzNr?: string | null;
+  abstellraumNr?: string | null;
+  schluesselboxCode?: string | null;
+}
+
+/** Lesbare Zeile der Objektinfos — ohne Schlüsselbox-Code. */
+export function infosText(i: Objektinfos | undefined): string {
+  if (!i) return "";
+  return [
+    i.wohnungsNr ? `WE ${i.wohnungsNr}` : null,
+    i.stellplatzNr ? `TG ${i.stellplatzNr}` : null,
+    i.abstellraumNr ? `Abstellraum ${i.abstellraumNr}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+export type Zaehlerart = "strom" | "gas" | "wasser_kalt" | "wasser_warm" | "heizung" | "sonst";
+export const ZAEHLERARTEN: Record<Zaehlerart, string> = {
+  strom: "Strom",
+  gas: "Gas",
+  wasser_kalt: "Wasser kalt",
+  wasser_warm: "Wasser warm",
+  heizung: "Heizung",
+  sonst: "Sonstiger",
+};
+
+export interface Zaehler {
+  id: string;
+  art: Zaehlerart;
+  nummer: string | null;
+  stand: string | null;
+  datum: string | null;
+  /** Marktlokations-ID — die Strom-Ummeldung braucht sie. */
+  maloId: string | null;
+  /** Foto vom Zähler. Bis Phase 2 nur der Name; die Vorschau gilt für die Sitzung. */
+  foto: { name: string } | null;
+  richtung: "an" | "ab";
+  einheitId: string | null;
 }
 
 export interface Teilungserklaerung {
@@ -917,6 +971,14 @@ export interface Objekt {
   verkaufsplan?: Verkaufsplan | null;
   /** Um- und Abmeldungen nach Besitzübergang bzw. Verkauf. Siehe `ummeldungen.ts`. */
   ummeldungen?: Ummeldung[] | null;
+  /** Zähler bei Übergabe (Ankauf: an, Verkauf je Einheit: ab). Block O füllt sie aus dem Protokoll. */
+  zaehler?: Zaehler[];
+  /** Objektinfos der ganzen Wohnung bzw. des Hauses. */
+  infos?: Objektinfos;
+  /** Angaben zur Übergabe beim Ankauf (Datum = Besitzübergang, Gesellschaft = Objekt). */
+  uebergabeAnkauf?: { verkaeuferEmail?: string | null; hausverwaltung?: string | null };
+  /** Vorlage Übergabeprotokoll (xlsx/pdf), am Projekt hinterlegt. */
+  uebergabeVorlage?: { name: string; groesseKb: number } | null;
   /** Objektprüfung im Ankauf. Siehe `pruefung.ts`. */
   pruefung?: Pruefung | null;
   /** Kalkulation nach Timos Excel (nur ETW). Siehe `kalkulationEtw.ts`. */

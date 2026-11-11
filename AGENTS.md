@@ -56,11 +56,15 @@ Basis-Unterlagen oder kritischen Prüfpunkten. Frühere IDs (z. B. `aufteilungsp
 „Fehlende Unterlagen anfordern“ öffnet nur einen Gmail-Entwurf (nichts wird gesendet).
 Eigentümerliste WEG: `lib/eigentuemerliste.ts`, Übernahme ins Register über `eigentuemerSpeichern`.
 
-## Ummeldungen
+## Abwicklung nach Kauf und Verkauf (Ummeldungen)
 
-`src/lib/ummeldungen.ts` (Tests daneben). Angelegt wird zentral in `mutieren` im
-Objektspeicher, sobald `besitzuebergangAm` gesetzt ist — kein Aufrufer muss daran denken.
-Abmeldungen entstehen in `einheitVerkaufen`, unberührte verschwinden bei der Rücknahme.
+`src/lib/ummeldungen.ts` (Tests daneben). Die Liste je Richtung stellt sich nach der Objektart
+zusammen (`artenFuer`: ETW, Haus = EFH/MFH/WGH, Grundstück; verkaufte Einheit = ETW). Angelegt
+bzw. ergänzt wird zentral in `mutieren` (`mitUmmeldungen`), Abmeldungen in `einheitVerkaufen`;
+gelöscht wird nichts, `sichtbareUmmeldungen` blendet unberührte, nicht zutreffende Punkte aus.
+Kopf „Übergabe“, Zähler, Objektinfos und Vorlage: `components/Abwicklung.tsx`. Der
+Schlüsselbox-Code steht nur in `infos.schluesselboxCode` (verdecktes Feld) — nie in Notizen,
+Verlauf, Listen oder Beispieldaten; `infosText` lässt ihn weg.
 
 ## Kontaktregister
 
