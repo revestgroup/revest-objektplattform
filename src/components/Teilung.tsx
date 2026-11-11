@@ -22,18 +22,25 @@ import {
 } from "../lib/objekte";
 import { useObjekte } from "../lib/objekteStore";
 import { cn } from "../lib/utils";
-import { Dokumentenablage } from "./Dokumente";
-
 /**
- * Die Unterlagen, ohne die keine Eintragung zustande kommt. Als Liste und
- * nicht als Haken: ob ein Dokument wirklich das richtige ist, kann die
- * Plattform nicht wissen — sie kann nur daran erinnern, dass es fehlt.
+ * Die vier Unterlagen, ohne die keine Eintragung zustande kommt — als kleine
+ * Checkliste wie im Ankauf. Ein Haken setzt sich selbst, wenn eine passende
+ * Datei in den Teilungsordnern liegt; sonst von Hand. Die Ablage selbst steht
+ * im Reiter „Drive“.
  */
 const UNTERLAGEN = [
-  { titel: "Aufteilungsplan" },
-  { titel: "Abgeschlossenheitsbescheinigung" },
-  { titel: "Teilungserklärung mit Gemeinschaftsordnung" },
-  { titel: "Eintragungsnachricht des Grundbuchamts" },
+  { id: "aufteilungsplan", titel: "Aufteilungsplan", muster: /aufteilungsplan/i },
+  {
+    id: "abgeschlossenheit",
+    titel: "Abgeschlossenheitsbescheinigung",
+    muster: /abgeschlossenheit/i,
+  },
+  {
+    id: "teilungserklaerung",
+    titel: "Teilungserklärung mit Gemeinschaftsordnung",
+    muster: /teilungserkl|gemeinschaftsordnung/i,
+  },
+  { id: "eintragung", titel: "Eintragungsnachricht des Grundbuchamts", muster: /eintragung/i },
 ];
 
 /** Die beiden Ordner, in denen Teilungsunterlagen liegen. */
@@ -51,7 +58,9 @@ export function Teilung({ objekt }: { objekt: Objekt }) {
 }
 
 function Teilungsblatt({ objekt, t }: { objekt: Objekt; t: Teilungserklaerung }) {
-  const { teilungSetzen, dokumenteAnhaengen, dokumentLoeschen } = useObjekte();
+  const { teilungSetzen } = useObjekte();
+  const dateien = objekt.dokumente.filter((d) => ORDNER.some((o) => d.ordner === o));
+  const vonHand = new Set(t.unterlagen ?? []);
 
   const [notar, setNotar] = useState(t.notar ?? "");
   const [erwartet, setErwartet] = useState(t.erwartetAm ?? "");
@@ -109,7 +118,11 @@ function Teilungsblatt({ objekt, t }: { objekt: Objekt; t: Teilungserklaerung })
                     aria-hidden
                     className={cn(
                       "flex size-5 items-center justify-center rounded-full text-[0.58rem] font-semibold",
-                      an ? "bg-grund text-tinte" : erledigt ? "bg-[#17935C] text-white" : "bg-flaeche-hoch text-grau",
+                      an
+                        ? "bg-grund text-tinte"
+                        : erledigt
+                          ? "bg-[#17935C] text-white"
+                          : "bg-flaeche-hoch text-grau",
                     )}
                   >
                     {erledigt ? <Check size={11} strokeWidth={2.5} /> : i + 1}
@@ -117,7 +130,13 @@ function Teilungsblatt({ objekt, t }: { objekt: Objekt; t: Teilungserklaerung })
                   {TEILUNGSSTATUS[s].titel}
                 </button>
                 {i < TEILUNGSSTATUS_REIHENFOLGE.length - 1 && (
-                  <span aria-hidden className={cn("mx-2 h-px min-w-6 flex-1", erledigt ? "bg-[#17935C]" : "bg-linie-stark")} />
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "mx-2 h-px min-w-6 flex-1",
+                      erledigt ? "bg-[#17935C]" : "bg-linie-stark",
+                    )}
+                  />
                 )}
               </li>
             );
@@ -145,7 +164,10 @@ function Teilungsblatt({ objekt, t }: { objekt: Objekt; t: Teilungserklaerung })
               inputMode="numeric"
               value={einheiten}
               onChange={(e) => setEinheiten(e.target.value)}
-              className={cn(EINGABE, "zahl [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none")}
+              className={cn(
+                EINGABE,
+                "zahl [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none",
+              )}
             />
           </Feld>
           <Feld label="Eintragung erwartet" id="teil-erwartet">
@@ -186,27 +208,67 @@ function Teilungsblatt({ objekt, t }: { objekt: Objekt; t: Teilungserklaerung })
 
       {/* ----- Was gebraucht wird ----- */}
       <div className="px-4 py-5 md:px-7">
-        <div className="mini-label">Was gebraucht wird</div>
-        <ul className="mt-2.5 flex flex-wrap gap-1.5">
-          {UNTERLAGEN.map((u) => (
-            <li key={u.titel} className="rounded-full bg-flaeche-hoch px-3 py-1 text-[0.72rem] text-grau-stark">
-              {u.titel}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* ----- Ablage ----- */}
-      <div className="px-4 py-5 md:px-7">
-        <div className="mini-label">Ablage</div>
-        <div className="mt-4">
-          <Dokumentenablage
-            dokumente={objekt.dokumente}
-            nurOrdner={ORDNER}
-            onHochladen={(neue) => dokumenteAnhaengen(objekt.id, neue)}
-            onLoeschen={(dokumentId) => dokumentLoeschen(objekt.id, dokumentId)}
-          />
+        <div className="mini-label">
+          Was gebraucht wird ·{" "}
+          {
+            UNTERLAGEN.filter(
+              (u) => vonHand.has(u.id) || dateien.some((d) => u.muster.test(d.name)),
+            ).length
+          }{" "}
+          von {UNTERLAGEN.length}
         </div>
+        <ul className="mt-2.5 flex max-w-xl flex-col gap-1">
+          {UNTERLAGEN.map((u) => {
+            const datei = dateien.find((d) => u.muster.test(d.name));
+            const da = Boolean(datei) || vonHand.has(u.id);
+            return (
+              <li key={u.id} className="flex items-center gap-2.5 rounded-lg px-1 py-1">
+                <button
+                  type="button"
+                  disabled={Boolean(datei)}
+                  onClick={() => {
+                    const neu = new Set(vonHand);
+                    if (neu.has(u.id)) neu.delete(u.id);
+                    else neu.add(u.id);
+                    teilungSetzen(objekt.id, { ...t, unterlagen: [...neu] });
+                  }}
+                  aria-pressed={da}
+                  aria-label={`${u.titel} ${da ? "liegt vor" : "fehlt"}`}
+                  title={
+                    datei ? `Liegt im Drive: ${datei.name}` : da ? "Von Hand abgehakt" : "Abhaken"
+                  }
+                  className={cn(
+                    "druckbar flex size-5 shrink-0 items-center justify-center rounded-full border",
+                    da
+                      ? "border-[#17935C] bg-[#17935C] text-white"
+                      : "border-linie-stark bg-flaeche text-transparent hover:border-grau",
+                  )}
+                >
+                  <Check size={11} strokeWidth={3} />
+                </button>
+                <span
+                  className={cn(
+                    "min-w-0 flex-1 text-[0.78rem]",
+                    da ? "text-tinte" : "text-grau-stark",
+                  )}
+                >
+                  {u.titel}
+                </span>
+                {datei && (
+                  <span
+                    title={datei.name}
+                    className="max-w-[12rem] truncate text-[0.64rem] text-grau"
+                  >
+                    {datei.name}
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+        <p className="mt-2 text-[0.66rem] text-grau">
+          Dateien liegen im Reiter „Drive“ unter {ORDNER.join(" und ")}.
+        </p>
       </div>
 
       {/* ----- Zurückziehen ----- */}
@@ -226,15 +288,7 @@ function Teilungsblatt({ objekt, t }: { objekt: Objekt; t: Teilungserklaerung })
 const EINGABE =
   "w-full rounded-xl border border-linie bg-flaeche px-3 py-1.5 text-[0.8rem] text-tinte transition-colors duration-150 ease-out placeholder:text-grau focus:border-linie-stark focus:outline-none";
 
-function Feld({
-  label,
-  id,
-  children,
-}: {
-  label: string;
-  id: string;
-  children: React.ReactNode;
-}) {
+function Feld({ label, id, children }: { label: string; id: string; children: React.ReactNode }) {
   return (
     <div>
       <label htmlFor={id} className="mini-label block">

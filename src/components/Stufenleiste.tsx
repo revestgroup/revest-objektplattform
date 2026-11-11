@@ -10,15 +10,29 @@
 import { Check, X } from "lucide-react";
 import { useState } from "react";
 
-import { STUFEN, STUFEN_REIHENFOLGE, istAktiv, type Ankaufsstufe, type Objekt } from "../lib/objekte";
+import {
+  STUFEN,
+  STUFEN_REIHENFOLGE,
+  istAktiv,
+  type Ankaufsstufe,
+  type Objekt,
+} from "../lib/objekte";
 import { cn } from "../lib/utils";
 import { AbsageDialog, DealDialog } from "./Deal";
 import { useStufenwechsel } from "./Pruefung";
 
 /** Gekauft und No Deal stehen als Knöpfe daneben, nicht in der Leiste. */
-const SEGMENTE: Ankaufsstufe[] = STUFEN_REIHENFOLGE.filter((s) => s !== "angekauft" && s !== "abgesagt");
+const SEGMENTE: Ankaufsstufe[] = STUFEN_REIHENFOLGE.filter(
+  (s) => s !== "angekauft" && s !== "abgesagt",
+);
 
-export function Stufenleiste({ objekt, zurCheckliste }: { objekt: Objekt; zurCheckliste: () => void }) {
+export function Stufenleiste({
+  objekt,
+  zurCheckliste,
+}: {
+  objekt: Objekt;
+  zurCheckliste: () => void;
+}) {
   const wechsel = useStufenwechsel(zurCheckliste);
   const [dialog, setDialog] = useState<"deal" | "absage" | null>(null);
   const aktuell = SEGMENTE.indexOf(objekt.stufe);
@@ -44,11 +58,13 @@ export function Stufenleiste({ objekt, zurCheckliste }: { objekt: Objekt; zurChe
                   ist
                     ? undefined
                     : erledigt
-                      ? { background: STUFEN[s].weich, color: STUFEN[s].tief }
+                      ? // Erledigt: die volle Stufenfarbe — kräftiger als die
+                        // grauen kommenden Stufen, aber heller als die aktuelle.
+                        { background: STUFEN[s].farbe, color: "#10131A" }
                       : undefined
                 }
                 className={cn(
-                  "druckbar relative -ml-[6px] flex h-8 min-w-0 flex-1 items-center justify-center truncate px-4 text-[0.64rem] font-medium whitespace-nowrap first:ml-0 first:pl-3 [clip-path:polygon(0_0,calc(100%-10px)_0,100%_50%,calc(100%-10px)_100%,0_100%,10px_50%)] first:[clip-path:polygon(0_0,calc(100%-10px)_0,100%_50%,calc(100%-10px)_100%,0_100%)] first:rounded-l-full",
+                  "druckbar relative -ml-[6px] flex h-9 min-w-0 flex-1 items-center justify-center px-4 text-center text-[0.6rem] leading-[1.15] font-medium first:ml-0 first:pl-3 [clip-path:polygon(0_0,calc(100%-10px)_0,100%_50%,calc(100%-10px)_100%,0_100%,10px_50%)] first:[clip-path:polygon(0_0,calc(100%-10px)_0,100%_50%,calc(100%-10px)_100%,0_100%)] first:rounded-l-full",
                   ist
                     ? "bg-tinte text-grund"
                     : erledigt
@@ -58,7 +74,10 @@ export function Stufenleiste({ objekt, zurCheckliste }: { objekt: Objekt; zurChe
                   STUFEN[s].bereich === "ablage" && "ml-1",
                 )}
               >
-                <span className="truncate">{STUFEN[s].titel}</span>
+                {/* Zweizeilig statt abgeschnitten: „Unterlagen angefordert“. */}
+                <span className="line-clamp-2 break-words">
+                  {STUFEN[s].titel.replace("/", "/\u200b")}
+                </span>
               </button>
             );
           })}

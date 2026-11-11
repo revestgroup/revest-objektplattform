@@ -62,9 +62,23 @@ export type Stufenbereich = "aktiv" | "abschluss" | "ablage";
  */
 export const STUFEN: Record<
   Ankaufsstufe,
-  { titel: string; farbe: string; weich: string; tief: string; kurz: string; bereich: Stufenbereich }
+  {
+    titel: string;
+    farbe: string;
+    weich: string;
+    tief: string;
+    kurz: string;
+    bereich: Stufenbereich;
+  }
 > = {
-  neu: { titel: "Neu", farbe: "#F2CC70", weich: "#FDF5E1", tief: "#8A6410", kurz: "NEU", bereich: "aktiv" },
+  neu: {
+    titel: "Neu",
+    farbe: "#F2CC70",
+    weich: "#FDF5E1",
+    tief: "#8A6410",
+    kurz: "NEU",
+    bereich: "aktiv",
+  },
   unterlagen: {
     titel: "Unterlagen angefordert",
     farbe: "#EAB44A",
@@ -179,12 +193,7 @@ export const ZUSTAENDE: Record<Zustand, string> = {
 };
 
 export type Einheitsstatus =
-  | "geplant"
-  | "in_sanierung"
-  | "im_vertrieb"
-  | "reserviert"
-  | "verkauft"
-  | "eigenbestand";
+  "geplant" | "in_sanierung" | "im_vertrieb" | "reserviert" | "verkauft" | "eigenbestand";
 
 /** Eigene Skala: grau (nichts passiert) → gelb (Baustelle) → blau (am Markt) → grün (verkauft). */
 export const EINHEITSSTATUS: Record<
@@ -231,7 +240,7 @@ export interface Einheit {
   status: Einheitsstatus;
 
   /** Eigentumswohnung zum Verkauf oder WG zur Vermietung. Fehlt bei älteren Ständen. */
-  nutzung?: "etw" | "wg" | null;
+  nutzung?: Nutzung | null;
   /** Ab `verkauft` gesetzt. Vorher weiß niemand, wer kauft. */
   kaeufer: string | null;
   /** E-Mail oder Telefon. Der Weg, auf dem der Käufer später angeschrieben wird. */
@@ -261,12 +270,7 @@ export const ANGEBOTSARTEN: Record<Angebotsart, string> = {
   notarpreis: "Beurkundeter Preis",
 };
 
-export type Angebotsergebnis =
-  | "offen"
-  | "angenommen"
-  | "abgelehnt"
-  | "zu_teuer"
-  | "zurueckgezogen";
+export type Angebotsergebnis = "offen" | "angenommen" | "abgelehnt" | "zu_teuer" | "zurueckgezogen";
 
 export const ANGEBOTSERGEBNISSE: Record<Angebotsergebnis, string> = {
   offen: "Offen",
@@ -451,11 +455,9 @@ export function berechneVerkaufsplan(o: Objekt, k: Kennzahlen): Verkaufsrechnung
 
   // Die gepflegte Gewerkeliste schlägt die Schätzung — sobald sie existiert,
   // ist sie die bessere Zahl.
-  const sanierung =
-    k.sanierungGeplant > 0 ? k.sanierungGeplant : (plan.sanierungsschaetzung ?? 0);
+  const sanierung = k.sanierungGeplant > 0 ? k.sanierungGeplant : (plan.sanierungsschaetzung ?? 0);
 
-  const gesamtkosten =
-    k.gesamtinvestition !== null ? k.gesamtinvestition + sanierung : null;
+  const gesamtkosten = k.gesamtinvestition !== null ? k.gesamtinvestition + sanierung : null;
 
   const rohgewinn =
     gesamtkosten !== null && erloes > 0 ? erloes - gesamtkosten - provisionEuro : null;
@@ -496,6 +498,21 @@ export interface Aufteilung {
   etw: number;
   /** Einheiten, die als WG vermietet und im Bestand gehalten werden. */
   wg: number;
+  /** Gewerbeeinheiten (Büro, Laden). Fehlt bei älteren Ständen. */
+  gewerbe?: number;
+}
+
+export type Nutzung = "etw" | "wg" | "gewerbe";
+export const NUTZUNGEN: Record<Nutzung, string> = { etw: "ETW", wg: "WG", gewerbe: "Gewerbe" };
+
+/**
+ * Nutzung einer Einheit: gesetzt, sonst Gewerbe bei „GE …“, sonst WG, wenn der
+ * Aufrufer es weiß (Mietgarantie), sonst ETW.
+ */
+export function nutzungDerEinheit(e: Einheit, istWg?: (e: Einheit) => boolean): Nutzung {
+  if (e.nutzung) return e.nutzung;
+  if (/^GE\b/i.test(e.bezeichnung)) return "gewerbe";
+  return istWg?.(e) ? "wg" : "etw";
 }
 
 /**
@@ -553,6 +570,8 @@ export interface Teilungserklaerung {
   /** Wann die Eintragung erwartet wird. */
   erwartetAm: string | null;
   notiz: string | null;
+  /** Von Hand abgehakte Unterlagen (Schlüssel aus TEILUNGSUNTERLAGEN). */
+  unterlagen?: string[];
 }
 
 /** Läuft die Teilung für dieses Objekt? Entscheidet über den Reiter im Detail. */
@@ -573,18 +592,32 @@ export function istEinzelwohnung(o: Objekt): boolean {
  * Die Aufteilung als Satz. Null, wenn beim Deal nichts hinterlegt wurde —
  * dann ist Schweigen ehrlicher als „0 ETW, 0 WG".
  */
-export function aufteilungText(o: Objekt): string | null {
+export function aufteilungText(o: Objekt, istWg?: (e: Einheit) => boolean): string | null {
   if (istEinzelwohnung(o)) {
     if (!o.vertriebsweg) return null;
     return o.vertriebsweg === "wg"
       ? `WG-Vermietung${o.wgZimmer ? ` · ${o.wgZimmer} Zimmer` : ""}`
       : "Eigentumswohnung";
   }
-  const a = o.aufteilung;
-  if (!a || a.etw + a.wg === 0) return null;
+  // Gibt es schon Einheiten, zählt die Tabelle — so können Kopf und Tabelle
+  // nicht auseinanderlaufen. Sonst die Planung aus dem Kauf.
+  const a: Aufteilung | null =
+    o.einheiten.length > 0
+      ? o.einheiten.reduce<Aufteilung>(
+          (z, e) => {
+            const n = nutzungDerEinheit(e, istWg);
+            if (n === "gewerbe") z.gewerbe = (z.gewerbe ?? 0) + 1;
+            else z[n] += 1;
+            return z;
+          },
+          { etw: 0, wg: 0, gewerbe: 0 },
+        )
+      : (o.aufteilung ?? null);
+  if (!a || a.etw + a.wg + (a.gewerbe ?? 0) === 0) return null;
   const teile: string[] = [];
   if (a.etw > 0) teile.push(`${a.etw} × ETW`);
   if (a.wg > 0) teile.push(`${a.wg} × WG`);
+  if (a.gewerbe) teile.push(`${a.gewerbe} × Gewerbe`);
   return teile.join(" · ");
 }
 
@@ -593,12 +626,7 @@ export function aufteilungText(o: Objekt): string | null {
 /* ------------------------------------------------------------------ */
 
 export type Kontaktrolle =
-  | "eigentuemer"
-  | "makler"
-  | "verwalter"
-  | "notar"
-  | "handwerker"
-  | "sonst";
+  "eigentuemer" | "makler" | "verwalter" | "notar" | "handwerker" | "sonst";
 
 export const KONTAKTROLLEN: Record<Kontaktrolle, string> = {
   eigentuemer: "Eigentümer",
@@ -990,7 +1018,11 @@ export interface Dokumentordner {
   hatUnterordner: boolean;
 }
 
-function abflachen(knoten: readonly OrdnerKnoten[], eltern: string | null, tiefe: number): Dokumentordner[] {
+function abflachen(
+  knoten: readonly OrdnerKnoten[],
+  eltern: string | null,
+  tiefe: number,
+): Dokumentordner[] {
   return knoten.flatMap((k) => {
     const schluessel = eltern ? `${eltern}/${k.name}` : k.name;
     const [nummer, ...rest] = k.name.split("_");
@@ -1073,16 +1105,31 @@ const ORDNER_STICHWORTE: [RegExp, string][] = [
   [/versicherung|police/, "01_Unterlagen/02_Bewirtschaftung/04_Versicherung"],
   [/finanzierung|darlehen|bank|grundschuld/, "01_Unterlagen/04_Finanzierung_Bank"],
   [/schornstein|feuerstaett/, "01_Unterlagen/02_Bewirtschaftung/05_Schornsteinfeger"],
-  [/grundsteuer|grundbesitzabgab|abgabenbescheid/, "01_Unterlagen/02_Bewirtschaftung/06_Grundbesitzabgaben_Stadt"],
+  [
+    /grundsteuer|grundbesitzabgab|abgabenbescheid/,
+    "01_Unterlagen/02_Bewirtschaftung/06_Grundbesitzabgaben_Stadt",
+  ],
   [/(^|_)gas(_|\.|$)|gasvertrag/, "01_Unterlagen/02_Bewirtschaftung/01_Gas"],
   [/strom/, "01_Unterlagen/02_Bewirtschaftung/02_Strom"],
   [/wasser|stadtwerke|abwasser/, "01_Unterlagen/02_Bewirtschaftung/03_Wasser_Stadtwerke"],
-  [/grundbuch|kaufvertrag|notar|auflassung|teilungserkl|urkunde|eintragung/, "01_Unterlagen/03_Notar_Grundbuchsachen"],
-  [/(^|_)weg(_|\.|$)|protokoll|wirtschaftsplan|hausgeld|verwalter|ruecklage|jahresabrechnung/, "01_Unterlagen/02_Bewirtschaftung/00_Hausverwaltung"],
+  [
+    /grundbuch|kaufvertrag|notar|auflassung|teilungserkl|urkunde|eintragung/,
+    "01_Unterlagen/03_Notar_Grundbuchsachen",
+  ],
+  [
+    /(^|_)weg(_|\.|$)|protokoll|wirtschaftsplan|hausgeld|verwalter|ruecklage|jahresabrechnung/,
+    "01_Unterlagen/02_Bewirtschaftung/00_Hausverwaltung",
+  ],
   [/kalkulation|wirtschaftlichkeit|rechnung_ankauf/, "02_Kalkulation"],
-  [/angebot|kostenvoranschlag|handwerk|sanierung|renovierung|baufortschritt|abnahme/, "03_Renovierung"],
+  [
+    /angebot|kostenvoranschlag|handwerk|sanierung|renovierung|baufortschritt|abnahme/,
+    "03_Renovierung",
+  ],
   [/\.(jpe?g|png|heic|webp|gif)$|foto|bild/, "04_Bilder/01_Ankauf - vor Renovierung"],
-  [/expose|grundriss|energieausweis|mieterliste|mietvertrag|mietaufstellung|plan|lageplan|flurkarte/, STANDARD_ORDNER],
+  [
+    /expose|grundriss|energieausweis|mieterliste|mietvertrag|mietaufstellung|plan|lageplan|flurkarte/,
+    STANDARD_ORDNER,
+  ],
 ];
 
 /** Vorschlag, in welchen Projektordner eine Datei aus dem Ankauf gehört. */
@@ -1106,7 +1153,8 @@ export const ORDNER_BEISPIELE: Record<string, string> = {
   "01_Unterlagen/02_Bewirtschaftung/00_Hausverwaltung":
     "Verwaltervertrag, WEG-Protokolle, Wirtschaftsplan, Hausgeldabrechnung, Rücklagennachweis",
   "01_Unterlagen/02_Bewirtschaftung/01_Gas": "Gasvertrag, Ummeldung, Zählerstände, Abrechnungen",
-  "01_Unterlagen/02_Bewirtschaftung/02_Strom": "Stromvertrag, Ummeldung, Zählerstände, Abrechnungen",
+  "01_Unterlagen/02_Bewirtschaftung/02_Strom":
+    "Stromvertrag, Ummeldung, Zählerstände, Abrechnungen",
   "01_Unterlagen/02_Bewirtschaftung/03_Wasser_Stadtwerke":
     "Wasser und Abwasser, Ummeldung, Zählerstände, Bescheide der Stadtwerke",
   "01_Unterlagen/02_Bewirtschaftung/04_Versicherung":
@@ -1208,8 +1256,7 @@ export function berechneKennzahlen(o: Objekt): Kennzahlen {
 
   /* --- Projektrechnung --- */
   const sanierungAnsatz = sanierungTatsaechlich > 0 ? sanierungTatsaechlich : sanierungGeplant;
-  const gesamtkostenPlan =
-    gesamtinvestition !== null ? gesamtinvestition + sanierungGeplant : null;
+  const gesamtkostenPlan = gesamtinvestition !== null ? gesamtinvestition + sanierungGeplant : null;
   const gesamtkostenIst = gesamtinvestition !== null ? gesamtinvestition + sanierungAnsatz : null;
 
   const verkaufserloes = o.einheiten.reduce((s, e) => s + (e.verkaufspreis ?? 0), 0);
@@ -1234,7 +1281,8 @@ export function berechneKennzahlen(o: Objekt): Kennzahlen {
     kaufpreisJeQm: kp !== null && o.wohnflaeche ? kp / o.wohnflaeche : null,
     // Beide verlangen eine Miete über null. Ohne Miete gibt es keine Rendite,
     // und „0,0 %“ sähe aus wie eine gerechnete Aussage statt wie eine fehlende.
-    bruttoMietrendite: kp !== null && miete !== null && kp > 0 && miete > 0 ? (miete / kp) * 100 : null,
+    bruttoMietrendite:
+      kp !== null && miete !== null && kp > 0 && miete > 0 ? (miete / kp) * 100 : null,
     faktor: kp !== null && miete !== null && miete > 0 ? kp / miete : null,
     grestSatz,
     grestEuro,
@@ -1316,9 +1364,14 @@ export const f = {
     v === null || v === undefined ? "—" : `${zahl1.format(v)} %`,
   faktor: (v: number | null | undefined) =>
     v === null || v === undefined ? "—" : `${zahl1.format(v)}×`,
-  qm: (v: number | null | undefined) => (v === null || v === undefined ? "—" : `${zahl.format(v)} m²`),
+  qm: (v: number | null | undefined) =>
+    v === null || v === undefined ? "—" : `${zahl.format(v)} m²`,
   datum: (iso: string) =>
-    new Date(iso).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }),
+    new Date(iso).toLocaleDateString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }),
   datumZeit: (iso: string) =>
     new Date(iso).toLocaleString("de-DE", {
       day: "2-digit",

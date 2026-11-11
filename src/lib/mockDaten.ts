@@ -56,7 +56,16 @@ function ev(vorTagen: number, art: Verlaufseintrag["art"], text: string): Verlau
  */
 function einheiten(
   praefix: string,
-  zeilen: [geschoss: string, lage: string, qm: number, zimmer: number, miete: number | null, status: Einheit["status"], kaeufer?: string, preis?: number][],
+  zeilen: [
+    geschoss: string,
+    lage: string,
+    qm: number,
+    zimmer: number,
+    miete: number | null,
+    status: Einheit["status"],
+    kaeufer?: string,
+    preis?: number,
+  ][],
 ): Einheit[] {
   return zeilen.map(([geschoss, lage, qm, zimmer, miete, status, kaeufer, preis], i) => ({
     id: `${praefix}-${i + 1}`,
@@ -181,16 +190,54 @@ export const MOCK_OBJEKTE: Objekt[] = [
     besitzuebergangAm: "2026-06-01",
     ummeldungen: [
       ...um("um-obj-001", "an", null, {
-        hausverwaltung: { status: "bestaetigt", anbieter: "Hausverwaltung Nordlicht", gemeldetAm: "2026-06-02", bestaetigtAm: "2026-06-09" },
-        gas: { status: "gemeldet", anbieter: "Stadtwerke, Kundenservice", zaehlernummer: "G 4471-208", zaehlerstand: "18.402 m³", gemeldetAm: "2026-06-03", notiz: "Bestätigung trotz zweimal Nachfragen nicht da" },
-        strom: { status: "bestaetigt", anbieter: "Stadtwerke", zaehlernummer: "1ESY1160-7720", zaehlerstand: "52.118 kWh", gemeldetAm: "2026-06-03", bestaetigtAm: "2026-06-20" },
-        versicherung: { status: "bestaetigt", anbieter: "Gebäudeversicherung, Police 77-120", gemeldetAm: "2026-05-28", bestaetigtAm: "2026-06-01" },
+        hausverwaltung: {
+          status: "bestaetigt",
+          anbieter: "Hausverwaltung Nordlicht",
+          gemeldetAm: "2026-06-02",
+          bestaetigtAm: "2026-06-09",
+        },
+        gas: {
+          status: "gemeldet",
+          anbieter: "Stadtwerke, Kundenservice",
+          zaehlernummer: "G 4471-208",
+          zaehlerstand: "18.402 m³",
+          gemeldetAm: "2026-06-03",
+          notiz: "Bestätigung trotz zweimal Nachfragen nicht da",
+        },
+        strom: {
+          status: "bestaetigt",
+          anbieter: "Stadtwerke",
+          zaehlernummer: "1ESY1160-7720",
+          zaehlerstand: "52.118 kWh",
+          gemeldetAm: "2026-06-03",
+          bestaetigtAm: "2026-06-20",
+        },
+        versicherung: {
+          status: "bestaetigt",
+          anbieter: "Gebäudeversicherung, Police 77-120",
+          gemeldetAm: "2026-05-28",
+          bestaetigtAm: "2026-06-01",
+        },
         schornsteinfeger: { status: "gemeldet", gemeldetAm: "2026-10-30" },
-        grundbesitzabgaben: { status: "bestaetigt", anbieter: "Stadt Neu-Ulm, Steueramt", gemeldetAm: "2026-06-05", bestaetigtAm: "2026-07-14" },
+        grundbesitzabgaben: {
+          status: "bestaetigt",
+          anbieter: "Stadt Neu-Ulm, Steueramt",
+          gemeldetAm: "2026-06-05",
+          bestaetigtAm: "2026-07-14",
+        },
       }),
       ...um("ab-e001-1", "ab", "e001-1", {
-        hausverwaltung: { status: "bestaetigt", gemeldetAm: "2026-08-25", bestaetigtAm: "2026-09-02" },
-        strom: { status: "bestaetigt", zaehlerstand: "8.204 kWh", gemeldetAm: "2026-08-25", bestaetigtAm: "2026-09-10" },
+        hausverwaltung: {
+          status: "bestaetigt",
+          gemeldetAm: "2026-08-25",
+          bestaetigtAm: "2026-09-02",
+        },
+        strom: {
+          status: "bestaetigt",
+          zaehlerstand: "8.204 kWh",
+          gemeldetAm: "2026-08-25",
+          bestaetigtAm: "2026-09-10",
+        },
         gas: { status: "entfaellt", notiz: "Wohnung hat keinen eigenen Gaszähler" },
         versicherung: { status: "entfaellt" },
         schornsteinfeger: { status: "entfaellt" },
@@ -200,7 +247,7 @@ export const MOCK_OBJEKTE: Objekt[] = [
     kuerzel: "FAH6",
     gesellschaft: "revest_projekt",
     driveOrdnerUrl: null,
-    aufteilung: { etw: 6, wg: 4 },
+    aufteilung: { etw: 5, wg: 3, gewerbe: 2 },
     teilung: {
       gestartetAm: "2026-04-24",
       status: "beim_amt",
@@ -242,20 +289,50 @@ export const MOCK_OBJEKTE: Objekt[] = [
     bilder: ["Straßenansicht", "Hofseite", "Treppenhaus", "WE 3 Wohnzimmer", "Dachgeschoss"],
     dokumente: [
       dok("Expose_Faehrgasse_6.pdf", "01_Unterlagen/01_Unterlagen zum Objekt", 4_280, 412),
-      dok("Grundbuchauszug_Neu-Ulm_Blatt_0000.pdf", "01_Unterlagen/03_Notar_Grundbuchsachen", 860, 398),
+      dok(
+        "Grundbuchauszug_Neu-Ulm_Blatt_0000.pdf",
+        "01_Unterlagen/03_Notar_Grundbuchsachen",
+        860,
+        398,
+      ),
       dok("Teilungserklaerung_WEG.pdf", "01_Unterlagen/03_Notar_Grundbuchsachen", 2_140, 196),
-      dok("Kaufvertrag_beurkundet_2025-10-14.pdf", "01_Unterlagen/03_Notar_Grundbuchsachen", 3_610, 371),
+      dok(
+        "Kaufvertrag_beurkundet_2025-10-14.pdf",
+        "01_Unterlagen/03_Notar_Grundbuchsachen",
+        3_610,
+        371,
+      ),
       dok("Grundrisse_EG_bis_DG.pdf", "01_Unterlagen/01_Unterlagen zum Objekt", 9_820, 402),
       dok("Mieterliste_Stand_10_2026.xlsx", "01_Unterlagen/01_Unterlagen zum Objekt", 96, 12),
       dok("Mietvertrag_WE3_Ebert.pdf", "01_Unterlagen/01_Unterlagen zum Objekt", 1_240, 364),
-      dok("WEG_Protokoll_Erstversammlung.pdf", "01_Unterlagen/02_Bewirtschaftung/00_Hausverwaltung", 540, 188),
-      dok("Wirtschaftsplan_2026.pdf", "01_Unterlagen/02_Bewirtschaftung/00_Hausverwaltung", 410, 174),
-      dok("Verwaltervertrag_Haus_und_Grund.pdf", "01_Unterlagen/02_Bewirtschaftung/00_Hausverwaltung", 780, 190),
+      dok(
+        "WEG_Protokoll_Erstversammlung.pdf",
+        "01_Unterlagen/02_Bewirtschaftung/00_Hausverwaltung",
+        540,
+        188,
+      ),
+      dok(
+        "Wirtschaftsplan_2026.pdf",
+        "01_Unterlagen/02_Bewirtschaftung/00_Hausverwaltung",
+        410,
+        174,
+      ),
+      dok(
+        "Verwaltervertrag_Haus_und_Grund.pdf",
+        "01_Unterlagen/02_Bewirtschaftung/00_Hausverwaltung",
+        780,
+        190,
+      ),
       dok("Energieausweis_Verbrauch.pdf", "01_Unterlagen/01_Unterlagen zum Objekt", 1_120, 405),
       dok("Angebot_Strangsanierung_Seifert.pdf", "03_Renovierung", 2_480, 96),
       dok("Baufortschritt_KW41.pdf", "03_Renovierung", 6_340, 6),
       dok("Ankaufskalkulation_Faehrgasse_6.xlsx", "02_Kalkulation", 148, 400),
-      dok("Gebaeudeversicherung_Police_2026.pdf", "01_Unterlagen/02_Bewirtschaftung/04_Versicherung", 320, 170),
+      dok(
+        "Gebaeudeversicherung_Police_2026.pdf",
+        "01_Unterlagen/02_Bewirtschaftung/04_Versicherung",
+        320,
+        170,
+      ),
       dok("Treppenhaus_vor_Renovierung.jpg", "04_Bilder/01_Ankauf - vor Renovierung", 3_870, 410),
       dok("Strangsanierung_KW38.jpg", "04_Bilder/02_Renovierungsphase", 4_120, 30),
     ],
@@ -269,10 +346,12 @@ export const MOCK_OBJEKTE: Objekt[] = [
         ["2. OG", "rechts", 74, 3, 0, "in_sanierung"],
         ["3. OG", "links", 92, 4, 0, "in_sanierung"],
         ["DG", "Ausbau", 88, 3, null, "geplant"],
-      ]),
+        // Die drei oberen Einheiten bleiben als WG im Bestand.
+      ]).map((e, i) => (i >= 5 ? { ...e, nutzung: "wg" as const } : e)),
       {
         id: "e001-g1",
         bezeichnung: "GE 1 · Büro",
+        nutzung: "gewerbe",
         geschoss: "EG",
         wohnflaeche: 118,
         zimmer: 0,
@@ -286,6 +365,7 @@ export const MOCK_OBJEKTE: Objekt[] = [
       {
         id: "e001-g2",
         bezeichnung: "GE 2 · Büro",
+        nutzung: "gewerbe",
         geschoss: "1. OG",
         wohnflaeche: 96,
         zimmer: 0,
@@ -298,9 +378,23 @@ export const MOCK_OBJEKTE: Objekt[] = [
       },
     ],
     angebote: ang("obj-001", [
-      [520, "forderung", 1_685_000, "Immobilien Morgentau", "zu_teuer", "Erstaufruf. 4.210 €/m² — über unserem Limit."],
+      [
+        520,
+        "forderung",
+        1_685_000,
+        "Immobilien Morgentau",
+        "zu_teuer",
+        "Erstaufruf. 4.210 €/m² — über unserem Limit.",
+      ],
       [486, "gebot", 1_390_000, "Revest", "abgelehnt", "Erstes Gebot nach Besichtigung."],
-      [448, "forderung", 1_555_000, "Immobilien Morgentau", "abgelehnt", "Verkäufer reduziert nach acht Wochen ohne Abschluss."],
+      [
+        448,
+        "forderung",
+        1_555_000,
+        "Immobilien Morgentau",
+        "abgelehnt",
+        "Verkäufer reduziert nach acht Wochen ohne Abschluss.",
+      ],
       [430, "gebot", 1_480_000, "Revest", "angenommen", "Einigung nach Prüfung der Mieterliste."],
       [412, "notarpreis", 1_480_000, "Notariat Dr. Winterberg, Ulm", "angenommen", "Beurkundet."],
     ]),
@@ -389,12 +483,20 @@ export const MOCK_OBJEKTE: Objekt[] = [
     ],
     quelle: "Portal Immowelt",
     vertriebsweg: "etw",
-    notiz: "Einzelne ETW in Wiblingen, klassischer Weiterverkauf nach Renovierung. Niedrige Priorität.",
+    notiz:
+      "Einzelne ETW in Wiblingen, klassischer Weiterverkauf nach Renovierung. Niedrige Priorität.",
     bilder: ["Portalbild Wohnzimmer"],
     dokumente: [dok("Portalexpose_Wiesengrund_41.pdf", "", 1_240, 22)],
     einheiten: [],
     angebote: ang("obj-018", [
-      [16, "forderung", 318_000, "Makler Sonnfeld & Partner", "zu_teuer", "Deutlich über unserem Ankaufslimit — beobachten, ob der Preis fällt."],
+      [
+        16,
+        "forderung",
+        318_000,
+        "Makler Sonnfeld & Partner",
+        "zu_teuer",
+        "Deutlich über unserem Ankaufslimit — beobachten, ob der Preis fällt.",
+      ],
     ]),
     sanierung: [],
     verlauf: [
@@ -485,7 +587,14 @@ export const MOCK_OBJEKTE: Objekt[] = [
     dokumente: [dok("Portalexpose_Ahornhof_15.pdf", "", 2_640, 118)],
     einheiten: [],
     angebote: ang("obj-013", [
-      [16, "forderung", 385_000, "Immobilien Morgentau", "offen", "Preis aus dem Inserat, noch nicht verhandelt."],
+      [
+        16,
+        "forderung",
+        385_000,
+        "Immobilien Morgentau",
+        "offen",
+        "Preis aus dem Inserat, noch nicht verhandelt.",
+      ],
     ]),
     sanierung: [],
     verlauf: [
@@ -512,7 +621,10 @@ export const MOCK_OBJEKTE: Objekt[] = [
         mietvertrag: { status: "liegt_vor" },
       },
       punkte: {
-        stellplatz: { status: "kritisch", notiz: "TG-Platz ohne eigenes Grundbuch — nur Sondernutzungsrecht?" },
+        stellplatz: {
+          status: "kritisch",
+          notiz: "TG-Platz ohne eigenes Grundbuch — nur Sondernutzungsrecht?",
+        },
         mietverhaeltnis: { status: "ok", notiz: "5 WG-Verträge, je 3 Monate Kündigungsfrist" },
       },
     },
@@ -616,7 +728,14 @@ export const MOCK_OBJEKTE: Objekt[] = [
       stand: tage(-3),
     },
     angebote: ang("obj-011", [
-      [21, "forderung", 445_000, "Hausverwaltung Nordlicht", "offen", "Preisvorstellung im Erstgespräch genannt."],
+      [
+        21,
+        "forderung",
+        445_000,
+        "Hausverwaltung Nordlicht",
+        "offen",
+        "Preisvorstellung im Erstgespräch genannt.",
+      ],
     ]),
     sanierung: san("obj-011", [
       ["sanitaer", 18_000, null, null, "offen"],

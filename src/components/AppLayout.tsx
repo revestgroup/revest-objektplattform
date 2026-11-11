@@ -5,12 +5,16 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronUp,
+  ExternalLink,
   Inbox,
   KeyRound,
   LayoutDashboard,
   ListChecks,
   LogOut,
   Map,
+  Maximize2,
+  Minimize2,
+  MoreHorizontal,
   Search,
   Settings,
   Users,
@@ -359,6 +363,30 @@ export function Schublade({
  * Esc schließt, außer ein Dialog liegt darüber (der schließt dann zuerst).
  * J/K oder die Pfeile oben rechts blättern zum Nachbarn, ohne zu schließen.
  */
+/** Vollbild der großen Fenster — eine Wahl für alle, im Browser gemerkt. */
+const VOLLBILD_SPEICHER = "revest.fenster.vollbild";
+
+function useVollbild(): [boolean, () => void] {
+  const [an, setAn] = useState(false);
+  useEffect(() => {
+    try {
+      setAn(localStorage.getItem(VOLLBILD_SPEICHER) === "1");
+    } catch {
+      // ohne Speicher eben mit Rand
+    }
+  }, []);
+  const umschalten = () =>
+    setAn((alt) => {
+      try {
+        localStorage.setItem(VOLLBILD_SPEICHER, alt ? "0" : "1");
+      } catch {
+        // egal
+      }
+      return !alt;
+    });
+  return [an, umschalten];
+}
+
 export function Fenster({
   offen,
   schliessen,
@@ -376,6 +404,12 @@ export function Fenster({
   children: ReactNode;
 }) {
   const rolle = useRef<HTMLDivElement>(null);
+  const [vollbild, vollbildUmschalten] = useVollbild();
+  const [menue, setMenue] = useState(false);
+  // „In neuem Tab öffnen“ nur, wenn die Adresse auf etwas Bestimmtes zeigt
+  // (?objekt=, ?kontakt=, ?karte=) — beim Anlegen gibt es noch nichts.
+  const verlinkbar =
+    typeof window !== "undefined" && /[?&](objekt|kontakt|karte)=/.test(window.location.search);
 
   // Beim Blättern oben anfangen — sonst beginnt das nächste Objekt mitten im Text.
   useEffect(() => {
@@ -393,9 +427,13 @@ export function Fenster({
       if (e.key === "Escape") schliessen();
       else if (!tippt && (e.key === "j" || e.key === "J") && nachher) nachher();
       else if (!tippt && (e.key === "k" || e.key === "K") && vorher) vorher();
+      else if (!tippt && (e.key === "f" || e.key === "F") && !e.metaKey && !e.ctrlKey)
+        vollbildUmschalten();
     };
     window.addEventListener("keydown", beiTaste);
     return () => window.removeEventListener("keydown", beiTaste);
+    // vollbildUmschalten setzt nur State — kein Grund, den Listener neu zu binden.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [offen, schliessen, vorher, nachher]);
 
   // Die Seite dahinter scrollt nicht mit, solange das Fenster offen ist.
@@ -415,15 +453,22 @@ export function Fenster({
 
   return (
     <>
-      <div
-        onClick={schliessen}
-        aria-hidden
-        className="eintritt fixed inset-0 z-40 bg-tinte/40 backdrop-blur-[2px]"
-      />
+      {/* Im Vollbild deckt das Fenster alles ab — kein Schleier nötig. */}
+      {!vollbild && (
+        <div
+          onClick={schliessen}
+          aria-hidden
+          className="eintritt fixed inset-0 z-40 bg-tinte/40 backdrop-blur-[2px]"
+        />
+      )}
       <div
         role="dialog"
         aria-label={titel}
-        className="eintritt fixed inset-0 z-50 flex flex-col overflow-hidden bg-grund shadow-schwebe md:inset-x-0 md:top-6 md:bottom-6 md:mx-auto md:w-[92vw] md:max-w-[1440px] md:rounded-3xl"
+        className={cn(
+          "eintritt fixed inset-0 z-50 flex flex-col overflow-hidden bg-grund",
+          !vollbild &&
+            "shadow-schwebe md:inset-x-0 md:top-6 md:bottom-6 md:mx-auto md:w-[92vw] md:max-w-[1440px] md:rounded-3xl",
+        )}
       >
         <div className="flex h-12 shrink-0 items-center gap-2 border-b border-linie bg-flaeche px-3 pt-[env(safe-area-inset-top)] md:px-5">
           <button
@@ -455,6 +500,52 @@ export function Fenster({
           >
             <ChevronDown size={16} strokeWidth={2} />
           </button>
+          <button
+            type="button"
+            onClick={vollbildUmschalten}
+            aria-label={vollbild ? "Verkleinern (F)" : "Vollbild (F)"}
+            aria-pressed={vollbild}
+            title={vollbild ? "Verkleinern (F)" : "Vollbild (F)"}
+            className={cn(pfeil, "hidden md:flex")}
+          >
+            {vollbild ? (
+              <Minimize2 size={14} strokeWidth={2} />
+            ) : (
+              <Maximize2 size={14} strokeWidth={2} />
+            )}
+          </button>
+          {verlinkbar && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setMenue((m) => !m)}
+                aria-label="Mehr"
+                aria-expanded={menue}
+                title="Mehr"
+                className={pfeil}
+              >
+                <MoreHorizontal size={16} strokeWidth={2} />
+              </button>
+              {menue && (
+                <>
+                  <div aria-hidden onClick={() => setMenue(false)} className="fixed inset-0 z-10" />
+                  <div className="absolute top-full right-0 z-20 mt-1 min-w-48 overflow-hidden rounded-xl border border-linie bg-flaeche py-1 shadow-schwebe">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        window.open(window.location.href, "_blank", "noopener");
+                        setMenue(false);
+                      }}
+                      className="druckbar flex w-full items-center gap-2 px-3 py-2 text-left text-[0.74rem] text-tinte"
+                    >
+                      <ExternalLink size={13} strokeWidth={2} />
+                      In neuem Tab öffnen
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
           <button
             type="button"
             onClick={schliessen}

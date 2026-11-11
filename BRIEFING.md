@@ -49,6 +49,7 @@ Lies zuerst `AGENTS.md` und halte dich an die Design-Regeln (deutsche Benennung,
 | Projekt direkt anlegen | erledigt | `projekte/manuell-anlegen` |
 | To Do's als Kanban (je Objekt / Kategorie) | erledigt | `aufgaben/kanban` |
 | Backoffice: Mail to Board | Stufe 1 erledigt (echte Board-Adresse: Phase 2) | `backoffice/mail-to-board` |
+| Feinschliff 2 (abgeschnittene Texte, Vollbild, Teilung, Gewerbe, Karte) | erledigt | `feinschliff-2` |
 
 Aufgaben 0–4 sind seit 08.11.2026 in `main`. Feinschliff-Blöcke je eigener Branch ab `main`, nach Test gemergt.
 

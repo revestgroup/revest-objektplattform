@@ -147,9 +147,7 @@ function punkteSammlung(objekte: Objekt[]) {
  * Mähringen und schiebt die Stadt zu einem Punkt zusammen. Gezeigt wird, wo
  * Objekte liegen; erst ohne Objekte fällt die Karte auf die Region zurück.
  */
-function ausschnittVonObjekten(
-  objekte: Objekt[],
-): [[number, number], [number, number]] {
+function ausschnittVonObjekten(objekte: Objekt[]): [[number, number], [number, number]] {
   if (objekte.length === 0) return GESAMT_AUSSCHNITT;
   let minX = 180;
   let minY = 90;
@@ -183,17 +181,7 @@ function stufenFarbe(): maplibregl.ExpressionSpecification {
 function PUNKT_RADIUS(mal: number): maplibregl.ExpressionSpecification {
   const g = (angekauft: number, rest: number): maplibregl.ExpressionSpecification =>
     ["case", ["==", ["get", "stufe"], "angekauft"], angekauft * mal, rest * mal] as never;
-  return [
-    "interpolate",
-    ["linear"],
-    ["zoom"],
-    9,
-    g(6, 5),
-    13,
-    g(8, 6.5),
-    17,
-    g(11, 9),
-  ] as never;
+  return ["interpolate", ["linear"], ["zoom"], 9, g(6, 5), 13, g(8, 6.5), 17, g(11, 9)] as never;
 }
 
 export function Karte({
@@ -551,7 +539,15 @@ export function Karte({
     karte.on("dragstart", beiVerlassen);
     karte.on("click", beiKlick);
 
+    // MapLibre merkt nur Fenstergrößen, nicht die seines Behälters. Wird die
+    // Kachel nach dem Aufbau breiter (Seitenleiste, Raster der Startseite),
+    // blieb die Zeichenfläche auf der alten Breite: Luftbild nur in der Mitte,
+    // links und rechts weiß. Also bei jeder Größenänderung nachmessen.
+    const beobachter = new ResizeObserver(() => karte.resize());
+    beobachter.observe(behaelterRef.current);
+
     return () => {
+      beobachter.disconnect();
       karte.remove();
       karteRef.current = null;
     };
@@ -564,8 +560,7 @@ export function Karte({
     const karte = karteRef.current;
     if (!karte || !bereit) return;
 
-    const sichtbar =
-      stufen.size === 0 ? objekte : objekte.filter((o) => stufen.has(o.stufe));
+    const sichtbar = stufen.size === 0 ? objekte : objekte.filter((o) => stufen.has(o.stufe));
 
     (karte.getSource("objekte") as maplibregl.GeoJSONSource).setData(punkteSammlung(sichtbar));
   }, [objekte, stufen, bereit]);
@@ -642,10 +637,7 @@ export function Karte({
     if (!karte || !bereit) return;
 
     if (vorherGewaehlt.current) {
-      karte.setFeatureState(
-        { source: "objekte", id: vorherGewaehlt.current },
-        { gewaehlt: false },
-      );
+      karte.setFeatureState({ source: "objekte", id: vorherGewaehlt.current }, { gewaehlt: false });
     }
     vorherGewaehlt.current = gewaehltesObjekt;
     if (gewaehltesObjekt) {
@@ -660,7 +652,8 @@ export function Karte({
     if (!steuerungRef) return;
     // Auf dem Telefon deckt das Blatt die untere Hälfte ab — das Objekt muss
     // deshalb in die obere Hälfte wandern, sonst zoomt die Karte darunter.
-    const polsterUnten = () => (window.innerWidth < 768 ? Math.round(window.innerHeight * 0.42) : 56);
+    const polsterUnten = () =>
+      window.innerWidth < 768 ? Math.round(window.innerHeight * 0.42) : 56;
 
     steuerungRef.current = {
       aufAusschnitt: (grenzen, polsterung = 64) =>

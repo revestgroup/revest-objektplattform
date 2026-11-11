@@ -171,9 +171,27 @@ body {
   transform: scale(0.97);
 }
 
+/* Nur Knöpfe ohne eigenen Hintergrund bekommen die helle Hover-Fläche. Sonst
+   wurde ein dunkler, aktiver Knopf (bg-tinte, weiße Schrift) beim Darüberfahren
+   hell — und die Schrift unsichtbar („Eingang 5“ zeigte nur noch „5“). */
 @media (hover: hover) and (pointer: fine) {
-  .druckbar:hover {
+  .druckbar:not([class*="bg-"]):hover {
     background-color: var(--color-flaeche-hoch);
+  }
+}
+
+/* Nebenknöpfe (z. B. an Kontaktkacheln) erst beim Darüberfahren oder mit der
+   Tastatur zeigen — nur bei echtem Zeiger; am Telefon bleiben sie sichtbar. */
+.nur-beim-zeigen {
+  transition: opacity 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .nur-beim-zeigen {
+    opacity: 0;
+  }
+  .group:hover .nur-beim-zeigen,
+  .group:focus-within .nur-beim-zeigen {
+    opacity: 1;
   }
 }
 

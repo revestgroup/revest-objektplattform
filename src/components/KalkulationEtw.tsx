@@ -60,6 +60,14 @@ function zahlZeigen(v: number, art: "betrag" | "satz" | "jahr"): string {
  * Gelbes Eingabefeld. Beim Tippen roh, nach dem Verlassen formatiert
  * („545000“ wird „545.000“). Leer heißt: Vorgabe gilt — sie steht grau darin.
  */
+/** Kurze Beschriftungen im Ergebnis, die volle Bezeichnung im Tooltip. */
+const LANG: Record<string, string> = {
+  Nebenkosten: "Ankaufsnebenkosten",
+  Gesamt: "Gesamtinvestition",
+  Verkauf: "Verkaufspreis gesamt (Wohnung + Stellplatz/Garage)",
+  Gewinn: "Gewinn vor Steuer",
+};
+
 function Eingabe({
   wert,
   vorgabe,
@@ -296,13 +304,8 @@ export function KalkulationEtwBlatt({ objekt }: { objekt: Objekt }) {
   return (
     <div className="flex flex-col gap-4 px-4 py-5 md:px-7">
       {/* ----- Kopf ----- */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <div className="mini-label">Kalkulation · Eigentumswohnung</div>
-          <h2 className="headline mt-1 text-[1.35rem]">
-            {objekt.bezeichnung?.trim() || objekt.strasse}
-          </h2>
-        </div>
+      {/* Objektname und Art stehen schon im Fensterkopf — hier nur die Legende. */}
+      <div className="flex flex-wrap items-center justify-end gap-3">
         <div className="flex items-center gap-3.5 text-[0.72rem] text-grau-stark">
           <span className="flex items-center gap-1.5">
             <span className="size-3.5 rounded border border-[#F0D58A] bg-[#FFF8E1]" />
@@ -317,7 +320,7 @@ export function KalkulationEtwBlatt({ objekt }: { objekt: Objekt }) {
 
       <div className="flex flex-wrap items-start gap-4">
         {/* ----- Eingaben links ----- */}
-        <div className="flex min-w-0 flex-[999_1_34rem] flex-col gap-3.5">
+        <div className="flex min-w-0 flex-[999_1_34rem] flex-col gap-3.5 xl:flex-[0_0_calc(55%-0.5rem)]">
           <Karte titel="1. Objektdaten" hinweis="Wirkt auch auf das Objekt selbst.">
             <Zeile label="Wohnfläche" einheit="m²">
               <Eingabe
@@ -510,7 +513,7 @@ export function KalkulationEtwBlatt({ objekt }: { objekt: Objekt }) {
 
         {/* ----- Ergebnis rechts, bleibt beim Scrollen stehen ----- */}
         {/* Steht unter dem festen Kopf des Fensters — dessen Höhe misst ObjektDetail. */}
-        <div className="flex min-w-0 flex-[1_1_25rem] flex-col gap-3.5 md:sticky md:top-[calc(var(--kopf-hoehe,0px)+12px)]">
+        <div className="flex min-w-0 flex-[1_1_25rem] flex-col gap-3.5 md:sticky xl:flex-[0_0_calc(45%-0.5rem)] md:top-[calc(var(--kopf-hoehe,0px)+12px)]">
           <Karte titel="Ergebnis · Top-Down intern">
             <div className="grid min-h-7 grid-cols-[31%_23%_23%_23%] items-center bg-flaeche-hoch text-[0.6rem] font-semibold tracking-[0.14em] uppercase text-grau">
               <div />
@@ -523,14 +526,14 @@ export function KalkulationEtwBlatt({ objekt }: { objekt: Objekt }) {
             {(
               [
                 ["Kaufpreis", () => eingabe.kaufpreis],
-                ["Ankaufsnebenkosten", () => e.ankaufsnebenkosten],
+                ["Nebenkosten", () => e.ankaufsnebenkosten],
                 ["Aufwertung", () => e.aufwertung],
                 ["Bewirtschaftung", () => e.bewirtschaftung],
                 ["Vermarktung", (s) => e.szenarien[s].vermarktung],
                 ["Finanzierung", () => e.finanzierungskosten],
-                ["Gesamtinvestition", (s) => e.szenarien[s].gesamtinvestition, "summe"],
-                ["Verkaufspreis gesamt", (s) => e.szenarien[s].gesamtverkaufspreis],
-                ["Gewinn vor Steuer", (s) => e.szenarien[s].gewinn, "gewinn"],
+                ["Gesamt", (s) => e.szenarien[s].gesamtinvestition, "summe"],
+                ["Verkauf", (s) => e.szenarien[s].gesamtverkaufspreis],
+                ["Gewinn", (s) => e.szenarien[s].gewinn, "gewinn"],
               ] as [
                 string,
                 (s: (typeof SZENARIEN)[number]) => number | null,
@@ -544,7 +547,10 @@ export function KalkulationEtwBlatt({ objekt }: { objekt: Objekt }) {
                   art && "border-t border-t-linie-stark font-bold",
                 )}
               >
-                <div className={cn("truncate px-2.5", art ? "text-tinte" : "text-grau-stark")}>
+                <div
+                  title={LANG[label] ?? label}
+                  className={cn("truncate px-2.5", art ? "text-tinte" : "text-grau-stark")}
+                >
                   {label}
                 </div>
                 {SZENARIEN.map((s) => (
@@ -561,7 +567,12 @@ export function KalkulationEtwBlatt({ objekt }: { objekt: Objekt }) {
               </div>
             ))}
             <div className="grid min-h-[30px] grid-cols-[31%_23%_23%_23%] items-center text-[0.8rem]">
-              <div className="truncate px-2.5 text-grau-stark">Gewinn in %</div>
+              <div
+                title="Gewinn in % der Gesamtinvestition"
+                className="truncate px-2.5 text-grau-stark"
+              >
+                Gewinn %
+              </div>
               {SZENARIEN.map((s) => (
                 <div key={s} className={cn("zahl px-2.5 text-right", gut(e.szenarien[s].gewinn))}>
                   {f.prozent(e.szenarien[s].gewinnProzent)}

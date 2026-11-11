@@ -154,12 +154,15 @@ export function ObjektPipeline({
                 dann erkennbar, wenn nur ihr Rand im Bild steht. */}
                 <span aria-hidden className="h-1 w-full" style={{ background: STUFEN[s].farbe }} />
 
-                <header className="flex items-center gap-1.5 px-3 pt-3 pb-1.5">
+                {/* Zweizeilig erlaubt: „Unterlagen angefordert“ passt in die
+                    schmale Spalte nicht auf eine Zeile. Nach „/“ darf umbrochen
+                    werden („Terminiert/ Besichtigt“). */}
+                <header className="flex items-start gap-1.5 px-3 pt-3 pb-1.5">
                   <h3
                     title={STUFEN[s].titel}
-                    className="min-w-0 flex-1 truncate text-[0.64rem] font-semibold tracking-[0.08em] uppercase text-tinte"
+                    className="line-clamp-2 min-w-0 flex-1 text-[0.62rem] leading-snug font-semibold tracking-[0.06em] break-words uppercase text-tinte"
                   >
-                    {STUFEN[s].titel}
+                    {STUFEN[s].titel.replace("/", "/\u200b")}
                   </h3>
                   <span className="zahl shrink-0 rounded-full bg-flaeche px-2 py-0.5 text-[0.64rem] font-semibold text-grau-stark tabular-nums">
                     {spalte.length}
@@ -217,6 +220,9 @@ export function ObjektPipeline({
               </section>
             );
           })}
+          {/* Platz hinter der letzten Spalte, damit der Pfeilknopf am Rand
+              sie nicht verdeckt, wenn ganz nach rechts geschoben ist. */}
+          <span aria-hidden className="w-8 shrink-0 md:w-12" />
         </div>
       </div>
     </>
@@ -283,7 +289,10 @@ function Pipelinekarte({
         </div>
 
         <span className="block px-2.5 pt-2">
-          <span title={titel} className="block truncate text-[0.74rem] font-semibold text-tinte">
+          <span
+            title={titel}
+            className="line-clamp-2 block text-[0.74rem] leading-snug font-semibold break-words text-tinte"
+          >
             {titel}
           </span>
           <span className="mt-0.5 block truncate text-[0.62rem] text-grau">
@@ -368,12 +377,12 @@ function Stufenknopf({
       type="button"
       onClick={() => beiKlick(ziel)}
       aria-label={`${strasse} auf ${STUFEN[ziel].titel} setzen`}
-      // 36 px hoch: am Daumen noch sicher zu treffen, in der schmalen Spalte nicht zu wuchtig.
-      className="druckbar flex h-9 min-w-0 flex-1 items-center justify-center gap-0.5 rounded-none bg-flaeche px-1 text-[0.6rem] font-medium text-grau-stark hover:text-tinte"
+      // Nur der Pfeil — der Stufenname passte in die schmale Spalte nie ganz.
+      // Wohin es geht, sagt der Tooltip. 36 px hoch: am Daumen sicher zu treffen.
+      title={`${richtung === "zurueck" ? "Zurück auf" : "Weiter auf"} „${STUFEN[ziel].titel}“`}
+      className="druckbar flex h-9 min-w-0 flex-1 items-center justify-center rounded-none bg-flaeche text-grau-stark hover:text-tinte"
     >
-      {richtung === "zurueck" && <Pfeil size={13} strokeWidth={2.2} className="shrink-0" />}
-      <span className="truncate">{STUFEN[ziel].titel}</span>
-      {richtung === "vor" && <Pfeil size={13} strokeWidth={2.2} className="shrink-0" />}
+      <Pfeil size={15} strokeWidth={2.2} />
     </button>
   );
 }

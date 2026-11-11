@@ -205,9 +205,13 @@ function Kachel({
   imRegister?: () => void;
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1.5 rounded-[14px] border border-linie bg-flaeche px-3.5 py-3">
-      <div className="flex items-center justify-between gap-2">
-        <span title={k.name} className="min-w-0 truncate text-[0.86rem] font-semibold text-tinte">
+    <div className="group flex min-w-0 flex-col gap-1.5 rounded-[14px] border border-linie bg-flaeche px-3.5 py-3">
+      {/* Name zweizeilig: „Brandt & Partner, Herr Ostermann“ soll ganz lesbar sein. */}
+      <div className="flex items-start justify-between gap-2">
+        <span
+          title={k.name}
+          className="line-clamp-2 min-w-0 text-[0.86rem] leading-snug font-semibold break-words text-tinte"
+        >
           {k.name}
         </span>
         <span className="shrink-0 rounded-full bg-flaeche-hoch px-2 py-0.5 text-[0.54rem] font-semibold tracking-[0.14em] uppercase text-grau-stark">
@@ -233,15 +237,18 @@ function Kachel({
         </a>
       )}
       {k.notiz && <p className="line-clamp-2 text-[0.72rem] leading-snug text-grau">{k.notiz}</p>}
-      <div className="mt-auto flex gap-1.5 pt-1">
+      {/* Die Knöpfe drängen sich am Rechner erst beim Darüberfahren (oder mit
+          der Tastatur) vor. Am Telefon gibt es kein Darüberfahren — dort
+          bleiben sie sichtbar. */}
+      <div className="nur-beim-zeigen mt-auto flex gap-1 pt-0.5">
         <button
           type="button"
           onClick={bearbeiten}
           aria-label={`${k.name} bearbeiten`}
           title="Bearbeiten"
-          className="druckbar flex size-7 items-center justify-center rounded-full border border-linie text-grau-stark hover:text-tinte"
+          className="druckbar flex size-6 items-center justify-center rounded-full text-grau-stark hover:text-tinte"
         >
-          <Pencil size={12} strokeWidth={1.75} />
+          <Pencil size={11} strokeWidth={1.75} />
         </button>
         {imRegister && (
           <button
@@ -249,9 +256,9 @@ function Kachel({
             onClick={imRegister}
             aria-label={`${k.name} im Kontaktregister öffnen`}
             title="Im Kontaktregister öffnen"
-            className="druckbar flex size-7 items-center justify-center rounded-full border border-linie text-grau-stark hover:text-tinte"
+            className="druckbar flex size-6 items-center justify-center rounded-full text-grau-stark hover:text-tinte"
           >
-            <BookUser size={12} strokeWidth={1.75} />
+            <BookUser size={11} strokeWidth={1.75} />
           </button>
         )}
         <button
@@ -259,9 +266,9 @@ function Kachel({
           onClick={entfernen}
           aria-label={`${k.name} entfernen`}
           title="Vom Objekt lösen (bleibt im Register)"
-          className="druckbar flex size-7 items-center justify-center rounded-full border border-linie text-grau-stark hover:text-tinte"
+          className="druckbar flex size-6 items-center justify-center rounded-full text-grau-stark hover:text-tinte"
         >
-          <X size={12} strokeWidth={1.75} />
+          <X size={11} strokeWidth={1.75} />
         </button>
       </div>
     </div>

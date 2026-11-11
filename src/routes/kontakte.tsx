@@ -193,10 +193,10 @@ function KontakteSeite() {
         : "border-linie bg-flaeche text-grau-stark hover:text-tinte",
     );
 
-  function kopf(spalte: Spalte, titel: string, rechts?: boolean) {
+  function kopf(spalte: Spalte, titel: string, rechts?: boolean, extra?: string) {
     const an = sortierung.spalte === spalte;
     return (
-      <th className={cn("px-3 py-2 whitespace-nowrap", rechts && "text-right")}>
+      <th className={cn("truncate px-3 py-2 whitespace-nowrap", rechts && "text-right", extra)}>
         <button
           type="button"
           onClick={() => setSortierung({ spalte, ab: an ? !sortierung.ab : false })}
@@ -350,7 +350,21 @@ function KontakteSeite() {
 
       {/* ----- Tabelle ----- */}
       <div className="overflow-x-auto px-4 py-4 sm:px-6 md:px-10">
-        <table className="w-full min-w-[56rem] text-left text-[0.78rem]">
+        {/* Feste Spaltenbreiten: bei 1440 px passt alles ohne seitliches
+            Scrollen. Lange Einträge werden gekürzt, der volle Text steht im
+            Tooltip. Schmaler blenden Ort und Objekte aus. */}
+        <table className="w-full min-w-[46rem] table-fixed text-left text-[0.78rem]">
+          <colgroup>
+            <col className="w-[17%]" />
+            <col className="w-[14%]" />
+            <col className="w-[15%]" />
+            <col className="w-[11%]" />
+            <col className="w-[17%]" />
+            <col className="hidden w-[8%] xl:table-column" />
+            <col className="w-[8%]" />
+            <col className="hidden w-[5%] xl:table-column" />
+            <col className="w-[9%]" />
+          </colgroup>
           <thead>
             <tr className="border-b border-linie text-[0.6rem] font-semibold tracking-[0.14em] text-grau">
               {kopf("name", "Name")}
@@ -358,10 +372,10 @@ function KontakteSeite() {
               {kopf("kategorie", "Kategorie")}
               <th className="px-3 py-2 whitespace-nowrap uppercase">Telefon</th>
               <th className="px-3 py-2 whitespace-nowrap uppercase">E-Mail</th>
-              {kopf("ort", "Ort")}
+              {kopf("ort", "Ort", false, "hidden xl:table-cell")}
               {kopf("status", "Status")}
-              {kopf("objekte", "Objekte", true)}
-              {kopf("letzter", "Letzter Kontakt", true)}
+              {kopf("objekte", "Obj.", true, "hidden xl:table-cell")}
+              {kopf("letzter", "Letzter", true)}
             </tr>
           </thead>
           <tbody>
@@ -371,16 +385,21 @@ function KontakteSeite() {
                 onClick={() => oeffnen(r.id)}
                 className="cursor-pointer border-b border-linie hover:bg-flaeche"
               >
-                <td className="max-w-[12rem] truncate px-3 py-2 font-medium text-tinte">
-                  {r.name || "—"}
+                {/* Ohne Personennamen steht die Firma als Name da
+                    („Gebäudeversicherung Süd“), statt „—“. */}
+                <td
+                  title={r.name || r.firma || undefined}
+                  className="truncate px-3 py-2 font-medium text-tinte"
+                >
+                  {r.name || r.firma || "—"}
                 </td>
-                <td className="max-w-[12rem] truncate px-3 py-2 text-grau-stark">
-                  {r.firma ?? ""}
+                <td title={r.firma ?? undefined} className="truncate px-3 py-2 text-grau-stark">
+                  {r.name ? (r.firma ?? "") : ""}
                 </td>
-                <td className="px-3 py-2">
+                <td className="overflow-hidden px-3 py-2">
                   <Kategoriechips kategorien={r.kategorien} gruppeVon={gruppeVon} />
                 </td>
-                <td className="px-3 py-2 whitespace-nowrap">
+                <td className="truncate px-3 py-2 whitespace-nowrap">
                   {(r.telefon || r.mobil) && (
                     <a
                       href={`tel:${(r.telefon || r.mobil)!.replace(/\s+/g, "")}`}
@@ -391,7 +410,7 @@ function KontakteSeite() {
                     </a>
                   )}
                 </td>
-                <td className="max-w-[14rem] truncate px-3 py-2">
+                <td title={r.email ?? undefined} className="truncate px-3 py-2">
                   {r.email && (
                     <a
                       href={`mailto:${r.email}`}
@@ -402,12 +421,19 @@ function KontakteSeite() {
                     </a>
                   )}
                 </td>
-                <td className="px-3 py-2 text-grau-stark">{r.ort ?? ""}</td>
-                <td className="px-3 py-2">
+                <td
+                  title={r.ort ?? undefined}
+                  className="hidden truncate px-3 py-2 text-grau-stark xl:table-cell"
+                >
+                  {r.ort ?? ""}
+                </td>
+                <td className="overflow-hidden px-3 py-2">
                   <Statuschip status={r.status} />
                 </td>
-                <td className="zahl px-3 py-2 text-right text-grau-stark">{anzahl || ""}</td>
-                <td className="zahl px-3 py-2 text-right text-grau">
+                <td className="zahl hidden px-3 py-2 text-right text-grau-stark xl:table-cell">
+                  {anzahl || ""}
+                </td>
+                <td className="zahl truncate px-3 py-2 text-right whitespace-nowrap text-grau">
                   {letzter ? f.datum(letzter) : ""}
                 </td>
               </tr>

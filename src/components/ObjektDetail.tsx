@@ -45,6 +45,9 @@ import {
   ZUSTAENDE,
   adresse,
   aufteilungText,
+  NUTZUNGEN,
+  nutzungDerEinheit,
+  type Nutzung,
   berechneKennzahlen,
   berechneVerkaufsplan,
   f,
@@ -188,7 +191,11 @@ export function ObjektDetail({
     beobachter.observe(el);
     return () => beobachter.disconnect();
   }, []);
-  const verwertung = aufteilungText(objekt);
+  const { garantien: alleGarantien } = useVermietung();
+  const verwertung = aufteilungText(
+    objekt,
+    (e) => alleGarantien.find((g) => g.einheitId === e.id)?.art === "wg",
+  );
 
   /**
    * Die Zahl am Reiter. Bei Aufgaben zählen nur die offenen — eine erledigte
@@ -236,7 +243,9 @@ export function ObjektDetail({
 
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-1.5">
-                <Stufenzeichen stufe={objekt.stufe} />
+                {/* Im Ankauf zeigt die Stufenleiste darunter die Stufe — ein
+                    zweites Etikett wäre doppelt. */}
+                {projekt && <Stufenzeichen stufe={objekt.stufe} />}
                 {objekt.kuerzel && <Marke>{objekt.kuerzel}</Marke>}
                 <Fristzeichen objekt={objekt} />
                 {objekt.denkmalschutz && <Marke>Denkmal</Marke>}
@@ -1226,9 +1235,8 @@ function Einheiten({ objekt }: { objekt: Objekt }) {
    * Nutzung: gesetzt, sonst aus der Mietgarantie (WG-Garantie = WG), sonst ETW.
    * Wer vermietet ist, steht in der Mietverwaltung — hier nur der Name.
    */
-  function nutzungVon(e: Einheit): "etw" | "wg" {
-    if (e.nutzung) return e.nutzung;
-    return garantien.find((g) => g.einheitId === e.id)?.art === "wg" ? "wg" : "etw";
+  function nutzungVon(e: Einheit): Nutzung {
+    return nutzungDerEinheit(e, (x) => garantien.find((g) => g.einheitId === x.id)?.art === "wg");
   }
 
   function bewohnerVon(e: Einheit): string {
@@ -1308,14 +1316,15 @@ function Einheiten({ objekt }: { objekt: Objekt }) {
                 <td className={zelle}>
                   <select
                     value={nutzungVon(e)}
-                    onChange={(ev) =>
-                      aendereEinheit(e.id, { nutzung: ev.target.value as "etw" | "wg" })
-                    }
+                    onChange={(ev) => aendereEinheit(e.id, { nutzung: ev.target.value as Nutzung })}
                     aria-label={`Nutzung ${e.bezeichnung}`}
                     className="rounded-full bg-flaeche-hoch px-2 py-0.5 text-[0.68rem] font-semibold text-grau-stark focus:outline-none"
                   >
-                    <option value="etw">ETW</option>
-                    <option value="wg">WG</option>
+                    {(Object.keys(NUTZUNGEN) as Nutzung[]).map((n) => (
+                      <option key={n} value={n}>
+                        {NUTZUNGEN[n]}
+                      </option>
+                    ))}
                   </select>
                 </td>
                 <td className={zelle}>
