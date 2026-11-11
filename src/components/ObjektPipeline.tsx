@@ -296,6 +296,11 @@ function Pipelinekarte({
             {titel}
           </span>
           <span className="mt-0.5 block truncate text-[0.62rem] text-grau">
+            {objekt.paket && (
+              <span className="mr-1 font-semibold text-grau-stark">
+                Paket · {objekt.einheiten.length || objekt.anzahlEinheiten || "?"} WE ·
+              </span>
+            )}
             {objekt.strasse}, {objekt.stadt}
           </span>
         </span>

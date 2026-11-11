@@ -18,6 +18,7 @@ import type {
   Aufteilung,
   Kontakt,
   Dokument,
+  Eigentuemereintrag,
   Einheit,
   Gesellschaft,
   Objekt,
@@ -38,8 +39,10 @@ import { MOCK_OBJEKTE } from "./mockDaten";
 import { MOCK_KONTAKTE } from "./mockKontakte";
 import {
   STANDARD_KATEGORIEN,
+  istDerselbe,
   kopienAktualisieren,
   neueKontaktId,
+  neuerDatensatz,
   registerAbgleichen,
   type Kategorie,
   type Kontaktdatensatz,
@@ -191,6 +194,12 @@ interface StoreWert {
   /** Einen Register-Kontakt mit einer Rolle an ein Objekt hängen. */
   kontaktVerknuepfen: (objektId: string, kontaktId: string, rolle: Kontakt["rolle"]) => void;
   kategorienSetzen: (k: Kategorie[]) => void;
+  /**
+   * Eigentümerliste WEG speichern und jeden Eigentümer ins Register übernehmen
+   * (Kategorie „Eigentümer“, Dubletten über den Namen). Bestehende Einträge
+   * bleiben verknüpft.
+   */
+  eigentuemerSpeichern: (objektId: string, liste: Eigentuemereintrag[]) => void;
 }
 
 const SPEICHER_REGISTER = "revest.kontakte.v1";
@@ -592,6 +601,65 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
       kontaktLoeschen: (kontaktId) => {
         if (objekte.some((o) => o.kontakte.some((k) => k.kontaktId === kontaktId))) return;
         setRegister((alt) => alt.filter((r) => r.id !== kontaktId));
+      },
+
+      eigentuemerSpeichern: (objektId, liste) => {
+        const o = objekte.find((x) => x.id === objektId);
+        if (!o) return;
+        const adresse = `${o.strasse}, ${o.plz} ${o.stadt}`;
+        let neuesRegister = [...register];
+        const verknuepft = liste.map((e) => {
+          const bisher = e.kontaktId ? neuesRegister.find((r) => r.id === e.kontaktId) : undefined;
+          const treffer =
+            bisher ??
+            neuesRegister.find((r) => istDerselbe(r, { name: e.name, telefon: null, email: null }));
+          const vermerk = `Miteigentümer WEG ${adresse}${e.weNr ? `, WE ${e.weNr}` : ""}${
+            e.quelle ? ` · Quelle: ${e.quelle}` : ""
+          }${e.angabeAm ? ` vom ${e.angabeAm.split("-").reverse().join(".")}` : ""}`;
+          const datensatz = treffer
+            ? {
+                ...treffer,
+                kategorien: treffer.kategorien.includes("Eigentümer")
+                  ? treffer.kategorien
+                  : [...treffer.kategorien, "Eigentümer"],
+                anschrift: e.anschrift ?? treffer.anschrift ?? null,
+                kontaktNichtGewuenscht: e.kontaktNichtGewuenscht,
+                notizen: treffer.notizen.some((n) => n.text === vermerk)
+                  ? treffer.notizen
+                  : [
+                      ...treffer.notizen,
+                      { id: neueKontaktId(), zeitpunkt: new Date().toISOString(), text: vermerk },
+                    ],
+              }
+            : neuerDatensatz({
+                name: e.name,
+                kategorien: ["Eigentümer"],
+                anschrift: e.anschrift,
+                ort: e.anschrift?.match(/\d{5}\s+([^,]+)/)?.[1]?.trim() ?? null,
+                quelle: e.quelle ?? "Eigentümerliste WEG",
+                kontaktNichtGewuenscht: e.kontaktNichtGewuenscht,
+                notizen: [
+                  { id: neueKontaktId(), zeitpunkt: new Date().toISOString(), text: vermerk },
+                ],
+              });
+          neuesRegister = treffer
+            ? neuesRegister.map((r) => (r.id === datensatz.id ? datensatz : r))
+            : [...neuesRegister, datensatz];
+          return { ...e, kontaktId: datensatz.id };
+        });
+        setRegister(neuesRegister);
+        mutieren(objektId, (x) => ({
+          ...x,
+          eigentuemer: verknuepft,
+          verlauf: [
+            ...x.verlauf,
+            eintrag(
+              "notiz",
+              `Eigentümerliste WEG: ${verknuepft.length} Eigentümer übernommen`,
+              false,
+            ),
+          ],
+        }));
       },
 
       kontaktVerknuepfen: (objektId, kontaktId, rolle) => {

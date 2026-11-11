@@ -173,7 +173,12 @@ export function ObjektDetail({
   const { aufgaben } = useAufgaben();
 
   const projekt = objekt.stufe === "angekauft";
-  const reiterliste = projekt ? PROJEKT_REITER : ANKAUF_REITER;
+  // Ein Paket hat schon im Ankauf seine Einheiten — direkt nach der Checkliste.
+  const reiterliste = projekt
+    ? PROJEKT_REITER
+    : objekt.paket
+      ? ANKAUF_REITER.flatMap((r) => (r === "pruefung" ? [r, "einheiten" as const] : [r]))
+      : ANKAUF_REITER;
 
   // Nach dem Deal wechselt die Reiterliste unter den Füßen. Wer gerade in der
   // Kalkulation stand, soll nicht ins Leere schauen — gibt es den Reiter in

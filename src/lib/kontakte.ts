@@ -101,6 +101,10 @@ export interface Kontaktdatensatz {
   /** Von Hand gesetzt; sonst gilt die jüngste Notiz. */
   letzterKontakt: string | null;
   angelegtAm: string;
+  /** Postanschrift, z. B. aus einer Eigentümerliste. */
+  anschrift?: string | null;
+  /** Ausdrücklich keine Ansprache — gilt vor jeder Kampagne. */
+  kontaktNichtGewuenscht?: boolean;
 }
 
 /** Wie der Kontakt am Objekt heißt: „Firma, Person“ oder was es gibt. */

@@ -2,14 +2,19 @@
  * Objektprüfung: der Reiter „Prüfung“, das Ampel-Abzeichen für Liste und
  * Übersicht, und der Hinweis beim Stufenwechsel.
  */
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Banknote, Send } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
 import { STUFEN, type Ankaufsstufe, type Objekt } from "../lib/objekte";
 import { useObjekte } from "../lib/objekteStore";
+import { Anforderungsdialog, Finanzierungsdialog } from "./PruefungDialoge";
+import { Eigentuemerdialog } from "./Eigentuemerliste";
 import {
   AMPEL_FARBE,
+  UNTERLAGENGRUPPEN,
   UNTERLAGENSTATUS,
+  grundbuchstand,
+  type Unterlagengruppe,
   pruefpunkteFuer,
   pruefstand,
   punktstatus,
@@ -47,8 +52,8 @@ export function Pruefzeichen({
         s.kritisch.length > 0
           ? `Kritisch: ${s.kritisch.join(", ")}`
           : s.offenePflicht.length > 0
-            ? `Offen: ${s.offenePflicht.join(", ")}`
-            : "Alle Pflichtpunkte geprüft"
+            ? `Basis fehlt: ${s.offenePflicht.join(", ")}`
+            : "Alle Basis-Unterlagen da, nichts kritisch"
       }
       className={cn(
         "zahl inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.6rem] font-semibold",
@@ -114,6 +119,14 @@ const UNTERLAGE_TON: Record<Unterlagenstatus, string> = {
   fehlt: "bg-[#FBE2E2] text-[#9A2727] font-semibold",
   angefordert: "bg-[#FBEBD1] text-[#8A5A08] font-semibold",
   liegt_vor: "bg-[#DBF2E6] text-[#0C5E3A] font-semibold",
+  entfaellt: "bg-flaeche text-grau-stark font-semibold",
+};
+
+/** Kleine Etiketten statt B/X/Z — Basis kräftig, Intern zurückhaltend. */
+const GRUPPE_TON: Record<Unterlagengruppe, string> = {
+  basis: "bg-[#FBEBD1] text-[#8A5A08]",
+  objektart: "bg-[#E4EAF2] text-[#38506E]",
+  intern: "bg-flaeche-hoch text-grau-stark",
 };
 
 /**
@@ -123,14 +136,22 @@ const UNTERLAGE_TON: Record<Unterlagenstatus, string> = {
  */
 export function Pruefblatt({ objekt }: { objekt: Objekt }) {
   const { aendern } = useObjekte();
+  const [dialog, setDialog] = useState<"anfordern" | "finanzierung" | "eigentuemer" | null>(null);
+  const grundbuch = grundbuchstand(objekt);
   const p: Pruefung = objekt.pruefung ?? {};
   const s = pruefstand(objekt);
   const unterlagen = unterlagenFuer(objekt);
   const punkte = pruefpunkteFuer(objekt);
   const uErledigt = unterlagen.filter((u) => unterlagenstatus(objekt, u.id) === "liegt_vor").length;
+  const uZaehlen = unterlagen.filter((u) => unterlagenstatus(objekt, u.id) !== "entfaellt").length;
   const pErledigt = punkte.filter((pp) => punktstatus(objekt, pp.id) === "ok").length;
 
-  function unterlage(id: string, status: Unterlagenstatus, dokumentId?: string | null) {
+  function unterlage(
+    id: string,
+    status: Unterlagenstatus,
+    dokumentId?: string | null,
+    datum?: string | null,
+  ) {
     const alt = p.unterlagen?.[id];
     aendern(objekt.id, {
       pruefung: {
@@ -146,6 +167,7 @@ export function Pruefblatt({ objekt }: { objekt: Objekt }) {
                 : alt?.dokumentId !== undefined
                   ? alt.dokumentId
                   : (zugeordneteDatei(objekt, id)?.id ?? null),
+            datum: datum !== undefined ? datum : (alt?.datum ?? null),
           },
         },
       },
@@ -183,7 +205,25 @@ export function Pruefblatt({ objekt }: { objekt: Objekt }) {
             </span>
           )}
         </div>
-        <div className="h-1.5 w-full max-w-[20rem] overflow-hidden rounded-full bg-linie">
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setDialog("anfordern")}
+            className="druckbar flex h-8 items-center gap-1.5 rounded-full bg-tinte px-3.5 text-[0.66rem] font-semibold text-grund"
+          >
+            <Send size={12} strokeWidth={2} />
+            Fehlende Unterlagen anfordern
+          </button>
+          <button
+            type="button"
+            onClick={() => setDialog("finanzierung")}
+            className="druckbar flex h-8 items-center gap-1.5 rounded-full border border-linie-stark px-3.5 text-[0.66rem] font-semibold text-tinte"
+          >
+            <Banknote size={12} strokeWidth={2} />
+            Finanzierungsunterlagen
+          </button>
+        </div>
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-linie">
           <div
             className="h-1.5 rounded-full bg-[#17935C] transition-[width] duration-300"
             style={{ width: `${Math.round((s.erledigt / s.gesamt) * 100)}%` }}
@@ -197,10 +237,10 @@ export function Pruefblatt({ objekt }: { objekt: Objekt }) {
           <div className="flex justify-between px-3 pt-3 pb-2 text-[0.6rem] font-semibold tracking-[0.18em] uppercase text-grau">
             <span>Unterlagen</span>
             <span className="zahl">
-              {uErledigt} / {unterlagen.length}
+              {uErledigt} / {uZaehlen}
             </span>
           </div>
-          {unterlagen.map((u, i) => {
+          {unterlagen.map((u) => {
             const status = unterlagenstatus(objekt, u.id);
             const datei = zugeordneteDatei(objekt, u.id);
             return (
@@ -208,25 +248,60 @@ export function Pruefblatt({ objekt }: { objekt: Objekt }) {
                 key={u.id}
                 className="grid min-h-8 grid-cols-[1.4rem_1.5rem_minmax(0,1fr)_auto] items-center gap-x-2 border-t border-linie px-3 py-1 text-[0.8rem]"
               >
-                <span className="zahl text-right text-[0.68rem] text-grau">{i + 1}</span>
+                <span className="zahl text-right text-[0.68rem] text-grau">{u.nr}</span>
                 <Haken
                   an={status === "liegt_vor"}
                   titel={`${u.titel} liegt vor`}
                   beiKlick={() => unterlage(u.id, status === "liegt_vor" ? "fehlt" : "liegt_vor")}
                 />
-                <span className="flex min-w-0 items-baseline gap-1.5">
+                <span className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
                   <span
+                    title={u.titel}
                     className={cn(
-                      "truncate",
-                      status === "liegt_vor" ? "text-grau-stark" : "text-tinte",
+                      "min-w-0 truncate",
+                      status === "liegt_vor" || status === "entfaellt"
+                        ? "text-grau-stark"
+                        : "text-tinte",
+                      status === "entfaellt" && "line-through",
                     )}
                   >
                     {u.titel}
                   </span>
-                  {u.pflicht && (
-                    <span className="shrink-0 text-[0.54rem] font-semibold tracking-[0.12em] text-[#8A5A08]">
-                      PFLICHT
+                  <span
+                    className={cn(
+                      "shrink-0 rounded-full px-1.5 py-px text-[0.54rem] font-semibold",
+                      GRUPPE_TON[u.gruppe],
+                    )}
+                  >
+                    {UNTERLAGENGRUPPEN[u.gruppe]}
+                  </span>
+                  {u.id === "grundbuch" && (
+                    <span className="flex shrink-0 items-center gap-1 text-[0.64rem] text-grau">
+                      vom
+                      <input
+                        type="date"
+                        value={grundbuch.datum ?? ""}
+                        onChange={(e) => unterlage(u.id, status, undefined, e.target.value || null)}
+                        aria-label="Datum des Grundbuchauszugs"
+                        title={grundbuch.ausName ? "Aus dem Dateinamen" : "Datum des Auszugs"}
+                        className="zahl h-5 rounded bg-flaeche-hoch px-1 text-[0.64rem] text-grau-stark focus:outline-none"
+                      />
+                      {grundbuch.alt && (
+                        <span className="font-semibold text-[#9A2727]">
+                          älter als 3 Monate — neu anfordern
+                        </span>
+                      )}
                     </span>
+                  )}
+                  {u.id === "eigentuemerliste" && (
+                    <button
+                      type="button"
+                      onClick={() => setDialog("eigentuemer")}
+                      className="druckbar shrink-0 rounded-full border border-linie px-2 py-px text-[0.6rem] font-semibold text-tinte"
+                    >
+                      Eigentümer erfassen
+                      {objekt.eigentuemer?.length ? ` (${objekt.eigentuemer.length})` : ""}
+                    </button>
                   )}
                   {/* Dateiname als schlichte Auswahl: zeigt die Zuordnung und lässt sie ändern. */}
                   {objekt.dokumente.length > 0 && (status === "liegt_vor" || datei) && (
@@ -257,7 +332,11 @@ export function Pruefblatt({ objekt }: { objekt: Objekt }) {
                   aria-label={u.titel}
                   className="flex rounded-full bg-flaeche-hoch p-0.5"
                 >
-                  {(["fehlt", "angefordert", "liegt_vor"] as Unterlagenstatus[]).map((st) => (
+                  {(
+                    (u.gruppe === "basis"
+                      ? ["fehlt", "angefordert", "liegt_vor"]
+                      : ["fehlt", "angefordert", "liegt_vor", "entfaellt"]) as Unterlagenstatus[]
+                  ).map((st) => (
                     <button
                       key={st}
                       type="button"
@@ -302,6 +381,21 @@ export function Pruefblatt({ objekt }: { objekt: Objekt }) {
           </p>
         </section>
       </div>
+      <p className="text-[0.64rem] text-grau">
+        Basis = immer nötig, auch für die Finanzierung · Objektart = je nach Objekt (ausblendbar
+        über „entfällt“) · Intern = für den weiteren Verlauf. Gewarnt wird beim Angebot und beim
+        Kauf nur, wenn Basis-Unterlagen fehlen oder ein Punkt kritisch ist.
+      </p>
+
+      {dialog === "anfordern" && (
+        <Anforderungsdialog objekt={objekt} schliessen={() => setDialog(null)} />
+      )}
+      {dialog === "finanzierung" && (
+        <Finanzierungsdialog objekt={objekt} schliessen={() => setDialog(null)} />
+      )}
+      {dialog === "eigentuemer" && (
+        <Eigentuemerdialog objekt={objekt} schliessen={() => setDialog(null)} />
+      )}
     </div>
   );
 }
@@ -370,7 +464,7 @@ function Pruefpunktzeile({
 
 /**
  * Stufe setzen mit Prüfhinweis. Wer ins Angebot oder in den Kauf will,
- * obwohl Pflichtpunkte offen oder kritisch sind, bekommt die Liste zu sehen
+ * obwohl Basis-Unterlagen fehlen oder ein Punkt kritisch ist, bekommt die Liste zu sehen
  * — und kann trotzdem wechseln. Keine Sperre, nur kein Versehen.
  *
  * Jede Stelle, die die Stufe setzt, rendert `dialog` mit.
@@ -435,7 +529,8 @@ export function Pruefhinweis({ stand }: { stand: Pruefstand }) {
     <div className="rounded-xl border border-[#EFD9A6] bg-[#FDF8EC] px-4 py-3">
       <div className="flex items-center gap-2 text-[0.74rem] font-semibold text-[#8A5608]">
         <AlertTriangle size={14} strokeWidth={2} />
-        Prüfung {stand.erledigt}/{stand.gesamt} — nicht alle Pflichtpunkte geklärt
+        Checkliste {stand.erledigt}/{stand.gesamt} — Basis-Unterlagen fehlen oder ein Punkt ist
+        kritisch
       </div>
       {stand.kritisch.length > 0 && (
         <p className="mt-2 text-[0.72rem] leading-relaxed text-[#9A2727]">
@@ -444,7 +539,7 @@ export function Pruefhinweis({ stand }: { stand: Pruefstand }) {
       )}
       {stand.offenePflicht.length > 0 && (
         <p className="mt-1.5 text-[0.72rem] leading-relaxed text-grau-stark">
-          <span className="font-semibold">Offen:</span> {stand.offenePflicht.join(", ")}
+          <span className="font-semibold">Basis fehlt:</span> {stand.offenePflicht.join(", ")}
         </p>
       )}
     </div>

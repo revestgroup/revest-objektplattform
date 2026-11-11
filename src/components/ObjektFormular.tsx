@@ -76,6 +76,7 @@ interface FormularZustand {
   gewerbeflaeche: string;
   grundstuecksflaeche: string;
   anzahlEinheiten: string;
+  paket: boolean;
   baujahr: string;
   letzteSanierung: string;
   jahresNettokaltmiete: string;
@@ -137,6 +138,7 @@ function leerZustand(stufe: Ankaufsstufe = "neu"): FormularZustand {
     gewerbeflaeche: "",
     grundstuecksflaeche: "",
     anzahlEinheiten: "",
+    paket: false,
     baujahr: "",
     letzteSanierung: "",
     jahresNettokaltmiete: "",
@@ -183,6 +185,7 @@ function ausObjekt(o: Objekt): FormularZustand {
     gewerbeflaeche: t(o.gewerbeflaeche),
     grundstuecksflaeche: t(o.grundstuecksflaeche),
     anzahlEinheiten: t(o.anzahlEinheiten),
+    paket: Boolean(o.paket),
     baujahr: t(o.baujahr),
     letzteSanierung: t(o.letzteSanierung),
     jahresNettokaltmiete: t(o.jahresNettokaltmiete),
@@ -313,6 +316,7 @@ export function ObjektFormular({
       gewerbeflaeche: z(v.gewerbeflaeche),
       grundstuecksflaeche: z(v.grundstuecksflaeche),
       anzahlEinheiten: z(v.anzahlEinheiten),
+      paket: v.paket,
       baujahr: z(v.baujahr),
       letzteSanierung: z(v.letzteSanierung),
       jahresNettokaltmiete: z(v.jahresNettokaltmiete),
@@ -511,6 +515,12 @@ export function ObjektFormular({
             wert={v.anzahlEinheiten}
             setWert={(x) => setze("anzahlEinheiten", x)}
             platzhalter="8"
+          />
+          <Schalter
+            label="Paket (mehrere Wohnungen)"
+            hinweis="Mehrere Wohnungen in einem Angebot — im Objekt mit Einheiten-Liste."
+            an={v.paket}
+            setAn={(x) => setze("paket", x)}
           />
           <Zahlfeld
             id="baujahr"

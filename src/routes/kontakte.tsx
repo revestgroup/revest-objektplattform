@@ -391,6 +391,12 @@ function KontakteSeite() {
                   title={r.name || r.firma || undefined}
                   className="truncate px-3 py-2 font-medium text-tinte"
                 >
+                  {r.kontaktNichtGewuenscht && (
+                    <span
+                      title="Kontakt nicht gewünscht"
+                      className="mr-1.5 inline-block size-2 rounded-full bg-[#CF4848] align-middle"
+                    />
+                  )}
                   {r.name || r.firma || "—"}
                 </td>
                 <td title={r.firma ?? undefined} className="truncate px-3 py-2 text-grau-stark">
@@ -578,6 +584,22 @@ function Kontaktfenster({
           </a>
         )}
       </div>
+
+      {/* Gilt vor jeder Ansprache — deshalb ganz oben und rot. */}
+      <label className="flex cursor-pointer items-center gap-2 border-b border-linie px-4 py-2 text-[0.74rem] md:px-7">
+        <input
+          type="checkbox"
+          checked={Boolean(d.kontaktNichtGewuenscht)}
+          onChange={(e) => setze({ kontaktNichtGewuenscht: e.target.checked })}
+          className="size-4 accent-[#CF4848]"
+        />
+        <span
+          className={d.kontaktNichtGewuenscht ? "font-semibold text-[#9A2727]" : "text-grau-stark"}
+        >
+          Kontakt nicht gewünscht
+        </span>
+        {d.anschrift && <span className="ml-auto truncate text-grau">{d.anschrift}</span>}
+      </label>
 
       <div className="grid gap-px bg-linie lg:grid-cols-3">
         {/* ----- Daten ----- */}

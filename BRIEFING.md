@@ -50,6 +50,7 @@ Lies zuerst `AGENTS.md` und halte dich an die Design-Regeln (deutsche Benennung,
 | To Do's als Kanban (je Objekt / Kategorie) | erledigt | `aufgaben/kanban` |
 | Backoffice: Mail to Board | Stufe 1 erledigt (echte Board-Adresse: Phase 2) | `backoffice/mail-to-board` |
 | Feinschliff 2 (abgeschnittene Texte, Vollbild, Teilung, Gewerbe, Karte) | erledigt | `feinschliff-2` |
+| Ausbau G: Checkliste Ankauf neu (24 Unterlagen, Anfordern, Paket, Eigentümerliste) | erledigt (KI-Auslesen, Download-Paket: Phase 2) | `ausbau/g-checkliste` |
 
 Aufgaben 0–4 sind seit 08.11.2026 in `main`. Feinschliff-Blöcke je eigener Branch ab `main`, nach Test gemergt.
 

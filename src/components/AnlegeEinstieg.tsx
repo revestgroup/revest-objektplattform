@@ -19,6 +19,7 @@ import {
   FileSpreadsheet,
   FileText,
   Home,
+  House,
   PencilLine,
   Sparkles,
   Store,
@@ -34,6 +35,7 @@ import { cn } from "../lib/utils";
  */
 const ARTEN: { art: Objektart; Zeichen: typeof Home }[] = [
   { art: "etw", Zeichen: Home },
+  { art: "efh", Zeichen: House },
   { art: "mfh", Zeichen: Building2 },
   { art: "whg_geschaeftshaus", Zeichen: Store },
 ];
@@ -146,7 +148,10 @@ function Wegwahl({
       </div>
 
       {/* „oder" als echte Weggabelung, nicht als zweite Kachel gleicher Art. */}
-      <div className="eintritt mt-6 mb-4 flex items-center gap-3" style={{ animationDelay: "96ms" }}>
+      <div
+        className="eintritt mt-6 mb-4 flex items-center gap-3"
+        style={{ animationDelay: "96ms" }}
+      >
         <span className="h-px flex-1 bg-linie" />
         <span className="text-[0.62rem] font-semibold tracking-[0.18em] uppercase text-grau">
           oder mit KI
@@ -255,8 +260,8 @@ function KiEinstieg({
 
       {hinweis && (
         <p className="schleier mt-3 text-center text-[0.68rem] leading-relaxed text-grund/60">
-          Das Auslesen kommt in Phase 2 mit dem Backend. Die Dateien bleiben in
-          dieser Sitzung — lege das Objekt so lange von Hand an.
+          Das Auslesen kommt in Phase 2 mit dem Backend. Die Dateien bleiben in dieser Sitzung —
+          lege das Objekt so lange von Hand an.
         </p>
       )}
     </div>

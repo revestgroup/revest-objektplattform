@@ -174,11 +174,12 @@ export function stufeUmstellen(stufe: string): Ankaufsstufe {
   return ALTE_STUFEN[stufe] ?? "neu";
 }
 
-export type Objektart = "mfh" | "etw" | "whg_geschaeftshaus" | "grundstueck";
+export type Objektart = "mfh" | "etw" | "efh" | "whg_geschaeftshaus" | "grundstueck";
 
 export const OBJEKTARTEN: Record<Objektart, string> = {
   mfh: "Mehrfamilienhaus",
   etw: "Eigentumswohnung",
+  efh: "Einfamilienhaus",
   whg_geschaeftshaus: "Wohn- & Geschäftshaus",
   grundstueck: "Grundstück",
 };
@@ -560,6 +561,25 @@ export const TEILUNGSSTATUS_REIHENFOLGE: Teilungsstatus[] = [
  * das als Ganzes gehalten oder weiterverkauft wird, braucht keine — und dann
  * ist ein leerer Reiter mit Ablage schlimmer als gar keiner.
  */
+/**
+ * Ein Eintrag der Eigentümerliste einer WEG — die anderen Eigentümer im Haus,
+ * für eine spätere Ansprache wegen weiterer Wohnungen. Quelle und Datum der
+ * Angabe bleiben dabei, „Kontakt nicht gewünscht“ gilt vor jeder Ansprache.
+ */
+export interface Eigentuemereintrag {
+  id: string;
+  name: string;
+  anschrift: string | null;
+  weNr: string | null;
+  kontaktNichtGewuenscht: boolean;
+  /** Woher die Angabe stammt, z. B. „Eigentümerliste WEG (Makler)“. */
+  quelle: string | null;
+  /** Datum der Angabe (ISO). */
+  angabeAm: string | null;
+  /** Verknüpfung ins Kontaktregister, sobald übernommen. */
+  kontaktId: string | null;
+}
+
 export interface Teilungserklaerung {
   gestartetAm: string;
   status: Teilungsstatus;
@@ -857,6 +877,14 @@ export interface Objekt {
    * bleibt der Reiter im Objekt grau, statt eine leere Ablage anzubieten.
    */
   teilung?: Teilungserklaerung | null;
+  /**
+   * Paket: mehrere Wohnungen in einem Angebot (z. B. Kasernstraße 8 + 10,
+   * 8 Wohnungen). Im Ankauf mit Einheiten-Liste wie bei Projekten.
+   * Standard bleibt: ein Objekt = eine Einheit.
+   */
+  paket?: boolean;
+  /** WEG: die übrigen Eigentümer im Haus (Checkliste Nr. 23). */
+  eigentuemer?: Eigentuemereintrag[];
 
   notiz: string | null;
   bilder: string[];

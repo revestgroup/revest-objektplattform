@@ -45,12 +45,16 @@ Vorgabe ist `docs/planung/KALKULATION_ETW.md` (Timos Excel). Der Rechenkern steh
 nach jeder Änderung an der Rechnung `bun run test` laufen lassen. Standardwerte und
 Katalogpreise liegen in den Einstellungen, Abweichungen je Objekt in `kalkulationEtw`.
 
-## Objektprüfung
+## Checkliste Ankauf
 
-Listen, Pflichtpunkte, Ampel und Warnregel stehen in `src/lib/pruefung.ts` (Tests daneben).
-Wer irgendwo eine Stufe setzt, nimmt `useStufenwechsel()` aus `components/Pruefung.tsx`
-statt `stufeSetzen` direkt und rendert dessen `dialog` mit — sonst fehlt der Prüfhinweis
-beim Wechsel nach „Angebot abgegeben“ oder „Gekauft“.
+`src/lib/pruefung.ts` (Tests daneben): 24 Unterlagen in drei Gruppen (Basis · Objektart · Intern),
+die Liste stellt sich nach Objektart (WEG = ETW, Haus = EFH/MFH/WGH) und Steckbrief (vermietet,
+Erbbaurecht) selbst zusammen. Gewarnt wird beim Wechsel ins Angebot/Gekauft nur bei fehlenden
+Basis-Unterlagen oder kritischen Prüfpunkten. Frühere IDs (z. B. `aufteilungsplan`) gelten über
+`ALTE_IDS` weiter. Wer irgendwo eine Stufe setzt, nimmt `useStufenwechsel()` aus
+`components/Pruefung.tsx` statt `stufeSetzen` direkt und rendert dessen `dialog` mit.
+„Fehlende Unterlagen anfordern“ öffnet nur einen Gmail-Entwurf (nichts wird gesendet).
+Eigentümerliste WEG: `lib/eigentuemerliste.ts`, Übernahme ins Register über `eigentuemerSpeichern`.
 
 ## Ummeldungen
 

@@ -145,11 +145,13 @@ export function textAuslesen(text: string): Erkannt {
     ? "mfh"
     : /wohn-?\s*(?:und|&)\s*geschäftshaus|wohn- und geschäfts/.test(klein)
       ? "whg_geschaeftshaus"
-      : /grundstück|baugrund/.test(klein)
-        ? "grundstueck"
-        : /eigentumswohnung|\betw\b|wohnung|apartment/.test(klein)
-          ? "etw"
-          : null;
+      : /einfamilienhaus|\befh\b|doppelhaushälfte|reihenhaus/.test(klein)
+        ? "efh"
+        : /grundstück|baugrund/.test(klein)
+          ? "grundstueck"
+          : /eigentumswohnung|\betw\b|wohnung|apartment/.test(klein)
+            ? "etw"
+            : null;
 
   const email = t.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/)?.[0] ?? null;
   const von =
