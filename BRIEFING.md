@@ -54,6 +54,7 @@ Lies zuerst `AGENTS.md` und halte dich an die Design-Regeln (deutsche Benennung,
 | Ausbau H: Mail & Aktivitäten | erledigt (Gmail lesen/senden, Kalender-Sync, KI-Zusammenfassung: Phase 2) | `ausbau/h-aktivitaeten` |
 | Ausbau I: Backoffice Status und Archiv | erledigt (Qonto-/Drive-Bestätigung: Phase 2) | `ausbau/i-backoffice-archiv` |
 | Ausbau J: Abwicklung nach Kauf und Verkauf | erledigt (Fotos/Vorlage dauerhaft: Phase 2 Drive) | `ausbau/j-abwicklung` |
+| Ausbau K: Nachberechnung | erledigt (Zahlungseingang über Qonto: Phase 2) | `ausbau/k-nachberechnung` |
 
 Aufgaben 0–4 sind seit 08.11.2026 in `main`. Feinschliff-Blöcke je eigener Branch ab `main`, nach Test gemergt.
 

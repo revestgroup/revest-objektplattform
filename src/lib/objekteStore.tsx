@@ -47,6 +47,7 @@ import {
   type Kategorie,
   type Kontaktdatensatz,
 } from "./kontakte";
+import { mitAbgleich, mitPlatzhaltern, ohnePlatzhalter } from "./nachberechnung";
 import {
   mitAbmeldungen,
   mitUmmeldungen,
@@ -290,7 +291,9 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
   // damit kein Weg sie vergisst.
   const mutieren = useCallback(
     (id: string, bauen: (o: Objekt) => Objekt) =>
-      setObjekte((alt) => alt.map((o) => (o.id === id ? mitUmmeldungen(bauen(o)) : o))),
+      setObjekte((alt) =>
+        alt.map((o) => (o.id === id ? mitAbgleich(mitUmmeldungen(bauen(o))) : o)),
+      ),
     [],
   );
 
@@ -498,32 +501,36 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
       einheitVerkaufen: (id, einheitId, v) =>
         mutieren(id, (o) => {
           const e = o.einheiten.find((x) => x.id === einheitId);
-          // Mit dem Verkauf entstehen die Abmeldungen an den Käufer.
-          return mitAbmeldungen(
-            {
-              ...o,
-              einheiten: o.einheiten.map((x) =>
-                x.id === einheitId
-                  ? {
-                      ...x,
-                      status: "verkauft" as const,
-                      kaeufer: v.kaeufer,
-                      kaeuferKontakt: v.kontakt,
-                      verkaufspreis: v.preis,
-                      verkauftAm: v.datum,
-                    }
-                  : x,
-              ),
-              verlauf: [
-                ...o.verlauf,
-                eintrag(
-                  "status",
-                  `${e?.bezeichnung ?? "Einheit"} verkauft an ${v.kaeufer}${
-                    v.preis !== null ? ` für ${f.eur(v.preis)}` : ""
-                  }`,
+          // Mit dem Verkauf entstehen die Abmeldungen an den Käufer und die
+          // Platzhalter der Nachberechnung (was an Rechnungen noch kommt).
+          return mitPlatzhaltern(
+            mitAbmeldungen(
+              {
+                ...o,
+                einheiten: o.einheiten.map((x) =>
+                  x.id === einheitId
+                    ? {
+                        ...x,
+                        status: "verkauft" as const,
+                        kaeufer: v.kaeufer,
+                        kaeuferKontakt: v.kontakt,
+                        verkaufspreis: v.preis,
+                        verkauftAm: v.datum,
+                      }
+                    : x,
                 ),
-              ],
-            },
+                verlauf: [
+                  ...o.verlauf,
+                  eintrag(
+                    "status",
+                    `${e?.bezeichnung ?? "Einheit"} verkauft an ${v.kaeufer}${
+                      v.preis !== null ? ` für ${f.eur(v.preis)}` : ""
+                    }`,
+                  ),
+                ],
+              },
+              einheitId,
+            ),
             einheitId,
           );
         }),
@@ -533,24 +540,27 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
           const e = o.einheiten.find((x) => x.id === einheitId);
           // Der Wunschpreis bleibt stehen: er war vor dem Verkauf der geführte
           // Preis und ist nach der Rücknahme wieder genau das.
-          return ohneOffeneAbmeldungen(
-            {
-              ...o,
-              einheiten: o.einheiten.map((x) =>
-                x.id === einheitId
-                  ? { ...x, status, kaeufer: null, kaeuferKontakt: null, verkauftAm: null }
-                  : x,
-              ),
-              verlauf: [
-                ...o.verlauf,
-                eintrag(
-                  "status",
-                  `Verkauf zurückgenommen: ${e?.bezeichnung ?? "Einheit"}${
-                    e?.kaeufer ? ` (${e.kaeufer})` : ""
-                  }${grund.trim() ? ` — ${grund.trim()}` : ""}`,
+          return ohnePlatzhalter(
+            ohneOffeneAbmeldungen(
+              {
+                ...o,
+                einheiten: o.einheiten.map((x) =>
+                  x.id === einheitId
+                    ? { ...x, status, kaeufer: null, kaeuferKontakt: null, verkauftAm: null }
+                    : x,
                 ),
-              ],
-            },
+                verlauf: [
+                  ...o.verlauf,
+                  eintrag(
+                    "status",
+                    `Verkauf zurückgenommen: ${e?.bezeichnung ?? "Einheit"}${
+                      e?.kaeufer ? ` (${e.kaeufer})` : ""
+                    }${grund.trim() ? ` — ${grund.trim()}` : ""}`,
+                  ),
+                ],
+              },
+              einheitId,
+            ),
             einheitId,
           );
         }),

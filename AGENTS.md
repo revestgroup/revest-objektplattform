@@ -66,6 +66,14 @@ Kopf „Übergabe“, Zähler, Objektinfos und Vorlage: `components/Abwicklung.t
 Schlüsselbox-Code steht nur in `infos.schluesselboxCode` (verdecktes Feld) — nie in Notizen,
 Verlauf, Listen oder Beispieldaten; `infosText` lässt ihn weg.
 
+## Nachberechnung
+
+`src/lib/nachberechnung.ts` (Tests daneben, inkl. Prüfwert 480 €/Jahr, Stichtag 15.08. → 297,21 /
+182,79), Reiter `components/Nachberechnung.tsx`. Taggenau, von/bis eingeschlossen, der Stichtag
+zählt zur neuen Seite; Revest-Anteil auf Cent gerundet, die Gegenseite ist der Rest. Platzhalter
+entstehen in `einheitVerkaufen` (`mitPlatzhaltern`), der Abgleich mit den Abmeldungen läuft in
+`mutieren` (`mitAbgleich`). Beträge hier immer mit Cent anzeigen.
+
 ## Kontaktregister
 
 `src/lib/kontakte.ts` (Tests daneben), Seite `routes/kontakte.tsx`. Ein Kontakt ist ein

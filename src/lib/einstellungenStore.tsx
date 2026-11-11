@@ -14,6 +14,13 @@ import { STANDARD_VORGABEN, type EtwVorgaben } from "./kalkulationEtw";
 const SPEICHER = "revest.einstellungen.v1";
 /** Eigener Schlüssel: Zahlen statt Schalter, und ein Zurücksetzen der Schalter soll sie nicht treffen. */
 const SPEICHER_VORGABEN = "revest.kalkulationsvorgaben.v1";
+/** Bankverbindung für Abrechnungen an Käufer (Nachberechnung). */
+const SPEICHER_BANK = "revest.bankverbindung.v1";
+
+export interface Bankverbindung {
+  inhaber: string;
+  iban: string;
+}
 
 interface StoreWert {
   einstellungen: Einstellungen;
@@ -27,6 +34,8 @@ interface StoreWert {
   /** Null nimmt den Katalogpreis zurück. */
   preisSetzen: (id: string, preis: number | null) => void;
   vorgabenZuruecksetzen: () => void;
+  bank: Bankverbindung;
+  bankSetzen: (b: Bankverbindung) => void;
 }
 
 const Kontext = createContext<StoreWert | null>(null);
@@ -35,11 +44,14 @@ export function EinstellungenProvider({ children }: { children: ReactNode }) {
   const [einstellungen, setEinstellungen] = useState<Einstellungen>(STANDARD);
   const [vorgaben, setVorgaben] = useState<EtwVorgaben>(STANDARD_VORGABEN);
   const [bereit, setBereit] = useState(false);
+  const [bank, setBank] = useState<Bankverbindung>({ inhaber: "Revest Projekt GmbH", iban: "" });
 
   useEffect(() => {
     try {
       const roh = localStorage.getItem(SPEICHER);
       if (roh) setEinstellungen({ ...STANDARD, ...(JSON.parse(roh) as Partial<Einstellungen>) });
+      const rohB = localStorage.getItem(SPEICHER_BANK);
+      if (rohB) setBank(JSON.parse(rohB) as Bankverbindung);
       const rohV = localStorage.getItem(SPEICHER_VORGABEN);
       if (rohV) {
         const v = JSON.parse(rohV) as Partial<EtwVorgaben>;
@@ -59,10 +71,11 @@ export function EinstellungenProvider({ children }: { children: ReactNode }) {
     if (!bereit) return;
     try {
       localStorage.setItem(SPEICHER_VORGABEN, JSON.stringify(vorgaben));
+      localStorage.setItem(SPEICHER_BANK, JSON.stringify(bank));
     } catch {
       // siehe unten
     }
-  }, [vorgaben, bereit]);
+  }, [vorgaben, bank, bereit]);
 
   useEffect(() => {
     if (!bereit) return;
@@ -97,8 +110,10 @@ export function EinstellungenProvider({ children }: { children: ReactNode }) {
           return { ...alt, preise };
         }),
       vorgabenZuruecksetzen: () => setVorgaben(STANDARD_VORGABEN),
+      bank,
+      bankSetzen: setBank,
     }),
-    [einstellungen, vorgaben, bereit, setzen],
+    [einstellungen, vorgaben, bank, bereit, setzen],
   );
 
   return <Kontext.Provider value={wert}>{children}</Kontext.Provider>;

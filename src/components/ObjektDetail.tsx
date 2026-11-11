@@ -70,6 +70,7 @@ import { useVermietung } from "../lib/vermietungStore";
 import { Bildergalerie, Bildflaeche, istQuelle } from "./Bilder";
 import { Dateiliste, Dokumentenablage, Einsortieren } from "./Dokumente";
 import { AktivitaetenReiter, AktivitaetenSpalte } from "./Aktivitaeten";
+import { Nachberechnungsblatt } from "./Nachberechnung";
 import { Kontaktkacheln } from "./Kontaktkacheln";
 import { Objektaufgaben } from "./Objektaufgaben";
 import { Fristzeichen, Stufenzeichen } from "./Stufe";
@@ -93,7 +94,8 @@ type Reiter =
   | "sanierung"
   | "einheiten"
   | "dokumente"
-  | "verlauf";
+  | "verlauf"
+  | "nachberechnung";
 
 /**
  * Welche Reiter ein Objekt zeigt, hängt an seiner Phase — nicht an der Liste,
@@ -128,6 +130,8 @@ const PROJEKT_REITER: Reiter[] = [
   "kosten",
   "einheiten",
   "verkauf",
+  // Nach dem Verkauf: was an Rechnungen noch kommt und wem es gehört.
+  "nachberechnung",
   "dokumente",
   "verlauf",
 ];
@@ -157,6 +161,7 @@ const REITER_TITEL: Record<Reiter, string> = {
   einheiten: "Einheiten",
   dokumente: "Dokumente",
   verlauf: "Mail & Aktivitäten",
+  nachberechnung: "Nachberechnung",
 };
 
 export function ObjektDetail({
@@ -227,6 +232,8 @@ export function ObjektDetail({
       einheiten: null,
       dokumente: objekt.dokumente.length,
       verlauf: null,
+      // Offene Zeilen: was noch abzurechnen oder zu bezahlen ist.
+      nachberechnung: (objekt.nachberechnung ?? []).filter((z) => z.status !== "erledigt").length,
     }),
     [objekt, aufgaben],
   );
@@ -383,6 +390,7 @@ export function ObjektDetail({
         {sichtbar === "einheiten" && <Einheiten objekt={objekt} />}
         {sichtbar === "dokumente" && <Dokumente objekt={objekt} projekt={projekt} />}
         {sichtbar === "verlauf" && <AktivitaetenReiter objekt={objekt} />}
+        {sichtbar === "nachberechnung" && <Nachberechnungsblatt objekt={objekt} />}
       </div>
     </div>
   );

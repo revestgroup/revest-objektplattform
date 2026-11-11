@@ -9,6 +9,7 @@
 import type { EtwKalkulation } from "./kalkulationEtw";
 import type { Pruefung } from "./pruefung";
 import type { Ummeldung } from "./ummeldungen";
+import type { Nachberechnungszeile } from "./nachberechnung";
 
 export type Ankaufsstufe =
   | "neu"
@@ -977,6 +978,10 @@ export interface Objekt {
   infos?: Objektinfos;
   /** Angaben zur Übergabe beim Ankauf (Datum = Besitzübergang, Gesellschaft = Objekt). */
   uebergabeAnkauf?: { verkaeuferEmail?: string | null; hausverwaltung?: string | null };
+  /** Nachberechnung: Kostenabgrenzung zum Stichtag (Ankauf und je verkaufter Einheit). */
+  nachberechnung?: Nachberechnungszeile[];
+  /** Überschriebene Stichtage: Schlüssel „ankauf“ oder Einheit-ID. */
+  nachberechnungStichtag?: Record<string, string | null>;
   /** Vorlage Übergabeprotokoll (xlsx/pdf), am Projekt hinterlegt. */
   uebergabeVorlage?: { name: string; groesseKb: number } | null;
   /** Objektprüfung im Ankauf. Siehe `pruefung.ts`. */

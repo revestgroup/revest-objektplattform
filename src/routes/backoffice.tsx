@@ -51,6 +51,7 @@ import {
 } from "../lib/backoffice";
 import { neueKartenId, useBackoffice } from "../lib/backofficeStore";
 import { DOKUMENT_ORDNER, UNSORTIERT, f, ordnerVorschlag, type Objekt } from "../lib/objekte";
+import type { Nachberechnungsart } from "../lib/nachberechnung";
 import { useObjekte } from "../lib/objekteStore";
 import { cn } from "../lib/utils";
 
@@ -912,6 +913,7 @@ function Kartenfenster({
           {k.archiviertAm && ` · im Archiv seit ${f.datum(k.archiviertAm)}`}
         </p>
         {k.uebergabe && <Uebergabefeld karte={k} />}
+        {k.objektId && <AlsNachberechnung karte={k} />}
         {!k.uebergabe && !k.archiviertAm && k.spalte === "erledigt" && (
           <button
             type="button"
@@ -1166,6 +1168,85 @@ function Uebergabefeld({ karte: k }: { karte: Backofficekarte }) {
       <p className="text-[0.62rem] opacity-80" style={{ color: w.tief }}>
         Phase 2: Qonto und Drive melden „übertragen“ und „bestätigt“ selbst.
       </p>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Rechnung → Nachberechnung                                            */
+/* ------------------------------------------------------------------ */
+
+/** Art aus dem Kartentitel raten — korrigierbar im Reiter. */
+function nachberechnungsart(t: string): Nachberechnungsart {
+  const n = t.toLowerCase();
+  if (/grundsteuer/.test(n)) return "grundsteuer";
+  if (/grundbesitz|abfall|abwasser/.test(n)) return "grundbesitzabgaben";
+  if (/hausgeldabrechnung|jahresabrechnung/.test(n)) return "hausgeldabrechnung";
+  if (/hausgeld/.test(n)) return "hausgeld";
+  if (/versicherung/.test(n)) return "versicherung";
+  if (/strom|gas|wasser|stadtwerke|swu|energie/.test(n)) return "versorger";
+  if (/schornstein/.test(n)) return "schornsteinfeger";
+  return "sonst";
+}
+
+/**
+ * Rechnung zu einem gekauften oder verkauften Objekt: als Zeile der
+ * Nachberechnung erfassen. Der Beleg geht trotzdem an Qonto.
+ */
+function AlsNachberechnung({ karte: k }: { karte: Backofficekarte }) {
+  const { objekte, aendern } = useObjekte();
+  const o = objekte.find((x) => x.id === k.objektId);
+  const [erfasst, setErfasst] = useState(false);
+  if (!o) return null;
+  const abschnitte = [
+    ...(o.besitzuebergangAm ? [{ id: null as string | null, titel: "Ankauf" }] : []),
+    ...o.einheiten
+      .filter((e) => e.verkauftAm)
+      .map((e) => ({ id: e.id as string | null, titel: e.bezeichnung })),
+  ];
+  if (abschnitte.length === 0) return null;
+  const schon = (o.nachberechnung ?? []).some((z) => z.beleg?.name === k.datei?.name && k.datei);
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-linie px-3 py-2 text-[0.7rem]">
+      <span className="text-grau-stark">Als Nachberechnung erfassen:</span>
+      {abschnitte.map((a) => (
+        <button
+          key={a.id ?? "ankauf"}
+          type="button"
+          disabled={erfasst || schon}
+          onClick={() => {
+            aendern(
+              o.id,
+              {
+                nachberechnung: [
+                  ...(o.nachberechnung ?? []),
+                  {
+                    id: `nb-${k.id}`,
+                    seite: a.id ? "verkauf" : "ankauf",
+                    einheitId: a.id,
+                    art: nachberechnungsart(k.titel),
+                    titel: k.titel,
+                    betrag: null,
+                    von: null,
+                    bis: null,
+                    beleg: k.datei ? { name: k.datei.name } : null,
+                    status: "offen",
+                    manuellRevest: null,
+                  },
+                ],
+              },
+              `Nachberechnung aus dem Backoffice: ${k.titel}`,
+            );
+            setErfasst(true);
+          }}
+          className="druckbar rounded-full border border-linie-stark px-2.5 py-1 font-semibold text-tinte disabled:opacity-40"
+        >
+          {a.titel}
+        </button>
+      ))}
+      {(erfasst || schon) && (
+        <span className="text-[#0C5E3A]">erfasst — Betrag und Zeitraum im Projekt ergänzen</span>
+      )}
     </div>
   );
 }

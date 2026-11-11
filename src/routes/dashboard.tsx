@@ -18,6 +18,7 @@ import { fristText, sortiereOffen, tageBis, type Aufgabe } from "../lib/aufgaben
 import { useAufgaben } from "../lib/aufgabenStore";
 import { UEBERGABESTATUS, WEITERLEITUNGEN, haengtFest, uebergabestatus } from "../lib/backoffice";
 import { useBackoffice } from "../lib/backofficeStore";
+import { offeneKaeuferanteile } from "../lib/nachberechnung";
 import { UMMELDEARTEN, ueberfaelligeUmmeldungen } from "../lib/ummeldungen";
 import { cn } from "../lib/utils";
 
@@ -33,6 +34,7 @@ function DashboardSeite() {
   const { karten } = useBackoffice();
   // Übergaben, die seit über 2 Tagen nicht bestätigt sind oder fehlschlugen.
   const haengend = karten.filter((k) => haengtFest(k));
+  const nachberechnung = useMemo(() => offeneKaeuferanteile(objekte), [objekte]);
 
   const { offen, termine } = useMemo(() => {
     const alle = aufgaben.filter((a) => !a.erledigtAm).sort(sortiereOffen);
@@ -82,6 +84,32 @@ function DashboardSeite() {
             <Terminzeile key={a.id} aufgabe={a} objekte={objekte} />
           ))}
         </Block>
+
+        {nachberechnung.summe > 0 && (
+          <Block titel="Offene Nachberechnungen" zu="/projekte" leer="">
+            <li className="py-2 text-[0.78rem] text-grau-stark">
+              Käuferanteile noch nicht bezahlt:{" "}
+              <span className="zahl font-semibold text-tinte">
+                {nachberechnung.summe.toLocaleString("de-DE", {
+                  style: "currency",
+                  currency: "EUR",
+                })}
+              </span>
+            </li>
+            {nachberechnung.objekte.slice(0, 5).map((o) => (
+              <li key={o.id}>
+                <Link
+                  to="/projekte"
+                  search={{ objekt: o.id }}
+                  className="druckbar -mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 text-[0.8rem] text-tinte"
+                >
+                  {o.kuerzel ? `${o.kuerzel} · ` : ""}
+                  {o.bezeichnung?.trim() || o.strasse}
+                </Link>
+              </li>
+            ))}
+          </Block>
+        )}
 
         {haengend.length > 0 && (
           <Block

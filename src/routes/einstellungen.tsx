@@ -119,6 +119,15 @@ function EinstellungenSeite() {
           <SuchprofilPflegen />
         </section>
 
+        {/* ----- Bankverbindung ----- */}
+        <section className="px-4 py-7 sm:px-6 md:px-10 md:py-10">
+          <h2 className="mini-label">Bankverbindung für Abrechnungen</h2>
+          <p className="mt-2 max-w-2xl text-[0.7rem] leading-relaxed text-grau">
+            Steht in der Abrechnung an Käufer (Nachberechnung). Nur in diesem Browser gespeichert.
+          </p>
+          <Bankfelder />
+        </section>
+
         {/* ----- Kalkulation ----- */}
         <section className="px-4 py-7 sm:px-6 md:px-10 md:py-10">
           <h2 className="mini-label">Kalkulation ETW</h2>
@@ -269,5 +278,36 @@ function Spur({ fertig }: { fertig?: boolean }) {
     >
       {fertig ? <Check size={10} strokeWidth={3} /> : <Minus size={10} strokeWidth={2.5} />}
     </span>
+  );
+}
+
+function Bankfelder() {
+  const { bank, bankSetzen } = useEinstellungen();
+  const feld =
+    "h-9 w-full rounded-xl border border-linie bg-flaeche px-3 text-[0.8rem] text-tinte focus:border-linie-stark focus:outline-none";
+  return (
+    // key: nach dem Laden aus dem Speicher die Felder neu vorbelegen.
+    <div
+      key={`${bank.inhaber}|${bank.iban}`}
+      className="mt-4 grid max-w-2xl gap-2.5 sm:grid-cols-2"
+    >
+      <label className="flex flex-col gap-1">
+        <span className="mini-label">Kontoinhaber</span>
+        <input
+          className={feld}
+          defaultValue={bank.inhaber}
+          onBlur={(e) => bankSetzen({ ...bank, inhaber: e.target.value.trim() })}
+        />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="mini-label">IBAN</span>
+        <input
+          className={cn(feld, "zahl")}
+          defaultValue={bank.iban}
+          placeholder="DE.."
+          onBlur={(e) => bankSetzen({ ...bank, iban: e.target.value.replace(/\s+/g, " ").trim() })}
+        />
+      </label>
+    </div>
   );
 }
