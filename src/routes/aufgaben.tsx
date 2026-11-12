@@ -516,12 +516,19 @@ function AufgabenFormular({
   const [faelligAm, setFaelligAm] = useState(() =>
     new Date(Date.now() + 86_400_000).toISOString().slice(0, 10),
   );
+  // Zeitblock: Uhrzeit von–bis am Fälligkeitstag, macht die Aufgabe zum Balken im Sprint.
+  const [von, setVon] = useState("");
+  const [bis, setBis] = useState("");
   const [fehler, setFehler] = useState<Record<string, string>>({});
 
   function absenden(e: React.FormEvent) {
     e.preventDefault();
     if (!titel.trim()) {
       setFehler({ titel: "Titel fehlt." });
+      return;
+    }
+    if ((von || bis) && (!von || !bis || bis <= von || !faelligAm)) {
+      setFehler({ zeit: "Zeitblock braucht Tag, Beginn und ein späteres Ende." });
       return;
     }
 
@@ -532,6 +539,7 @@ function AufgabenFormular({
       art,
       dringlichkeit,
       faelligAm: faelligAm === "" ? null : new Date(faelligAm).toISOString(),
+      zeitblock: von && bis ? { von, bis } : null,
     };
 
     anlegen(entwurf);
@@ -592,6 +600,29 @@ function AufgabenFormular({
           />
           <p className="mt-1.5 text-[0.66rem] text-grau">
             Leer lassen heißt „irgendwann“ — die Aufgabe landet dann hinten.
+          </p>
+        </div>
+        <div>
+          <span className="mini-label block">Zeitblock (optional)</span>
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              type="time"
+              aria-label="Zeitblock von"
+              value={von}
+              onChange={(e) => setVon(e.target.value)}
+              className="zahl w-full border border-linie bg-flaeche px-3 py-2.5 text-[0.82rem] text-tinte focus:border-linie-stark focus:outline-none"
+            />
+            <span className="text-grau">–</span>
+            <input
+              type="time"
+              aria-label="Zeitblock bis"
+              value={bis}
+              onChange={(e) => setBis(e.target.value)}
+              className="zahl w-full border border-linie bg-flaeche px-3 py-2.5 text-[0.82rem] text-tinte focus:border-linie-stark focus:outline-none"
+            />
+          </div>
+          <p className={cn("mt-1.5 text-[0.66rem]", fehler.zeit ? "text-[#9A2727]" : "text-grau")}>
+            {fehler.zeit ?? "Erscheint als Balken im Sprint des Cockpits."}
           </p>
         </div>
         <Segmente

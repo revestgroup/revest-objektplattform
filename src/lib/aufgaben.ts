@@ -11,7 +11,7 @@
  * niemand füllt, macht die drei wichtigen schwerer zu finden.
  */
 
-import type { Zustaendig } from "./cockpit";
+import type { Zeitblock, Zustaendig } from "./cockpit";
 
 export type Dringlichkeit = "hoch" | "normal" | "niedrig";
 
@@ -69,6 +69,10 @@ export interface Aufgabe {
    * Geschäftsführung — siehe `zustaendigAufgabe` in `cockpit.ts`.
    */
   zustaendig?: Zustaendig | null;
+  /** Uhrzeit von–bis am Fälligkeitstag; macht die Aufgabe zum Balken im Sprint. */
+  zeitblock?: Zeitblock | null;
+  /** Zeile im Sprint („Ankauf“, „Projekte“ …). Fehlt: aus Objekt und Art abgeleitet. */
+  bereich?: string | null;
 }
 
 export type AufgabenEntwurf = Omit<Aufgabe, "id" | "erledigtAm" | "angelegtAm">;
