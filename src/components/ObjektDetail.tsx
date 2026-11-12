@@ -73,6 +73,7 @@ import { AktivitaetenReiter, AktivitaetenSpalte } from "./Aktivitaeten";
 import { Nachberechnungsblatt } from "./Nachberechnung";
 import { Abschlussblatt } from "./Abschluss";
 import { abschlussstand } from "../lib/projektabschluss";
+import { verkaufspreisePruefen } from "../lib/kalkulationEtw";
 import { Kontaktkacheln } from "./Kontaktkacheln";
 import { Objektaufgaben } from "./Objektaufgaben";
 import { Fristzeichen, Stufenzeichen } from "./Stufe";
@@ -366,6 +367,16 @@ export function ObjektDetail({
               >
                 {r === "dokumente" && projekt && <DriveZeichen />}
                 {reiterTitel(r, projekt)}
+                {r === "verkauf" &&
+                  !projekt &&
+                  verkaufspreisePruefen(objekt.kaufpreis, objekt.kalkulationEtw) && (
+                    <span
+                      title="Verkaufspreise prüfen — Kaufpreis um mehr als 20 % geändert"
+                      className="ml-1 font-bold text-[#C47A00]"
+                    >
+                      !
+                    </span>
+                  )}
                 {gesperrt && <Lock size={10} strokeWidth={2.25} className="shrink-0" />}
                 {anzahl !== null && anzahl > 0 && (
                   <span className="zahl text-[0.6rem] text-grau">{anzahl}</span>

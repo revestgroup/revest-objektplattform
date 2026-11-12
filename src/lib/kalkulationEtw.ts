@@ -707,6 +707,8 @@ export interface EtwKalkulation {
   abzugQm?: number | null;
   /** Stellplatz/Garage je Szenario — zum Verkaufspreis dazu, nicht in €/m². */
   stellplatz?: Partial<Record<Szenario, number | null>>;
+  /** Kaufpreis beim letzten Eintragen der Verkaufspreise — Bezug für „Verkaufspreise prüfen“. */
+  kaufpreisReferenz?: number | null;
   /** Menge je Position; bei Ja/Nein steht 1 für Ja. */
   katalog?: Record<string, number>;
   /** Je Objekt abweichende Preise. */
@@ -906,4 +908,25 @@ export function berechneEtw(e: EtwEingabe): EtwErgebnis {
       best: szenario(e.verkauf.best, e.stellplatz.best),
     },
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* Verkaufspreise prüfen                                                */
+/* ------------------------------------------------------------------ */
+
+/** Ab dieser Änderung des Kaufpreises (in Prozent) sollen die Verkaufspreise geprüft werden. */
+export const PREISPRUEFUNG_SCHWELLE = 20;
+
+/**
+ * Hat sich der Kaufpreis seit dem Eintragen der Verkaufspreise um mehr als
+ * 20 % verändert? Ohne Referenz (ältere Kalkulationen) kein Hinweis.
+ */
+export function verkaufspreisePruefen(
+  kaufpreis: number | null,
+  k: EtwKalkulation | null | undefined,
+): { alt: number; neu: number; prozent: number } | null {
+  const ref = k?.kaufpreisReferenz;
+  if (!ref || !kaufpreis) return null;
+  const prozent = ((kaufpreis - ref) / ref) * 100;
+  return Math.abs(prozent) > PREISPRUEFUNG_SCHWELLE ? { alt: ref, neu: kaufpreis, prozent } : null;
 }

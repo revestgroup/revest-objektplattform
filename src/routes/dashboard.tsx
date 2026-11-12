@@ -16,6 +16,9 @@ import { STUFEN, f, type Objekt } from "../lib/objekte";
 import { useObjekte } from "../lib/objekteStore";
 import { fristText, sortiereOffen, tageBis, type Aufgabe } from "../lib/aufgaben";
 import { useAufgaben } from "../lib/aufgabenStore";
+import { KeineId } from "../components/KalenderHinweis";
+import { useEinstellungen } from "../lib/einstellungenStore";
+import { kalenderAdresse } from "../lib/kalender";
 import { UEBERGABESTATUS, WEITERLEITUNGEN, haengtFest, uebergabestatus } from "../lib/backoffice";
 import { useBackoffice } from "../lib/backofficeStore";
 import { offeneKaeuferanteile } from "../lib/nachberechnung";
@@ -79,11 +82,13 @@ function DashboardSeite() {
           ))}
         </Block>
 
-        <Block titel="Termine" zu="/aufgaben" leer="Keine Termine geplant.">
-          {termine.slice(0, 6).map((a) => (
-            <Terminzeile key={a.id} aufgabe={a} objekte={objekte} />
-          ))}
-        </Block>
+        <Termine>
+          <Block titel="Termine" zu="/aufgaben" leer="Keine Termine geplant.">
+            {termine.slice(0, 6).map((a) => (
+              <Terminzeile key={a.id} aufgabe={a} objekte={objekte} />
+            ))}
+          </Block>
+        </Termine>
 
         {nachberechnung.summe > 0 && (
           <Block titel="Offene Nachberechnungen" zu="/projekte" leer="">
@@ -373,5 +378,77 @@ function Terminzeile({ aufgabe, objekte }: { aufgabe: Aufgabe; objekte: Objekt[]
         {fristText(aufgabe.faelligAm)}
       </span>
     </li>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Termine: Plattform oder Google Kalender                              */
+/* ------------------------------------------------------------------ */
+
+const TERMINQUELLE = "revest.startseite.termine.v1";
+
+/** Umschalter über dem Termin-Block — die Wahl wird im Browser gemerkt. */
+function Termine({ children }: { children: React.ReactNode }) {
+  const { kalenderId } = useEinstellungen();
+  const [quelle, setQuelle] = useState<"plattform" | "google">(() => {
+    try {
+      return localStorage.getItem(TERMINQUELLE) === "google" ? "google" : "plattform";
+    } catch {
+      return "plattform";
+    }
+  });
+  const waehlen = (q: "plattform" | "google") => {
+    setQuelle(q);
+    try {
+      localStorage.setItem(TERMINQUELLE, q);
+    } catch {
+      // egal
+    }
+  };
+  const adresse = kalenderAdresse(kalenderId, "AGENDA");
+  return (
+    <div className="relative">
+      <div className="absolute top-4 right-16 z-10 flex gap-1 rounded-full border border-linie bg-flaeche-hoch p-0.5 md:top-5">
+        {(
+          [
+            ["plattform", "Plattform"],
+            ["google", "Google"],
+          ] as const
+        ).map(([w, t]) => (
+          <button
+            key={w}
+            type="button"
+            onClick={() => waehlen(w)}
+            aria-pressed={quelle === w}
+            className={cn(
+              "druckbar rounded-full px-2.5 py-0.5 text-[0.62rem] font-medium",
+              quelle === w ? "bg-tinte text-grund" : "text-grau-stark",
+            )}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+      {quelle === "plattform" ? (
+        children
+      ) : (
+        <section className="rounded-2xl border border-linie bg-flaeche p-5 shadow-karte md:p-6">
+          <h2 className="text-[0.72rem] font-semibold tracking-[0.18em] uppercase text-tinte">
+            Termine
+          </h2>
+          <div className="mt-4">
+            {adresse ? (
+              <iframe
+                title="Google Kalender, Agenda"
+                src={adresse}
+                className="h-72 w-full rounded-xl border border-linie"
+              />
+            ) : (
+              <KeineId />
+            )}
+          </div>
+        </section>
+      )}
+    </div>
   );
 }

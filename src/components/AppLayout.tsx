@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BarChart3,
   Building2,
+  CalendarDays,
   ChevronDown,
   ChevronLeft,
   ChevronUp,
@@ -46,6 +47,7 @@ const NAVIGATION = [
   { zu: "/backoffice", titel: "Backoffice", kurz: "Post", icon: Inbox, unten: false },
   { zu: "/mietverwaltung", titel: "Mietverwaltung", kurz: "Miete", icon: KeyRound, unten: true },
   { zu: "/karte", titel: "Karte", kurz: "Karte", icon: Map, unten: false },
+  { zu: "/kalender", titel: "Kalender", kurz: "Kalender", icon: CalendarDays, unten: false },
   { zu: "/auswertung", titel: "Auswertung", kurz: "Zahlen", icon: BarChart3, unten: false },
   { zu: "/einstellungen", titel: "Einstellungen", kurz: "Konto", icon: Settings, unten: false },
 ] as const;

@@ -57,6 +57,7 @@ Lies zuerst `AGENTS.md` und halte dich an die Design-Regeln (deutsche Benennung,
 | Ausbau K: Nachberechnung | erledigt (Zahlungseingang über Qonto: Phase 2) | `ausbau/k-nachberechnung` |
 | Ausbau L: Projektabschluss | erledigt (Datenraum freigeben, Ist aus Qonto: Phase 2) | `ausbau/l-projektabschluss` |
 | Ausbau M: Auswertung | erledigt | `ausbau/m-auswertung` |
+| Ausbau N: Kleinigkeiten (Hinweis Verkaufspreise, Google Kalender) | erledigt (Kalender-Sync: Phase 2) | `ausbau/n-kleinigkeiten` |
 
 Aufgaben 0–4 sind seit 08.11.2026 in `main`. Feinschliff-Blöcke je eigener Branch ab `main`, nach Test gemergt.
 

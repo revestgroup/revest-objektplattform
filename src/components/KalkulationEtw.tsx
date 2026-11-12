@@ -23,6 +23,7 @@ import {
   katalogPreis,
   katalogSumme,
   positionsBetrag,
+  verkaufspreisePruefen,
   type EtwKalkulation,
   type EtwVorgaben,
 } from "../lib/kalkulationEtw";
@@ -216,6 +217,8 @@ export function KalkulationEtwBlatt({ objekt }: { objekt: Objekt }) {
   const e = berechneEtw(eingabe);
   const katalog = katalogSumme(kalk, vorgaben, eingabe.wohnflaeche);
   const [alleZeigen, setAlleZeigen] = useState(false);
+
+  const pruefen = verkaufspreisePruefen(objekt.kaufpreis, kalk);
 
   function setze(teil: Partial<EtwKalkulation>) {
     aendern(objekt.id, { kalkulationEtw: { ...kalk, ...teil } });
@@ -441,6 +444,22 @@ export function KalkulationEtwBlatt({ objekt }: { objekt: Objekt }) {
             </Zeile>
           </Karte>
 
+          {pruefen && (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[#EFD9A6] bg-[#FDF8EC] px-3.5 py-2.5 text-[0.74rem] text-[#8A5608]">
+              <span className="min-w-0 flex-1">
+                Kaufpreis seit Eingabe der Verkaufspreise um {pruefen.prozent > 0 ? "+" : ""}
+                {Math.round(pruefen.prozent)} % geändert ({f.eur(pruefen.alt)} →{" "}
+                {f.eur(pruefen.neu)}) — Verkaufspreise prüfen.
+              </span>
+              <button
+                type="button"
+                onClick={() => setze({ kaufpreisReferenz: objekt.kaufpreis })}
+                className="druckbar rounded-full border border-[#E0B85C] bg-flaeche px-3 py-1 text-[0.66rem] font-semibold"
+              >
+                geprüft
+              </button>
+            </div>
+          )}
           <Karte titel="7. Verkaufserwartung">
             <div className="grid min-h-7 grid-cols-[31%_23%_23%_23%] items-center bg-flaeche-hoch text-[0.6rem] font-semibold tracking-[0.14em] uppercase text-grau">
               <div />
@@ -458,7 +477,13 @@ export function KalkulationEtwBlatt({ objekt }: { objekt: Objekt }) {
                     label={`Verkaufspreis ${SZENARIO_TITEL[s]}`}
                     art="betrag"
                     wert={kalk.verkauf?.[s] ?? null}
-                    setWert={(v) => setze({ verkauf: { ...kalk.verkauf, [s]: v } })}
+                    setWert={(v) =>
+                      setze({
+                        verkauf: { ...kalk.verkauf, [s]: v },
+                        // Bezug für den Hinweis „Verkaufspreise prüfen“.
+                        kaufpreisReferenz: objekt.kaufpreis,
+                      })
+                    }
                   />
                 </div>
               ))}

@@ -16,6 +16,7 @@ import { Route as AuswertungRouteImport } from './routes/auswertung'
 import { Route as BackofficeRouteImport } from './routes/backoffice'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as EinstellungenRouteImport } from './routes/einstellungen'
+import { Route as KalenderRouteImport } from './routes/kalender'
 import { Route as KarteRouteImport } from './routes/karte'
 import { Route as KontakteRouteImport } from './routes/kontakte'
 import { Route as LeadsRouteImport } from './routes/leads'
@@ -58,6 +59,11 @@ const EinstellungenRoute = EinstellungenRouteImport.update({
   path: '/einstellungen',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KalenderRoute = KalenderRouteImport.update({
+  id: '/kalender',
+  path: '/kalender',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const KarteRoute = KarteRouteImport.update({
   id: '/karte',
   path: '/karte',
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/backoffice': typeof BackofficeRoute
   '/dashboard': typeof DashboardRoute
   '/einstellungen': typeof EinstellungenRoute
+  '/kalender': typeof KalenderRoute
   '/karte': typeof KarteRoute
   '/kontakte': typeof KontakteRoute
   '/leads': typeof LeadsRoute
@@ -112,6 +119,7 @@ export interface FileRoutesByTo {
   '/backoffice': typeof BackofficeRoute
   '/dashboard': typeof DashboardRoute
   '/einstellungen': typeof EinstellungenRoute
+  '/kalender': typeof KalenderRoute
   '/karte': typeof KarteRoute
   '/kontakte': typeof KontakteRoute
   '/leads': typeof LeadsRoute
@@ -128,6 +136,7 @@ export interface FileRoutesById {
   '/backoffice': typeof BackofficeRoute
   '/dashboard': typeof DashboardRoute
   '/einstellungen': typeof EinstellungenRoute
+  '/kalender': typeof KalenderRoute
   '/karte': typeof KarteRoute
   '/kontakte': typeof KontakteRoute
   '/leads': typeof LeadsRoute
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/backoffice'
     | '/dashboard'
     | '/einstellungen'
+    | '/kalender'
     | '/karte'
     | '/kontakte'
     | '/leads'
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/backoffice'
     | '/dashboard'
     | '/einstellungen'
+    | '/kalender'
     | '/karte'
     | '/kontakte'
     | '/leads'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/backoffice'
     | '/dashboard'
     | '/einstellungen'
+    | '/kalender'
     | '/karte'
     | '/kontakte'
     | '/leads'
@@ -191,6 +203,7 @@ export interface RootRouteChildren {
   BackofficeRoute: typeof BackofficeRoute
   DashboardRoute: typeof DashboardRoute
   EinstellungenRoute: typeof EinstellungenRoute
+  KalenderRoute: typeof KalenderRoute
   KarteRoute: typeof KarteRoute
   KontakteRoute: typeof KontakteRoute
   LeadsRoute: typeof LeadsRoute
@@ -250,6 +263,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EinstellungenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/kalender': {
+      id: '/kalender'
+      path: '/kalender'
+      fullPath: '/kalender'
+      preLoaderRoute: typeof KalenderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/karte': {
       id: '/karte'
       path: '/karte'
@@ -303,6 +323,7 @@ const rootRouteChildren: RootRouteChildren = {
   BackofficeRoute: BackofficeRoute,
   DashboardRoute: DashboardRoute,
   EinstellungenRoute: EinstellungenRoute,
+  KalenderRoute: KalenderRoute,
   KarteRoute: KarteRoute,
   KontakteRoute: KontakteRoute,
   LeadsRoute: LeadsRoute,

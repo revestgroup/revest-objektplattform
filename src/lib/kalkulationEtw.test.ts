@@ -4,6 +4,7 @@
  * Anzeige: Euro ganz, Prozent auf eine Stelle.
  */
 import { describe, expect, test } from "bun:test";
+import { verkaufspreisePruefen } from "./kalkulationEtw";
 
 import {
   AUFWERTUNGSKATALOG,
@@ -95,5 +96,21 @@ describe("Aufwertungskatalog", () => {
       katalogSumme({ katalog: { architekt: 1 }, preise: { architekt: 3_000 } }, vorgaben, 55)
         .gesamt,
     ).toBe(3_000);
+  });
+});
+
+describe("Verkaufspreise prüfen", () => {
+  test("über 20 % in beide Richtungen, ohne Referenz nichts", () => {
+    expect(verkaufspreisePruefen(552_000, { kaufpreisReferenz: 445_000 })?.prozent).toBeCloseTo(
+      24.04,
+      1,
+    );
+    expect(verkaufspreisePruefen(340_000, { kaufpreisReferenz: 445_000 })?.prozent).toBeCloseTo(
+      -23.6,
+      1,
+    );
+    expect(verkaufspreisePruefen(534_000, { kaufpreisReferenz: 445_000 })).toBeNull(); // genau 20 %
+    expect(verkaufspreisePruefen(552_000, {})).toBeNull();
+    expect(verkaufspreisePruefen(null, { kaufpreisReferenz: 445_000 })).toBeNull();
   });
 });

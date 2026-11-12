@@ -119,6 +119,18 @@ function EinstellungenSeite() {
           <SuchprofilPflegen />
         </section>
 
+        {/* ----- Kalender ----- */}
+        <section className="px-4 py-7 sm:px-6 md:px-10 md:py-10">
+          <h2 className="mini-label">Google Kalender</h2>
+          <p className="mt-2 max-w-2xl text-[0.7rem] leading-relaxed text-grau">
+            Kalender-ID für „Kalender“ und die Termine auf der Startseite. Zu finden in Google
+            Kalender → Einstellungen → Kalender auswählen → „Kalender integrieren“ → Kalender-ID
+            (beim eigenen Kalender die E-Mail-Adresse). Ein privater Kalender ist nur sichtbar, wenn
+            du im selben Browser bei Google angemeldet bist.
+          </p>
+          <Kalenderfeld />
+        </section>
+
         {/* ----- Ziele ----- */}
         <section className="px-4 py-7 sm:px-6 md:px-10 md:py-10">
           <h2 className="mini-label">Ziele</h2>
@@ -355,5 +367,19 @@ function Zielfelder() {
         </label>
       ))}
     </div>
+  );
+}
+
+function Kalenderfeld() {
+  const { kalenderId, kalenderIdSetzen } = useEinstellungen();
+  return (
+    <input
+      key={kalenderId}
+      defaultValue={kalenderId}
+      onBlur={(e) => kalenderIdSetzen(e.target.value.trim())}
+      placeholder="name@revest-projekt.de"
+      aria-label="Google-Kalender-ID"
+      className="mt-4 h-9 w-full max-w-md rounded-xl border border-linie bg-flaeche px-3 text-[0.8rem] text-tinte focus:border-linie-stark focus:outline-none"
+    />
   );
 }

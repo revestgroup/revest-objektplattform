@@ -19,6 +19,8 @@ const SPEICHER_VORGABEN = "revest.kalkulationsvorgaben.v1";
 const SPEICHER_BANK = "revest.bankverbindung.v1";
 /** Ziele der Auswertung. */
 const SPEICHER_ZIELE = "revest.ziele.v1";
+/** Google-Kalender-ID für die eingebettete Ansicht. */
+const SPEICHER_KALENDER = "revest.kalender.v1";
 
 export interface Bankverbindung {
   inhaber: string;
@@ -41,6 +43,8 @@ interface StoreWert {
   bankSetzen: (b: Bankverbindung) => void;
   ziele: Ziele;
   zieleSetzen: (teil: Partial<Ziele>) => void;
+  kalenderId: string;
+  kalenderIdSetzen: (id: string) => void;
 }
 
 const Kontext = createContext<StoreWert | null>(null);
@@ -51,11 +55,13 @@ export function EinstellungenProvider({ children }: { children: ReactNode }) {
   const [bereit, setBereit] = useState(false);
   const [bank, setBank] = useState<Bankverbindung>({ inhaber: "Revest Projekt GmbH", iban: "" });
   const [ziele, setZiele] = useState<Ziele>(STANDARD_ZIELE);
+  const [kalenderId, setKalenderId] = useState("");
 
   useEffect(() => {
     try {
       const roh = localStorage.getItem(SPEICHER);
       if (roh) setEinstellungen({ ...STANDARD, ...(JSON.parse(roh) as Partial<Einstellungen>) });
+      setKalenderId(localStorage.getItem(SPEICHER_KALENDER) ?? "");
       const rohZ = localStorage.getItem(SPEICHER_ZIELE);
       if (rohZ) setZiele({ ...STANDARD_ZIELE, ...(JSON.parse(rohZ) as Partial<Ziele>) });
       const rohB = localStorage.getItem(SPEICHER_BANK);
@@ -81,10 +87,11 @@ export function EinstellungenProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(SPEICHER_VORGABEN, JSON.stringify(vorgaben));
       localStorage.setItem(SPEICHER_BANK, JSON.stringify(bank));
       localStorage.setItem(SPEICHER_ZIELE, JSON.stringify(ziele));
+      localStorage.setItem(SPEICHER_KALENDER, kalenderId);
     } catch {
       // siehe unten
     }
-  }, [vorgaben, bank, ziele, bereit]);
+  }, [vorgaben, bank, ziele, kalenderId, bereit]);
 
   useEffect(() => {
     if (!bereit) return;
@@ -123,8 +130,10 @@ export function EinstellungenProvider({ children }: { children: ReactNode }) {
       bankSetzen: setBank,
       ziele,
       zieleSetzen: (teil) => setZiele((alt) => ({ ...alt, ...teil })),
+      kalenderId,
+      kalenderIdSetzen: setKalenderId,
     }),
-    [einstellungen, vorgaben, bank, ziele, bereit, setzen],
+    [einstellungen, vorgaben, bank, ziele, kalenderId, bereit, setzen],
   );
 
   return <Kontext.Provider value={wert}>{children}</Kontext.Provider>;
