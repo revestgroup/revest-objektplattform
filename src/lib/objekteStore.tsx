@@ -336,7 +336,7 @@ export function ObjekteProvider({ children }: { children: ReactNode }) {
             if (o.id !== id || o.stufe === stufe) return o;
             const verlauf = [
               ...o.verlauf,
-              eintrag("status", `Stufe auf ${STUFEN[stufe].titel} gesetzt`),
+              { ...eintrag("status", `Stufe auf ${STUFEN[stufe].titel} gesetzt`), stufe },
             ];
             if (stufe !== "angekauft" || o.kuerzel) return { ...o, stufe, verlauf };
             const kuerzel = kuerzelVorschlag(o.strasse, andereKuerzel(alle, o.id));

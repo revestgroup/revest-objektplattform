@@ -12,6 +12,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 
 import { Seitenkopf } from "../components/AppLayout";
+import { Leadauswertung } from "../components/Leadauswertung";
 import {
   EINHEITSSTATUS,
   OBJEKTARTEN,
@@ -42,6 +43,9 @@ function AuswertungSeite() {
         <div className="h-64" />
       ) : (
         <div className="divide-y divide-linie">
+          {/* ----- Pipeline-Historie: Zeitraum, Trichter, Ziele, Quellen ----- */}
+          <Leadauswertung objekte={objekte} />
+
           {/* ----- Stückzahlen ----- */}
           {/* Standen früher als Kacheln über der Ankaufsliste. Dort waren sie
               im Weg — wer eine Liste öffnet, sucht ein Objekt, keine Summe.

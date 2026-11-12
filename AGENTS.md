@@ -81,6 +81,13 @@ für den Datenraum (Vorrang Ordner `05_Verkauf/00_Vertrieb`), Nachkalkulation So
 Mid-Case bzw. Verkaufsplanung) gegen Ist (von Hand, vorbelegt aus Kaufpreis, Gewerken,
 Nachberechnung, verkauften Einheiten), Abschluss-Checkliste mit automatisch erkannten Punkten.
 
+## Auswertung
+
+`src/lib/auswertung.ts` (Tests daneben), oberer Teil der Seite in `components/Leadauswertung.tsx`.
+Alles aus der Pipeline-Historie: Stufenwechsel tragen seit Block M `stufe` im Verlaufseintrag,
+ältere werden aus dem Text gelesen (`ALTE_NAMEN`). Übersprungene Stufen zählen mit. Ziele stehen
+in den Einstellungen (`revest.ziele.v1`) und werden auf den gewählten Zeitraum umgerechnet.
+
 ## Kontaktregister
 
 `src/lib/kontakte.ts` (Tests daneben), Seite `routes/kontakte.tsx`. Ein Kontakt ist ein

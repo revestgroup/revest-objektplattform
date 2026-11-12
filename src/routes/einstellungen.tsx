@@ -119,6 +119,16 @@ function EinstellungenSeite() {
           <SuchprofilPflegen />
         </section>
 
+        {/* ----- Ziele ----- */}
+        <section className="px-4 py-7 sm:px-6 md:px-10 md:py-10">
+          <h2 className="mini-label">Ziele</h2>
+          <p className="mt-2 max-w-2xl text-[0.7rem] leading-relaxed text-grau">
+            Erscheinen in der Auswertung als Fortschrittsbalken, umgerechnet auf den gewählten
+            Zeitraum. Leer heißt: kein Ziel.
+          </p>
+          <Zielfelder />
+        </section>
+
         {/* ----- Bankverbindung ----- */}
         <section className="px-4 py-7 sm:px-6 md:px-10 md:py-10">
           <h2 className="mini-label">Bankverbindung für Abrechnungen</h2>
@@ -308,6 +318,42 @@ function Bankfelder() {
           onBlur={(e) => bankSetzen({ ...bank, iban: e.target.value.replace(/\s+/g, " ").trim() })}
         />
       </label>
+    </div>
+  );
+}
+
+function Zielfelder() {
+  const { ziele, zieleSetzen } = useEinstellungen();
+  const feld =
+    "zahl h-9 w-full rounded-xl border border-linie bg-flaeche px-3 text-right text-[0.8rem] text-tinte focus:border-linie-stark focus:outline-none";
+  const zahl = (t: string) => {
+    const n = Number(t.replace(/\./g, "").replace(",", "."));
+    return t.trim() === "" || !Number.isFinite(n) ? null : n;
+  };
+  const felder = [
+    ["leadsWoche", "Leads pro Woche"],
+    ["besichtigungenMonat", "Besichtigungen pro Monat"],
+    ["angeboteMonat", "Angebote pro Monat"],
+    ["ankaeufeJahr", "Ankäufe pro Jahr"],
+    ["jahresgewinn", "Jahresgewinn €"],
+    ["haengtNachTagen", "Lead hängt nach Tagen"],
+  ] as const;
+  return (
+    <div key={JSON.stringify(ziele)} className="mt-4 grid max-w-3xl gap-2.5 sm:grid-cols-3">
+      {felder.map(([k, t]) => (
+        <label key={k} className="flex flex-col gap-1">
+          <span className="mini-label">{t}</span>
+          <input
+            className={feld}
+            inputMode="numeric"
+            defaultValue={ziele[k] ?? ""}
+            onBlur={(e) => {
+              const n = zahl(e.target.value);
+              zieleSetzen(k === "haengtNachTagen" ? { haengtNachTagen: n ?? 21 } : { [k]: n });
+            }}
+          />
+        </label>
+      ))}
     </div>
   );
 }

@@ -816,6 +816,8 @@ export interface Verlaufseintrag {
    * Woher der Eintrag kommt. Phase 2: Gmail und Kalender docken hier an,
    * `externeId` verhindert doppelte Einträge beim Abgleich.
    */
+  /** Bei `status`: auf welche Stufe gewechselt wurde — Grundlage der Auswertung. */
+  stufe?: Ankaufsstufe;
   quelle?: "hand" | "gmail" | "kalender" | "system";
   externeId?: string | null;
   /**

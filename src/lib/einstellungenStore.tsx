@@ -8,6 +8,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
+import { STANDARD_ZIELE, type Ziele } from "./auswertung";
 import { STANDARD, type Einstellungen, type Schluessel } from "./einstellungen";
 import { STANDARD_VORGABEN, type EtwVorgaben } from "./kalkulationEtw";
 
@@ -16,6 +17,8 @@ const SPEICHER = "revest.einstellungen.v1";
 const SPEICHER_VORGABEN = "revest.kalkulationsvorgaben.v1";
 /** Bankverbindung für Abrechnungen an Käufer (Nachberechnung). */
 const SPEICHER_BANK = "revest.bankverbindung.v1";
+/** Ziele der Auswertung. */
+const SPEICHER_ZIELE = "revest.ziele.v1";
 
 export interface Bankverbindung {
   inhaber: string;
@@ -36,6 +39,8 @@ interface StoreWert {
   vorgabenZuruecksetzen: () => void;
   bank: Bankverbindung;
   bankSetzen: (b: Bankverbindung) => void;
+  ziele: Ziele;
+  zieleSetzen: (teil: Partial<Ziele>) => void;
 }
 
 const Kontext = createContext<StoreWert | null>(null);
@@ -45,11 +50,14 @@ export function EinstellungenProvider({ children }: { children: ReactNode }) {
   const [vorgaben, setVorgaben] = useState<EtwVorgaben>(STANDARD_VORGABEN);
   const [bereit, setBereit] = useState(false);
   const [bank, setBank] = useState<Bankverbindung>({ inhaber: "Revest Projekt GmbH", iban: "" });
+  const [ziele, setZiele] = useState<Ziele>(STANDARD_ZIELE);
 
   useEffect(() => {
     try {
       const roh = localStorage.getItem(SPEICHER);
       if (roh) setEinstellungen({ ...STANDARD, ...(JSON.parse(roh) as Partial<Einstellungen>) });
+      const rohZ = localStorage.getItem(SPEICHER_ZIELE);
+      if (rohZ) setZiele({ ...STANDARD_ZIELE, ...(JSON.parse(rohZ) as Partial<Ziele>) });
       const rohB = localStorage.getItem(SPEICHER_BANK);
       if (rohB) setBank(JSON.parse(rohB) as Bankverbindung);
       const rohV = localStorage.getItem(SPEICHER_VORGABEN);
@@ -72,10 +80,11 @@ export function EinstellungenProvider({ children }: { children: ReactNode }) {
     try {
       localStorage.setItem(SPEICHER_VORGABEN, JSON.stringify(vorgaben));
       localStorage.setItem(SPEICHER_BANK, JSON.stringify(bank));
+      localStorage.setItem(SPEICHER_ZIELE, JSON.stringify(ziele));
     } catch {
       // siehe unten
     }
-  }, [vorgaben, bank, bereit]);
+  }, [vorgaben, bank, ziele, bereit]);
 
   useEffect(() => {
     if (!bereit) return;
@@ -112,8 +121,10 @@ export function EinstellungenProvider({ children }: { children: ReactNode }) {
       vorgabenZuruecksetzen: () => setVorgaben(STANDARD_VORGABEN),
       bank,
       bankSetzen: setBank,
+      ziele,
+      zieleSetzen: (teil) => setZiele((alt) => ({ ...alt, ...teil })),
     }),
-    [einstellungen, vorgaben, bank, bereit, setzen],
+    [einstellungen, vorgaben, bank, ziele, bereit, setzen],
   );
 
   return <Kontext.Provider value={wert}>{children}</Kontext.Provider>;
