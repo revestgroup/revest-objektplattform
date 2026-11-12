@@ -65,6 +65,9 @@ gelöscht wird nichts, `sichtbareUmmeldungen` blendet unberührte, nicht zutreff
 Kopf „Übergabe“, Zähler, Objektinfos und Vorlage: `components/Abwicklung.tsx`. Der
 Schlüsselbox-Code steht nur in `infos.schluesselboxCode` (verdecktes Feld) — nie in Notizen,
 Verlauf, Listen oder Beispieldaten; `infosText` lässt ihn weg.
+Übergabeprotokoll (Block O): `lib/uebergabe.ts` (Tests daneben), `Objekt.uebergaben` je Richtung
+und Einheit; Zähler bleiben in `Objekt.zaehler` (eine Liste für Protokoll und Ab-/Ummeldungen).
+`ausAnkaufUebernehmen` übernimmt Zähler/Schlüssel in den Verkauf, nur Stände sind neu.
 
 ## Nachberechnung
 

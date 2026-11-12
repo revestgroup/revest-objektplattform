@@ -17,10 +17,13 @@ import {
   ZAEHLERARTEN,
   type Objekt,
   type Objektinfos,
+  type Uebergabeprotokoll,
   type Zaehler,
   type Zaehlerart,
 } from "../lib/objekte";
+import { useAufgaben } from "../lib/aufgabenStore";
 import { useObjekte } from "../lib/objekteStore";
+import { ausAnkaufUebernehmen, mitProtokoll, protokollVon, zaehlerHinweis } from "../lib/uebergabe";
 import { fehlendeAngaben, type Objektgruppe, type Uebergabeangaben } from "../lib/ummeldungen";
 import { cn } from "../lib/utils";
 
@@ -245,14 +248,7 @@ export function Zaehlerstaende({
         <ul className="mt-2 flex flex-col gap-2">
           {liste.map((z) => {
             const vorschau = VORSCHAU.get(z.id);
-            const hinweis =
-              z.stand === "0"
-                ? "Stand 0 — bitte prüfen"
-                : !z.nummer
-                  ? "Zählernummer fehlt"
-                  : z.art === "strom" && !z.maloId
-                    ? "MaLo-ID fehlt (Strom-Ummeldung braucht sie)"
-                    : null;
+            const hinweis = zaehlerHinweis(z);
             return (
               <li key={z.id} className="rounded-xl border border-linie bg-flaeche px-3 py-2.5">
                 <div className="flex flex-wrap items-center gap-2">
@@ -481,6 +477,278 @@ export function Protokollvorlage({ objekt }: { objekt: Objekt }) {
           }}
         />
       </label>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Übergabeprotokoll (Block O)                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * PDF aus der Handy-App plus Kerndaten: Anwesende, Schlüssel, Mängel,
+ * Bemerkungen. Zähler stehen darunter (eine Liste für Protokoll und
+ * Ab-/Ummeldungen). Offene Mängel werden mit einem Klick zur Aufgabe.
+ */
+export function Protokollfeld({
+  objekt,
+  richtung,
+  einheitId,
+}: {
+  objekt: Objekt;
+  richtung: "an" | "ab";
+  einheitId: string | null;
+}) {
+  const { aendern } = useObjekte();
+  const { anlegen } = useAufgaben();
+  const p = protokollVon(objekt, richtung, einheitId);
+  const [, neuZeichnen] = useState(0);
+  const [person, setPerson] = useState("");
+  const [mangel, setMangel] = useState("");
+  const setze = (teil: Partial<Uebergabeprotokoll>) =>
+    aendern(objekt.id, { uebergaben: mitProtokoll(objekt, { ...p, ...teil }) });
+  const vorschau = VORSCHAU.get(`pdf-${p.id}`);
+  const vorschlaege = objekt.kontakte.map((k) => k.name).filter(Boolean);
+  const neueId = (x: string) =>
+    `${x}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  const hatAnkauf = richtung === "ab" && (objekt.zaehler ?? []).some((z) => z.richtung === "an");
+
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-linie bg-flaeche px-4 py-3.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="mini-label">Übergabeprotokoll</div>
+        {richtung === "ab" && einheitId && hatAnkauf && (
+          <button
+            type="button"
+            onClick={() => aendern(objekt.id, ausAnkaufUebernehmen(objekt, einheitId))}
+            className="druckbar rounded-full border border-linie-stark px-3 py-1 text-[0.64rem] font-semibold text-tinte"
+          >
+            Zähler und Schlüssel aus dem Ankauf übernehmen
+          </button>
+        )}
+        <label className="druckbar ml-auto flex cursor-pointer items-center gap-1.5 rounded-full bg-tinte px-3 py-1 text-[0.64rem] font-semibold text-grund">
+          <FileUp size={11} />
+          {p.pdf ? "PDF ersetzen" : "Protokoll-PDF hochladen"}
+          <input
+            type="file"
+            accept="application/pdf,image/*"
+            className="hidden"
+            onChange={(e) => {
+              const d = e.target.files?.[0];
+              if (!d) return;
+              VORSCHAU.set(`pdf-${p.id}`, URL.createObjectURL(d));
+              setze({ pdf: { name: d.name } });
+              neuZeichnen((n) => n + 1);
+              e.target.value = "";
+            }}
+          />
+        </label>
+      </div>
+      {p.pdf && (
+        <div className="text-[0.68rem] text-grau-stark">
+          {vorschau ? (
+            <a href={vorschau} target="_blank" rel="noreferrer" className="underline">
+              {p.pdf.name}
+            </a>
+          ) : (
+            <>{p.pdf.name} (Vorschau nur in der Sitzung des Uploads, bis Phase 2)</>
+          )}
+          <span className="ml-2 text-grau">
+            Phase 2: KI liest das PDF aus und füllt die Felder vor.
+          </span>
+        </div>
+      )}
+
+      {/* ----- Anwesende ----- */}
+      <div>
+        <span className="text-[0.58rem] tracking-[0.12em] uppercase text-grau">Anwesende</span>
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+          {p.anwesende.map((a) => (
+            <span
+              key={a}
+              className="flex items-center gap-1 rounded-full bg-flaeche-hoch px-2.5 py-0.5 text-[0.7rem] text-tinte"
+            >
+              {a}
+              <button
+                type="button"
+                onClick={() => setze({ anwesende: p.anwesende.filter((x) => x !== a) })}
+                aria-label={`${a} entfernen`}
+                className="text-grau hover:text-[#9A2727]"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!person.trim() || p.anwesende.includes(person.trim())) return;
+              setze({ anwesende: [...p.anwesende, person.trim()] });
+              setPerson("");
+            }}
+          >
+            <input
+              list={`anwesende-${p.id}`}
+              value={person}
+              onChange={(e) => setPerson(e.target.value)}
+              placeholder="+ Person"
+              aria-label="Anwesende Person hinzufügen"
+              className="w-40 rounded-full border border-linie bg-grund px-2.5 py-0.5 text-[0.7rem]"
+            />
+            <datalist id={`anwesende-${p.id}`}>
+              {vorschlaege.map((v) => (
+                <option key={v} value={v} />
+              ))}
+            </datalist>
+          </form>
+        </div>
+      </div>
+
+      {/* ----- Schlüssel ----- */}
+      <div>
+        <div className="flex items-center gap-2">
+          <span className="text-[0.58rem] tracking-[0.12em] uppercase text-grau">Schlüssel</span>
+          <button
+            type="button"
+            onClick={() =>
+              setze({
+                schluessel: [
+                  ...p.schluessel,
+                  { id: neueId("s"), art: "", anzahl: null, bemerkung: null },
+                ],
+              })
+            }
+            className="flex items-center gap-1 text-[0.62rem] font-semibold text-grau-stark hover:text-tinte"
+          >
+            <Plus size={10} /> Schlüssel
+          </button>
+        </div>
+        {p.schluessel.map((s) => (
+          <div key={s.id} className="mt-1 grid grid-cols-[1fr_5rem_1.5fr_auto] gap-1.5">
+            <Textfeld
+              label="Art"
+              platzhalter="z. B. Wohnung, Haustür, Briefkasten"
+              wert={s.art}
+              setWert={(v) =>
+                setze({
+                  schluessel: p.schluessel.map((x) => (x.id === s.id ? { ...x, art: v ?? "" } : x)),
+                })
+              }
+            />
+            <Textfeld
+              label="Anzahl"
+              platzhalter="Anzahl"
+              wert={s.anzahl !== null ? String(s.anzahl) : null}
+              setWert={(v) =>
+                setze({
+                  schluessel: p.schluessel.map((x) =>
+                    x.id === s.id ? { ...x, anzahl: v ? Number(v) || null : null } : x,
+                  ),
+                })
+              }
+            />
+            <Textfeld
+              label="Bemerkung"
+              platzhalter="Bemerkung"
+              wert={s.bemerkung}
+              setWert={(v) =>
+                setze({
+                  schluessel: p.schluessel.map((x) => (x.id === s.id ? { ...x, bemerkung: v } : x)),
+                })
+              }
+            />
+            <button
+              type="button"
+              onClick={() => setze({ schluessel: p.schluessel.filter((x) => x.id !== s.id) })}
+              aria-label="Schlüssel entfernen"
+              className="druckbar flex size-7 items-center justify-center rounded-full text-grau hover:text-[#9A2727]"
+            >
+              <Trash2 size={11} />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* ----- Mängel ----- */}
+      <div>
+        <span className="text-[0.58rem] tracking-[0.12em] uppercase text-grau">
+          Bemerkungen / Mängel
+        </span>
+        <ul className="mt-1 flex flex-col gap-1">
+          {p.maengel.map((m) => (
+            <li key={m.id} className="flex flex-wrap items-center gap-2 text-[0.74rem]">
+              <label className="flex items-center gap-1 text-[0.64rem] text-grau">
+                <input
+                  type="checkbox"
+                  checked={m.offen}
+                  onChange={(e) =>
+                    setze({
+                      maengel: p.maengel.map((x) =>
+                        x.id === m.id ? { ...x, offen: e.target.checked } : x,
+                      ),
+                    })
+                  }
+                />
+                offen
+              </label>
+              <span
+                className={cn("min-w-0 flex-1", m.offen ? "text-tinte" : "text-grau line-through")}
+              >
+                {m.text}
+              </span>
+              {m.aufgabeId ? (
+                <span className="text-[0.62rem] text-[#0C5E3A]">Aufgabe angelegt</span>
+              ) : (
+                m.offen && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const a = anlegen({
+                        titel: `Mangel: ${m.text}`,
+                        beschreibung: `Aus dem Übergabeprotokoll${richtung === "ab" ? " (Verkauf)" : " (Ankauf)"}`,
+                        objektId: objekt.id,
+                        art: "sonst",
+                        dringlichkeit: "normal",
+                        faelligAm: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+                      });
+                      setze({
+                        maengel: p.maengel.map((x) =>
+                          x.id === m.id ? { ...x, aufgabeId: a.id } : x,
+                        ),
+                      });
+                    }}
+                    className="druckbar rounded-full border border-linie-stark px-2 py-0.5 text-[0.62rem] font-semibold text-tinte"
+                  >
+                    → Aufgabe
+                  </button>
+                )
+              )}
+            </li>
+          ))}
+        </ul>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!mangel.trim()) return;
+            setze({
+              maengel: [
+                ...p.maengel,
+                { id: neueId("m"), text: mangel.trim(), offen: true, aufgabeId: null },
+              ],
+            });
+            setMangel("");
+          }}
+          className="mt-1"
+        >
+          <input
+            value={mangel}
+            onChange={(e) => setMangel(e.target.value)}
+            placeholder="+ Mangel oder Bemerkung (Enter)"
+            aria-label="Mangel hinzufügen"
+            className={FELD}
+          />
+        </form>
+      </div>
     </div>
   );
 }

@@ -156,7 +156,7 @@ function reiterTitel(r: Reiter, projekt: boolean): string {
 const REITER_TITEL: Record<Reiter, string> = {
   uebersicht: "Übersicht",
   pruefung: "Checkliste Ankauf",
-  ummeldungen: "Ummeldungen",
+  ummeldungen: "Übergabe & Abmeldungen",
   aufgaben: "Aufgaben",
   kontakt: "Kontakte",
   verkauf: "Kalkulation",

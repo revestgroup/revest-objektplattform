@@ -8,7 +8,13 @@ import { AlertTriangle, FolderOpen } from "lucide-react";
 import { useState } from "react";
 
 import { f, liegtIn, type Einheit, type Gesellschaft, type Objekt } from "../lib/objekte";
-import { Objektinfofelder, Protokollvorlage, Uebergabekopf, Zaehlerstaende } from "./Abwicklung";
+import {
+  Objektinfofelder,
+  Protokollfeld,
+  Protokollvorlage,
+  Uebergabekopf,
+  Zaehlerstaende,
+} from "./Abwicklung";
 import { useObjekte } from "../lib/objekteStore";
 import {
   UMMELDEARTEN,
@@ -23,6 +29,7 @@ import {
 } from "../lib/ummeldungen";
 import { cn } from "../lib/utils";
 import { anzeigename } from "../lib/kontakte";
+import { zaehlerFuer } from "../lib/uebergabe";
 
 /** Welche Kategorien im Register als Anbieter in Frage kommen. */
 const ANBIETER_KATEGORIEN: Record<Ummeldung["art"], string[]> = {
@@ -178,6 +185,7 @@ function Ankaufsabwicklung({ objekt }: { objekt: Objekt }) {
           setze={(t) => aendern(objekt.id, { infos: { ...objekt.infos, ...t } })}
         />
       </div>
+      <Protokollfeld objekt={objekt} richtung="an" einheitId={null} />
       <Zaehlerstaende objekt={objekt} richtung="an" einheitId={null} />
       <Liste
         objekt={objekt}
@@ -234,6 +242,7 @@ function Verkaufsabwicklung({ objekt, einheit: e }: { objekt: Objekt; einheit: E
           setze={(t) => setzeEinheit({ infos: { ...e.infos, ...t } })}
         />
       </div>
+      <Protokollfeld objekt={objekt} richtung="ab" einheitId={e.id} />
       <Zaehlerstaende objekt={objekt} richtung="ab" einheitId={e.id} />
       <Liste
         objekt={objekt}
@@ -302,6 +311,8 @@ function Eintrag({
     .map((r) => anzeigename(r));
   const setze = (teil: Partial<Ummeldung>) => ummeldungSetzen(objekt.id, u.id, teil);
   const ueberfaellig = istUeberfaellig(objekt, u);
+  // Zählerdaten aus dem Übergabeprotokoll — überschreibbar.
+  const ausProtokoll = zaehlerFuer(objekt, u);
   const dateien = objekt.dokumente.filter((d) => liegtIn(d.ordner, art.ordner)).length;
 
   function status(neu: Ummeldestatus) {
@@ -376,13 +387,15 @@ function Eintrag({
         {art.zaehler && (
           <>
             <Feld
+              key={`nummer-${u.zaehlernummer ?? ausProtokoll?.nummer ?? ""}`}
               label="Zählernummer"
-              wert={u.zaehlernummer}
+              wert={u.zaehlernummer ?? ausProtokoll?.nummer}
               setWert={(v) => setze({ zaehlernummer: v })}
             />
             <Feld
+              key={`stand-${u.zaehlerstand ?? ausProtokoll?.stand ?? ""}`}
               label="Zählerstand"
-              wert={u.zaehlerstand}
+              wert={u.zaehlerstand ?? ausProtokoll?.stand}
               setWert={(v) => setze({ zaehlerstand: v })}
             />
           </>

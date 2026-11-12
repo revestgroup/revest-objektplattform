@@ -58,6 +58,7 @@ Lies zuerst `AGENTS.md` und halte dich an die Design-Regeln (deutsche Benennung,
 | Ausbau L: Projektabschluss | erledigt (Datenraum freigeben, Ist aus Qonto: Phase 2) | `ausbau/l-projektabschluss` |
 | Ausbau M: Auswertung | erledigt | `ausbau/m-auswertung` |
 | Ausbau N: Kleinigkeiten (Hinweis Verkaufspreise, Google Kalender) | erledigt (Kalender-Sync: Phase 2) | `ausbau/n-kleinigkeiten` |
+| Ausbau O: Übergabeprotokoll | erledigt (KI-Auslesen, Übergabe am Handy mit Unterschrift: Phase 2) | `ausbau/o-uebergabe` |
 
 Aufgaben 0–4 sind seit 08.11.2026 in `main`. Feinschliff-Blöcke je eigener Branch ab `main`, nach Test gemergt.
 

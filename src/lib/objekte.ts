@@ -636,6 +636,23 @@ export interface Zaehler {
   einheitId: string | null;
 }
 
+/**
+ * Übergabeprotokoll (SAMMLUNG 9), Stufe 1: das PDF aus der Handy-App plus
+ * die Kerndaten, die anderswo gebraucht werden. Datum = Besitzübergang bzw.
+ * Übergabe der Einheit, Zähler stehen in `Objekt.zaehler`.
+ * Phase 2: KI liest das PDF aus und füllt diese Felder vor.
+ */
+export interface Uebergabeprotokoll {
+  id: string;
+  richtung: "an" | "ab";
+  einheitId: string | null;
+  pdf: { name: string } | null;
+  anwesende: string[];
+  schluessel: { id: string; art: string; anzahl: number | null; bemerkung: string | null }[];
+  maengel: { id: string; text: string; offen: boolean; aufgabeId: string | null }[];
+  bemerkungen: string | null;
+}
+
 export interface Teilungserklaerung {
   gestartetAm: string;
   status: Teilungsstatus;
@@ -991,6 +1008,8 @@ export interface Objekt {
   nachkalkulation?: Nachkalkulation;
   /** Abschluss-Checkliste: von Hand erledigte Punkte. */
   abschluss?: Record<string, { erledigtAm: string | null }>;
+  /** Übergabeprotokolle: Ankauf und je verkaufter Einheit. */
+  uebergaben?: Uebergabeprotokoll[];
   /** Vorlage Übergabeprotokoll (xlsx/pdf), am Projekt hinterlegt. */
   uebergabeVorlage?: { name: string; groesseKb: number } | null;
   /** Objektprüfung im Ankauf. Siehe `pruefung.ts`. */
