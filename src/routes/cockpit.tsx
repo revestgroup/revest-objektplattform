@@ -10,6 +10,7 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 
 import { CockpitAlltag } from "../components/CockpitAlltag";
+import { CockpitPersoenlich } from "../components/CockpitPersoenlich";
 import { useAuth } from "../lib/auth";
 import { useBackoffice } from "../lib/backofficeStore";
 import {
@@ -115,27 +116,10 @@ function CockpitSeite() {
 
       <div className="mt-4">
         {reiter === "alltag" && <CockpitAlltag />}
-        {reiter === "persoenlich" && <Persoenlich />}
+        {reiter === "persoenlich" && <CockpitPersoenlich />}
         {reiter === "backoffice" && <BackofficeAnsicht />}
       </div>
     </div>
-  );
-}
-
-/** Kommt mit P3. Der Hinweis bleibt, bis es eine echte Anmeldung gibt. */
-function Persoenlich() {
-  return (
-    <section className="rounded-2xl border border-linie bg-flaeche p-5 shadow-karte md:p-6">
-      <h2 className="text-[0.72rem] font-semibold tracking-[0.18em] uppercase text-tinte">
-        Persönlich · Visionboard
-      </h2>
-      <p className="mt-4 rounded-xl border border-dashed border-linie-stark px-4 py-9 text-center text-[0.76rem] text-grau">
-        Tagesfokus, Visionboard, Ziele und Ideen folgen hier.
-      </p>
-      <p className="mt-3 text-[0.68rem] text-grau">
-        Persönliche Daten liegen nur in diesem Browser.
-      </p>
-    </section>
   );
 }
 

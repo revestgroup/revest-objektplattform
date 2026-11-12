@@ -20,6 +20,7 @@ import { VermietungProvider } from "../lib/vermietungStore";
 import { BackofficeProvider } from "../lib/backofficeStore";
 import { EingangProvider } from "../lib/eingangStore";
 import { CockpitProvider } from "../lib/cockpitStore";
+import { PersoenlichProvider } from "../lib/persoenlichStore";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -89,7 +90,9 @@ function RootComponent() {
                 <BackofficeProvider>
                   <EingangProvider>
                     <CockpitProvider>
-                      <Schleuse />
+                      <PersoenlichProvider>
+                        <Schleuse />
+                      </PersoenlichProvider>
                     </CockpitProvider>
                   </EingangProvider>
                 </BackofficeProvider>
