@@ -53,6 +53,8 @@ import { neueKartenId, useBackoffice } from "../lib/backofficeStore";
 import { DOKUMENT_ORDNER, UNSORTIERT, f, ordnerVorschlag, type Objekt } from "../lib/objekte";
 import type { Nachberechnungsart } from "../lib/nachberechnung";
 import { useObjekte } from "../lib/objekteStore";
+import { FrageAnTimo } from "../components/FrageAnTimo";
+import { ROLLEN, ROLLEN_REIHENFOLGE, zustaendigKarte, type Zustaendig } from "../lib/cockpit";
 import { cn } from "../lib/utils";
 
 export const Route = createFileRoute("/backoffice")({
@@ -907,6 +909,20 @@ function Kartenfenster({
               {nutzer && <option value={nutzer.name}>{nutzer.name}</option>}
             </select>
           </label>
+          <label className="flex flex-col gap-1">
+            <span className="mini-label">Zuständig</span>
+            <select
+              value={zustaendigKarte(k)}
+              onChange={(e) => setze({ zustaendig: e.target.value as Zustaendig })}
+              className={feld}
+            >
+              {ROLLEN_REIHENFOLGE.map((r) => (
+                <option key={r} value={r}>
+                  {ROLLEN[r].titel}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
         <p className="zahl text-[0.66rem] text-grau">
           {KARTENQUELLEN[k.quelle]} · Eingang {f.datum(k.eingangAm)}
@@ -960,6 +976,13 @@ function Kartenfenster({
               <ListPlus size={12} />
               In Aufgabe umwandeln
             </button>
+          </div>
+        </div>
+
+        <div>
+          <div className="mini-label">Rückfrage</div>
+          <div className="mt-2">
+            <FrageAnTimo bezug={{ art: "karte", id: k.id, titel: k.titel }} objektId={k.objektId} />
           </div>
         </div>
 

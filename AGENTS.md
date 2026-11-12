@@ -101,6 +101,17 @@ persönlichen Reiter für das Backoffice nie zu, auch nicht über `?reiter=`. `z
 und Backoffice-Karten ist optional: fehlt es, gilt `zustaendigAufgabe` (GF) bzw. `zustaendigKarte`
 (Backoffice). Keine Beispielzahlen aus dem Entwurf — alles aus den vorhandenen Daten zählen.
 
+Reiter Alltag: `components/CockpitAlltag.tsx`. Kennzahlen über `kennzahlen` (dieselben Funktionen
+wie die Auswertung). Sprint-Balken kommen aus Terminen (Aufgaben der Art Termin/Besichtigung),
+Aufgaben mit `zeitblock` (von–bis am Fälligkeitstag) und eigenen `Sprintpunkt`en; `sprintZeilen`
+schneidet aufs Fenster, belegt in Woche/Monat ganze Tage und legt Überschneidungen in Spuren.
+Gedanken, Fragen an Timo, Sprint-Punkte, Bereiche und Tisch-Vermerke stehen in `revest.cockpit.v1`.
+„Heute auf dem Tisch“: „Backoffice“ setzt `zustaendig` (Aufgabe/Karte) oder legt eine Backoffice-Karte
+an, „später“ gilt nur heute (Aufgaben rücken auf morgen). „Frage an Timo“ (`components/FrageAnTimo.tsx`)
+hängt am Kartenfenster im Backoffice; „Interessant“ in den Entscheidungen nimmt
+`useAngebotUebernehmen` aus `components/Eingang.tsx`. „+ Termin“ legt eine Termin-Aufgabe an, schreibt
+in den Objektverlauf und öffnet Google Kalender vorausgefüllt (`googleTerminAdresse`).
+
 ## Kontaktregister
 
 `src/lib/kontakte.ts` (Tests daneben), Seite `routes/kontakte.tsx`. Ein Kontakt ist ein

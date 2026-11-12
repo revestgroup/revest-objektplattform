@@ -147,13 +147,54 @@ async function objektEntwurf(e: Angebotseingang): Promise<ObjektEntwurf> {
   };
 }
 
+/**
+ * „Interessant“: legt das Objekt auf „Neu“ an oder hängt bei einem bekannten
+ * Objekt die Preisnennung an. Auch das Cockpit (Entscheidungen) nimmt das.
+ */
+export function useAngebotUebernehmen() {
+  const { eingaenge, sichten } = useEingang();
+  const { objekte, anlegen, stufeSetzen, angebotHinzufuegen, dokumenteAnhaengen } = useObjekte();
+  return async function uebernehmen(e: Angebotseingang): Promise<string> {
+    const b = wiedererkennen(e, objekte, eingaenge);
+    let objektId: string;
+    if (b?.objekt) {
+      // Bekannt: Preisnennung anhängen (falls noch nicht da) und zurück auf „Neu“.
+      const o = b.objekt;
+      if (e.preis && !o.angebote.some((a) => a.preis === e.preis && a.datum === e.eingangAm)) {
+        angebotHinzufuegen(
+          o.id,
+          {
+            datum: e.eingangAm,
+            art: "forderung",
+            preis: e.preis,
+            quelle: e.absender ?? EINGANGSQUELLEN[e.quelle],
+            ergebnis: "offen",
+            notiz: "Aus dem Ankauf-Eingang",
+          },
+          `Erneut angeboten für ${f.eur(e.preis)} (${e.absender ?? EINGANGSQUELLEN[e.quelle]})`,
+        );
+      }
+      if (!istAktiv(o.stufe) && o.stufe !== "angekauft") stufeSetzen(o.id, "neu");
+      objektId = o.id;
+    } else {
+      const neu = anlegen(await objektEntwurf(e));
+      if (e.expose)
+        dokumenteAnhaengen(neu.id, [{ name: e.expose.name, ordner: UNSORTIERT, groesseKb: 1 }]);
+      objektId = neu.id;
+    }
+    sichten(e.id, "interessant", { objektId });
+    return objektId;
+  };
+}
+
 /* ------------------------------------------------------------------ */
 /* Ansicht                                                              */
 /* ------------------------------------------------------------------ */
 
 export function Eingangsansicht({ oeffneObjekt }: { oeffneObjekt: (id: string) => void }) {
   const { eingaenge, suchprofil, bereit, sichten, zuruecknehmen } = useEingang();
-  const { objekte, anlegen, stufeSetzen, angebotHinzufuegen, dokumenteAnhaengen } = useObjekte();
+  const { objekte } = useObjekte();
+  const uebernehmen = useAngebotUebernehmen();
   const [reiter, setReiter] = useState<"sichten" | "archiv">("sichten");
   const [auswahl, setAuswahl] = useState(0);
   const [grund, setGrund] = useState<string | null>(null);
@@ -177,34 +218,7 @@ export function Eingangsansicht({ oeffneObjekt }: { oeffneObjekt: (id: string) =
     if (arbeitet) return;
     setArbeitet(true);
     try {
-      const b = wiedererkennen(e, objekte, eingaenge);
-      let objektId: string;
-      if (b?.objekt) {
-        // Bekannt: Preisnennung anhängen (falls noch nicht da) und zurück auf „Neu“.
-        const o = b.objekt;
-        if (e.preis && !o.angebote.some((a) => a.preis === e.preis && a.datum === e.eingangAm)) {
-          angebotHinzufuegen(
-            o.id,
-            {
-              datum: e.eingangAm,
-              art: "forderung",
-              preis: e.preis,
-              quelle: e.absender ?? EINGANGSQUELLEN[e.quelle],
-              ergebnis: "offen",
-              notiz: "Aus dem Ankauf-Eingang",
-            },
-            `Erneut angeboten für ${f.eur(e.preis)} (${e.absender ?? EINGANGSQUELLEN[e.quelle]})`,
-          );
-        }
-        if (!istAktiv(o.stufe) && o.stufe !== "angekauft") stufeSetzen(o.id, "neu");
-        objektId = o.id;
-      } else {
-        const neu = anlegen(await objektEntwurf(e));
-        if (e.expose)
-          dokumenteAnhaengen(neu.id, [{ name: e.expose.name, ordner: UNSORTIERT, groesseKb: 1 }]);
-        objektId = neu.id;
-      }
-      sichten(e.id, "interessant", { objektId });
+      await uebernehmen(e);
       setZuletzt({ id: e.id, text: `${e.strasse}: interessant → Stufe Neu` });
     } finally {
       setArbeitet(false);
