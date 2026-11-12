@@ -3,8 +3,9 @@
  *
  * Die Rolle steht unter eigenem Schlüssel. Gedanken, Fragen an Timo,
  * Sprint-Punkte, Bereiche und die Vermerke von „Heute auf dem Tisch“ liegen
- * zusammen unter `revest.cockpit.v1`. Persönliches (Visionboard, Fokus) kommt
- * später unter einen eigenen Schlüssel.
+ * zusammen unter `revest.cockpit.v1`, ebenso Backoffice-Routinen, ihre Haken
+ * (zugleich Zeiterfassung) und die von Hand angelegten Mails des Posteingangs.
+ * Persönliches liegt getrennt in `persoenlichStore.tsx`.
  */
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
@@ -22,6 +23,14 @@ import {
   type Tischvermerk,
   type Tischwahl,
 } from "./cockpit";
+import type { Mailvorschlag, Posteingangsmail } from "./posteingang";
+import {
+  STANDARD_ROUTINEN,
+  abgehakt,
+  type Routinehaken,
+  type Routinen,
+  type Routinepunkt,
+} from "./routine";
 
 const SPEICHER_ROLLE = "revest.rolle.v1";
 const SPEICHER = "revest.cockpit.v1";
@@ -32,6 +41,9 @@ interface Stand {
   sprintpunkte: Sprintpunkt[];
   bereiche: string[];
   tisch: Record<string, Tischvermerk>;
+  routinen: Routinen;
+  haken: Routinehaken[];
+  mails: Posteingangsmail[];
 }
 
 const LEER: Stand = {
@@ -40,6 +52,9 @@ const LEER: Stand = {
   sprintpunkte: [],
   bereiche: STANDARD_BEREICHE,
   tisch: {},
+  routinen: STANDARD_ROUTINEN,
+  haken: [],
+  mails: [],
 };
 
 interface StoreWert extends Stand {
@@ -64,6 +79,18 @@ interface StoreWert extends Stand {
   bereichHinzufuegen: (name: string) => void;
 
   tischSetzen: (schluessel: string, wahl: Tischwahl | null) => void;
+
+  /** Haken setzen oder (am selben Tag bzw. in derselben Woche) wieder entfernen. */
+  routineUmschalten: (punkt: Routinepunkt, art: "tag" | "woche") => void;
+  routinenSetzen: (r: Routinen) => void;
+
+  mailAnlegen: (
+    m: Omit<Posteingangsmail, "id" | "status" | "erledigtAm" | "verweis" | "quelle" | "externeId">,
+  ) => void;
+  mailVorschlagSetzen: (id: string, teil: Partial<Mailvorschlag>) => void;
+  mailUebernommen: (id: string, verweis: string | null) => void;
+  mailZuruecknehmen: (id: string) => void;
+  mailLoeschen: (id: string) => void;
 }
 
 const Kontext = createContext<StoreWert | null>(null);
@@ -190,6 +217,62 @@ export function CockpitProvider({ children }: { children: ReactNode }) {
         if (!n) return;
         aendern((s) => (s.bereiche.includes(n) ? s : { ...s, bereiche: [...s.bereiche, n] }));
       },
+
+      routineUmschalten: (punkt, art) =>
+        aendern((s) => {
+          const heute = new Date();
+          const treffer = abgehakt(s.haken, punkt.id, art, heute);
+          if (treffer) return { ...s, haken: s.haken.filter((h) => h !== treffer) };
+          const neu: Routinehaken = {
+            punktId: punkt.id,
+            datum: tagIso(heute),
+            minuten: punkt.minuten,
+            kategorie: punkt.kategorie,
+          };
+          return { ...s, haken: [...s.haken, neu] };
+        }),
+      routinenSetzen: (r) => aendern((s) => ({ ...s, routinen: r })),
+
+      mailAnlegen: (m) =>
+        aendern((s) => ({
+          ...s,
+          mails: [
+            {
+              ...m,
+              id: neueId("mail"),
+              status: "offen",
+              erledigtAm: null,
+              verweis: null,
+              quelle: "hand",
+              externeId: null,
+            },
+            ...s.mails,
+          ],
+        })),
+      mailVorschlagSetzen: (id, teil) =>
+        aendern((s) => ({
+          ...s,
+          mails: s.mails.map((m) =>
+            m.id === id ? { ...m, vorschlag: { ...m.vorschlag, ...teil } } : m,
+          ),
+        })),
+      mailUebernommen: (id, verweis) =>
+        aendern((s) => ({
+          ...s,
+          mails: s.mails.map((m) =>
+            m.id === id
+              ? { ...m, status: "uebernommen", erledigtAm: new Date().toISOString(), verweis }
+              : m,
+          ),
+        })),
+      mailZuruecknehmen: (id) =>
+        aendern((s) => ({
+          ...s,
+          mails: s.mails.map((m) =>
+            m.id === id ? { ...m, status: "offen", erledigtAm: null, verweis: null } : m,
+          ),
+        })),
+      mailLoeschen: (id) => aendern((s) => ({ ...s, mails: s.mails.filter((m) => m.id !== id) })),
 
       tischSetzen: (schluessel, wahl) =>
         aendern((s) => {

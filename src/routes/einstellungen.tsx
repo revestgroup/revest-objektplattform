@@ -24,6 +24,7 @@ import { useEinstellungen } from "../lib/einstellungenStore";
 import { DOKUMENT_ORDNER, BUNDESLAND_NAMEN, GRUNDERWERBSTEUER, f } from "../lib/objekte";
 import { useObjekte } from "../lib/objekteStore";
 import { STADTTEIL_NAMEN } from "../lib/stadtteile";
+import { RoutinenPflegen } from "../components/RoutinenPflegen";
 import { cn } from "../lib/utils";
 import { useVermietung } from "../lib/vermietungStore";
 
@@ -117,6 +118,16 @@ function EinstellungenSeite() {
             automatisch.
           </p>
           <SuchprofilPflegen />
+        </section>
+
+        {/* ----- Backoffice-Routine ----- */}
+        <section className="px-4 py-7 sm:px-6 md:px-10 md:py-10">
+          <h2 className="mini-label">Backoffice-Routine</h2>
+          <p className="mt-2 max-w-2xl text-[0.7rem] leading-relaxed text-grau">
+            Checkliste in der Backoffice-Ansicht des Cockpits, täglich frisch. Minuten und Kategorie
+            ergeben die Zeit je Woche und die Hochrechnung pro Monat.
+          </p>
+          <RoutinenPflegen />
         </section>
 
         {/* ----- Kalender ----- */}

@@ -6,13 +6,12 @@
  * eigene Ansicht. Bis Phase 2 gibt es keine echten Rechte, nur die Rolle.
  * Der gewählte Reiter steht in `?reiter=`.
  */
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 
 import { CockpitAlltag } from "../components/CockpitAlltag";
+import { CockpitBackoffice } from "../components/CockpitBackoffice";
 import { CockpitPersoenlich } from "../components/CockpitPersoenlich";
 import { useAuth } from "../lib/auth";
-import { useBackoffice } from "../lib/backofficeStore";
 import {
   REITER,
   ROLLEN,
@@ -117,31 +116,8 @@ function CockpitSeite() {
       <div className="mt-4">
         {reiter === "alltag" && <CockpitAlltag />}
         {reiter === "persoenlich" && <CockpitPersoenlich />}
-        {reiter === "backoffice" && <BackofficeAnsicht />}
+        {reiter === "backoffice" && <CockpitBackoffice />}
       </div>
     </div>
-  );
-}
-
-/** Kommt mit P4: Tagesroutine, Posteingang vorsortiert, Fragen an Timo, Zeit. */
-function BackofficeAnsicht() {
-  const { karten } = useBackoffice();
-  const posteingang = karten.filter((k) => k.spalte === "posteingang").length;
-  return (
-    <section className="rounded-2xl border border-linie bg-flaeche p-5 shadow-karte md:p-6">
-      <h2 className="text-[0.72rem] font-semibold tracking-[0.18em] uppercase text-tinte">
-        Backoffice
-      </h2>
-      <p className="mt-4 rounded-xl border border-dashed border-linie-stark px-4 py-9 text-center text-[0.76rem] text-grau">
-        Tagesroutine, vorsortierter Posteingang und Fragen an Timo folgen hier.
-      </p>
-      <Link
-        to="/backoffice"
-        className="druckbar mt-4 inline-flex items-center gap-1.5 rounded-full bg-tinte px-3.5 py-1.5 text-[0.68rem] font-semibold tracking-[0.1em] uppercase text-grund"
-      >
-        Zum Board{posteingang > 0 ? ` · ${posteingang} im Posteingang` : ""}
-        <ArrowRight size={11} strokeWidth={2.25} />
-      </Link>
-    </section>
   );
 }
