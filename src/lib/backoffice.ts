@@ -13,6 +13,8 @@
  * Qonto-API und Drive ihn selbst.
  */
 
+import type { Zustaendig } from "./cockpit";
+
 export type Spalte = "posteingang" | "besprechung" | "in_arbeit" | "erledigt";
 export type Weiterleitung = "qonto" | "projekt" | "ablage";
 
@@ -138,6 +140,11 @@ export interface Backofficekarte {
   checkliste: Checkpunkt[];
   /** Für später mit der Halbtagskraft: wer sich kümmert. */
   zugewiesen: string | null;
+  /**
+   * Rolle, die sich kümmert (Cockpit). Fehlt bei älteren Ständen und heißt
+   * dann Backoffice — siehe `zustaendigKarte` in `cockpit.ts`.
+   */
+  zustaendig?: Zustaendig | null;
   uebergabe: Uebergabe | null;
   verlauf: { zeitpunkt: string; text: string }[];
   /** Im Archiv seit — gesetzt erst mit bestätigter Übergabe bzw. bestätigtem „Erledigt“. */

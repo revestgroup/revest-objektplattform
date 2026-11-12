@@ -91,6 +91,16 @@ Alles aus der Pipeline-Historie: Stufenwechsel tragen seit Block M `stufe` im Ve
 ältere werden aus dem Text gelesen (`ALTE_NAMEN`). Übersprungene Stufen zählen mit. Ziele stehen
 in den Einstellungen (`revest.ziele.v1`) und werden auf den gewählten Zeitraum umgerechnet.
 
+## Cockpit
+
+Startseite `/cockpit` (`routes/cockpit.tsx`, `/dashboard` leitet um), Logik `src/lib/cockpit.ts` +
+`cockpitStore.tsx` (Tests daneben). Rollen **Geschäftsführung** und **Backoffice** über den Umschalter
+„Ich arbeite gerade als …“ (`revest.rolle.v1`), bis Phase 2 ohne echte Rechte. GF sieht die Reiter
+Alltag und Persönlich · Visionboard, das Backoffice nur seine Ansicht — `reiterWaehlen` lässt den
+persönlichen Reiter für das Backoffice nie zu, auch nicht über `?reiter=`. `zustaendig` an Aufgaben
+und Backoffice-Karten ist optional: fehlt es, gilt `zustaendigAufgabe` (GF) bzw. `zustaendigKarte`
+(Backoffice). Keine Beispielzahlen aus dem Entwurf — alles aus den vorhandenen Daten zählen.
+
 ## Kontaktregister
 
 `src/lib/kontakte.ts` (Tests daneben), Seite `routes/kontakte.tsx`. Ein Kontakt ist ein
