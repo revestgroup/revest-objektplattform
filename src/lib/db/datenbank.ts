@@ -22,6 +22,7 @@ export type Database = {
           erstellt_von: string | null
           extern_id: string | null
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           mail: Json | null
           objekt_id: string
@@ -41,6 +42,7 @@ export type Database = {
           erstellt_von?: string | null
           extern_id?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           mail?: Json | null
           objekt_id: string
@@ -60,6 +62,7 @@ export type Database = {
           erstellt_von?: string | null
           extern_id?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           mail?: Json | null
           objekt_id?: string
@@ -76,6 +79,13 @@ export type Database = {
           {
             foreignKeyName: "aktivitaeten_erstellt_von_fkey"
             columns: ["erstellt_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aktivitaeten_geaendert_von_fkey"
+            columns: ["geaendert_von"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["id"]
@@ -98,6 +108,7 @@ export type Database = {
           erstellt_am: string
           erstellt_von: string | null
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           notiz: string | null
           objekt_id: string
@@ -112,6 +123,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           notiz?: string | null
           objekt_id: string
@@ -126,6 +138,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           notiz?: string | null
           objekt_id?: string
@@ -136,6 +149,13 @@ export type Database = {
           {
             foreignKeyName: "angebote_erstellt_von_fkey"
             columns: ["erstellt_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "angebote_geaendert_von_fkey"
+            columns: ["geaendert_von"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["id"]
@@ -160,6 +180,7 @@ export type Database = {
           expose_name: string | null
           flaeche: number | null
           geaendert_am: string
+          geaendert_von: string | null
           gesichtet_am: string | null
           grund: string | null
           id: string
@@ -186,6 +207,7 @@ export type Database = {
           expose_name?: string | null
           flaeche?: number | null
           geaendert_am?: string
+          geaendert_von?: string | null
           gesichtet_am?: string | null
           grund?: string | null
           id?: string
@@ -212,6 +234,7 @@ export type Database = {
           expose_name?: string | null
           flaeche?: number | null
           geaendert_am?: string
+          geaendert_von?: string | null
           gesichtet_am?: string | null
           grund?: string | null
           id?: string
@@ -232,6 +255,13 @@ export type Database = {
           {
             foreignKeyName: "angebotseingang_erstellt_von_fkey"
             columns: ["erstellt_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "angebotseingang_geaendert_von_fkey"
+            columns: ["geaendert_von"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["id"]
@@ -264,6 +294,7 @@ export type Database = {
           erstellt_von: string | null
           faellig_am: string | null
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           objekt_id: string | null
           titel: string
@@ -282,6 +313,7 @@ export type Database = {
           erstellt_von?: string | null
           faellig_am?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           objekt_id?: string | null
           titel: string
@@ -300,6 +332,7 @@ export type Database = {
           erstellt_von?: string | null
           faellig_am?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           objekt_id?: string | null
           titel?: string
@@ -311,6 +344,13 @@ export type Database = {
           {
             foreignKeyName: "aufgaben_erstellt_von_fkey"
             columns: ["erstellt_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aufgaben_geaendert_von_fkey"
+            columns: ["geaendert_von"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["id"]
@@ -336,6 +376,7 @@ export type Database = {
           erstellt_von: string | null
           faellig_am: string | null
           geaendert_am: string
+          geaendert_von: string | null
           gesellschaft: string | null
           id: string
           notizen: string | null
@@ -366,6 +407,7 @@ export type Database = {
           erstellt_von?: string | null
           faellig_am?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           gesellschaft?: string | null
           id?: string
           notizen?: string | null
@@ -396,6 +438,7 @@ export type Database = {
           erstellt_von?: string | null
           faellig_am?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           gesellschaft?: string | null
           id?: string
           notizen?: string | null
@@ -424,6 +467,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "backoffice_karten_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "backoffice_karten_objekt_id_fkey"
             columns: ["objekt_id"]
             isOneToOne: false
@@ -442,10 +492,16 @@ export type Database = {
       dokumente: {
         Row: {
           archiviert_am: string | null
+          checklistenpunkt: string | null
+          drive_link: string | null
+          einheit_id: string | null
           erstellt_am: string
           erstellt_von: string | null
+          extern_id: string | null
           geaendert_am: string
+          geaendert_von: string | null
           groesse_kb: number | null
+          herkunft: string
           hochgeladen_am: string
           id: string
           name: string
@@ -455,10 +511,16 @@ export type Database = {
         }
         Insert: {
           archiviert_am?: string | null
+          checklistenpunkt?: string | null
+          drive_link?: string | null
+          einheit_id?: string | null
           erstellt_am?: string
           erstellt_von?: string | null
+          extern_id?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           groesse_kb?: number | null
+          herkunft?: string
           hochgeladen_am?: string
           id?: string
           name: string
@@ -468,10 +530,16 @@ export type Database = {
         }
         Update: {
           archiviert_am?: string | null
+          checklistenpunkt?: string | null
+          drive_link?: string | null
+          einheit_id?: string | null
           erstellt_am?: string
           erstellt_von?: string | null
+          extern_id?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           groesse_kb?: number | null
+          herkunft?: string
           hochgeladen_am?: string
           id?: string
           name?: string
@@ -481,8 +549,22 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "dokumente_einheit_id_fkey"
+            columns: ["einheit_id"]
+            isOneToOne: false
+            referencedRelation: "einheiten"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "dokumente_erstellt_von_fkey"
             columns: ["erstellt_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dokumente_geaendert_von_fkey"
+            columns: ["geaendert_von"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["id"]
@@ -504,6 +586,7 @@ export type Database = {
           erstellt_am: string
           erstellt_von: string | null
           geaendert_am: string
+          geaendert_von: string | null
           geschoss: string
           id: string
           kaeufer: string | null
@@ -527,6 +610,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           geschoss?: string
           id?: string
           kaeufer?: string | null
@@ -550,6 +634,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           geschoss?: string
           id?: string
           kaeufer?: string | null
@@ -575,6 +660,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "einheiten_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "einheiten_objekt_id_fkey"
             columns: ["objekt_id"]
             isOneToOne: false
@@ -589,6 +681,7 @@ export type Database = {
           erstellt_am: string
           erstellt_von: string | null
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           schluessel: string
           wert: Json
@@ -598,6 +691,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           schluessel: string
           wert?: Json
@@ -607,6 +701,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           schluessel?: string
           wert?: Json
@@ -615,6 +710,13 @@ export type Database = {
           {
             foreignKeyName: "einstellungen_erstellt_von_fkey"
             columns: ["erstellt_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "einstellungen_geaendert_von_fkey"
+            columns: ["geaendert_von"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["id"]
@@ -634,6 +736,7 @@ export type Database = {
           erstellt_am: string
           erstellt_von: string | null
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           objekt_id: string | null
           text: string
@@ -651,6 +754,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           objekt_id?: string | null
           text: string
@@ -668,6 +772,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           objekt_id?: string | null
           text?: string
@@ -684,6 +789,13 @@ export type Database = {
           {
             foreignKeyName: "fragen_erstellt_von_fkey"
             columns: ["erstellt_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fragen_geaendert_von_fkey"
+            columns: ["geaendert_von"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["id"]
@@ -706,6 +818,7 @@ export type Database = {
           flaeche: number | null
           garantie_id: string
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           miete: number
         }
@@ -717,6 +830,7 @@ export type Database = {
           flaeche?: number | null
           garantie_id: string
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           miete?: number
         }
@@ -728,6 +842,7 @@ export type Database = {
           flaeche?: number | null
           garantie_id?: string
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           miete?: number
         }
@@ -746,6 +861,85 @@ export type Database = {
             referencedRelation: "mietgarantien"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "garantie_zimmer_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gebaeude: {
+        Row: {
+          archiviert_am: string | null
+          breite: number
+          erstellt_am: string
+          erstellt_von: string | null
+          geaendert_am: string
+          geaendert_von: string | null
+          id: string
+          infostufe: string
+          ist_weg: boolean
+          laenge: number
+          notiz: string | null
+          plz: string
+          stadt: string
+          stadtteil: string
+          strasse: string
+          umriss: Json | null
+        }
+        Insert: {
+          archiviert_am?: string | null
+          breite: number
+          erstellt_am?: string
+          erstellt_von?: string | null
+          geaendert_am?: string
+          geaendert_von?: string | null
+          id?: string
+          infostufe?: string
+          ist_weg?: boolean
+          laenge: number
+          notiz?: string | null
+          plz?: string
+          stadt?: string
+          stadtteil?: string
+          strasse: string
+          umriss?: Json | null
+        }
+        Update: {
+          archiviert_am?: string | null
+          breite?: number
+          erstellt_am?: string
+          erstellt_von?: string | null
+          geaendert_am?: string
+          geaendert_von?: string | null
+          id?: string
+          infostufe?: string
+          ist_weg?: boolean
+          laenge?: number
+          notiz?: string | null
+          plz?: string
+          stadt?: string
+          stadtteil?: string
+          strasse?: string
+          umriss?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gebaeude_erstellt_von_fkey"
+            columns: ["erstellt_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gebaeude_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
         ]
       }
       gedanken: {
@@ -756,6 +950,7 @@ export type Database = {
           erstellt_von: string | null
           extern_id: string | null
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           ki_vorschlag: string | null
           quelle: string
@@ -772,6 +967,7 @@ export type Database = {
           erstellt_von?: string | null
           extern_id?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           ki_vorschlag?: string | null
           quelle?: string
@@ -788,6 +984,7 @@ export type Database = {
           erstellt_von?: string | null
           extern_id?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           ki_vorschlag?: string | null
           quelle?: string
@@ -812,6 +1009,13 @@ export type Database = {
             referencedRelation: "profile"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "gedanken_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ideen: {
@@ -821,6 +1025,7 @@ export type Database = {
           erstellt_am: string
           erstellt_von: string | null
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           text: string
         }
@@ -830,6 +1035,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           text: string
         }
@@ -839,6 +1045,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           text?: string
         }
@@ -857,6 +1064,13 @@ export type Database = {
             referencedRelation: "profile"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ideen_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
         ]
       }
       kontakt_notizen: {
@@ -865,6 +1079,7 @@ export type Database = {
           erstellt_am: string
           erstellt_von: string | null
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           kontakt_id: string
           text: string
@@ -876,6 +1091,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           kontakt_id: string
           text: string
@@ -887,6 +1103,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           kontakt_id?: string
           text?: string
@@ -902,6 +1119,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "kontakt_notizen_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "kontakt_notizen_kontakt_id_fkey"
             columns: ["kontakt_id"]
             isOneToOne: false
@@ -912,13 +1136,17 @@ export type Database = {
       }
       kontakte: {
         Row: {
+          angabe_am: string | null
           anschrift: string | null
           archiviert_am: string | null
           email: string | null
           erstellt_am: string
           erstellt_von: string | null
+          extern_id: string | null
           firma: string | null
           geaendert_am: string
+          geaendert_von: string | null
+          herkunft: string
           id: string
           kategorien: string[]
           kontakt_nicht_gewuenscht: boolean
@@ -931,13 +1159,17 @@ export type Database = {
           telefon: string | null
         }
         Insert: {
+          angabe_am?: string | null
           anschrift?: string | null
           archiviert_am?: string | null
           email?: string | null
           erstellt_am?: string
           erstellt_von?: string | null
+          extern_id?: string | null
           firma?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
+          herkunft?: string
           id?: string
           kategorien?: string[]
           kontakt_nicht_gewuenscht?: boolean
@@ -950,13 +1182,17 @@ export type Database = {
           telefon?: string | null
         }
         Update: {
+          angabe_am?: string | null
           anschrift?: string | null
           archiviert_am?: string | null
           email?: string | null
           erstellt_am?: string
           erstellt_von?: string | null
+          extern_id?: string | null
           firma?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
+          herkunft?: string
           id?: string
           kategorien?: string[]
           kontakt_nicht_gewuenscht?: boolean
@@ -976,6 +1212,13 @@ export type Database = {
             referencedRelation: "profile"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "kontakte_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
         ]
       }
       kontaktkategorien: {
@@ -984,6 +1227,7 @@ export type Database = {
           erstellt_am: string
           erstellt_von: string | null
           geaendert_am: string
+          geaendert_von: string | null
           gruppe: string
           id: string
           reihenfolge: number
@@ -994,6 +1238,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           gruppe: string
           id?: string
           reihenfolge?: number
@@ -1004,6 +1249,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           gruppe?: string
           id?: string
           reihenfolge?: number
@@ -1013,6 +1259,13 @@ export type Database = {
           {
             foreignKeyName: "kontaktkategorien_erstellt_von_fkey"
             columns: ["erstellt_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kontaktkategorien_geaendert_von_fkey"
+            columns: ["geaendert_von"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["id"]
@@ -1030,6 +1283,7 @@ export type Database = {
           erstellt_von: string | null
           garantie_id: string | null
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           miete: number | null
           name: string
@@ -1050,6 +1304,7 @@ export type Database = {
           erstellt_von?: string | null
           garantie_id?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           miete?: number | null
           name: string
@@ -1070,6 +1325,7 @@ export type Database = {
           erstellt_von?: string | null
           garantie_id?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           miete?: number | null
           name?: string
@@ -1096,6 +1352,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "mieter_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "mieter_zimmer_id_fkey"
             columns: ["zimmer_id"]
             isOneToOne: false
@@ -1112,6 +1375,7 @@ export type Database = {
           erstellt_am: string
           erstellt_von: string | null
           geaendert_am: string
+          geaendert_von: string | null
           geburtsdatum: string | null
           id: string
           mieter_id: string
@@ -1125,6 +1389,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           geburtsdatum?: string | null
           id?: string
           mieter_id: string
@@ -1138,6 +1403,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           geburtsdatum?: string | null
           id?: string
           mieter_id?: string
@@ -1148,6 +1414,13 @@ export type Database = {
           {
             foreignKeyName: "mieter_vertraulich_erstellt_von_fkey"
             columns: ["erstellt_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mieter_vertraulich_geaendert_von_fkey"
+            columns: ["geaendert_von"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["id"]
@@ -1173,6 +1446,7 @@ export type Database = {
           erstellt_von: string | null
           garantiemiete: number
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           kaeufer: string
           kaeufer_kontakt: string | null
@@ -1194,6 +1468,7 @@ export type Database = {
           erstellt_von?: string | null
           garantiemiete: number
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           kaeufer?: string
           kaeufer_kontakt?: string | null
@@ -1215,6 +1490,7 @@ export type Database = {
           erstellt_von?: string | null
           garantiemiete?: number
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           kaeufer?: string
           kaeufer_kontakt?: string | null
@@ -1241,6 +1517,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "mietgarantien_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "mietgarantien_objekt_id_fkey"
             columns: ["objekt_id"]
             isOneToOne: false
@@ -1254,6 +1537,7 @@ export type Database = {
           abgerechnet_am: string | null
           archiviert_am: string | null
           art: string
+          beleg_dokument_id: string | null
           beleg_name: string | null
           betrag: number | null
           bis: string | null
@@ -1262,6 +1546,7 @@ export type Database = {
           erstellt_von: string | null
           extern_id: string | null
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           manuell_revest: number | null
           objekt_id: string
@@ -1276,6 +1561,7 @@ export type Database = {
           abgerechnet_am?: string | null
           archiviert_am?: string | null
           art: string
+          beleg_dokument_id?: string | null
           beleg_name?: string | null
           betrag?: number | null
           bis?: string | null
@@ -1284,6 +1570,7 @@ export type Database = {
           erstellt_von?: string | null
           extern_id?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           manuell_revest?: number | null
           objekt_id: string
@@ -1298,6 +1585,7 @@ export type Database = {
           abgerechnet_am?: string | null
           archiviert_am?: string | null
           art?: string
+          beleg_dokument_id?: string | null
           beleg_name?: string | null
           betrag?: number | null
           bis?: string | null
@@ -1306,6 +1594,7 @@ export type Database = {
           erstellt_von?: string | null
           extern_id?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           manuell_revest?: number | null
           objekt_id?: string
@@ -1318,6 +1607,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "nachberechnung_beleg_dokument_id_fkey"
+            columns: ["beleg_dokument_id"]
+            isOneToOne: false
+            referencedRelation: "dokumente"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "nachberechnung_einheit_id_fkey"
             columns: ["einheit_id"]
             isOneToOne: false
@@ -1327,6 +1623,13 @@ export type Database = {
           {
             foreignKeyName: "nachberechnung_erstellt_von_fkey"
             columns: ["erstellt_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nachberechnung_geaendert_von_fkey"
+            columns: ["geaendert_von"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["id"]
@@ -1347,6 +1650,7 @@ export type Database = {
           erstellt_am: string
           erstellt_von: string | null
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           objekt_id: string
           schluesselbox_code: string | null
@@ -1357,6 +1661,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           objekt_id: string
           schluesselbox_code?: string | null
@@ -1367,6 +1672,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           objekt_id?: string
           schluesselbox_code?: string | null
@@ -1387,6 +1693,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "objekt_geheim_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "objekt_geheim_objekt_id_fkey"
             columns: ["objekt_id"]
             isOneToOne: false
@@ -1401,6 +1714,7 @@ export type Database = {
           erstellt_am: string
           erstellt_von: string | null
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           kontakt_id: string
           notiz: string | null
@@ -1412,6 +1726,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           kontakt_id: string
           notiz?: string | null
@@ -1423,6 +1738,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           kontakt_id?: string
           notiz?: string | null
@@ -1433,6 +1749,13 @@ export type Database = {
           {
             foreignKeyName: "objekt_kontakte_erstellt_von_fkey"
             columns: ["erstellt_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objekt_kontakte_geaendert_von_fkey"
+            columns: ["geaendert_von"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["id"]
@@ -1477,12 +1800,16 @@ export type Database = {
           erstellt_am: string
           erstellt_von: string | null
           etage: string | null
+          extern_id: string | null
           frist_bis: string | null
           geaendert_am: string
+          geaendert_von: string | null
+          gebaeude_id: string | null
           gesellschaft: string | null
           gewerbeflaeche: number | null
           grundstuecksflaeche: number | null
           hausgeld: number | null
+          herkunft: string
           id: string
           infos: Json | null
           instandhaltungsruecklage: number | null
@@ -1543,12 +1870,16 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           etage?: string | null
+          extern_id?: string | null
           frist_bis?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
+          gebaeude_id?: string | null
           gesellschaft?: string | null
           gewerbeflaeche?: number | null
           grundstuecksflaeche?: number | null
           hausgeld?: number | null
+          herkunft?: string
           id?: string
           infos?: Json | null
           instandhaltungsruecklage?: number | null
@@ -1609,12 +1940,16 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           etage?: string | null
+          extern_id?: string | null
           frist_bis?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
+          gebaeude_id?: string | null
           gesellschaft?: string | null
           gewerbeflaeche?: number | null
           grundstuecksflaeche?: number | null
           hausgeld?: number | null
+          herkunft?: string
           id?: string
           infos?: Json | null
           instandhaltungsruecklage?: number | null
@@ -1660,6 +1995,20 @@ export type Database = {
             referencedRelation: "profile"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "objekte_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objekte_gebaeude_id_fkey"
+            columns: ["gebaeude_id"]
+            isOneToOne: false
+            referencedRelation: "gebaeude"
+            referencedColumns: ["id"]
+          },
         ]
       }
       persoenliche_einstellungen: {
@@ -1669,6 +2018,7 @@ export type Database = {
           erstellt_am: string
           erstellt_von: string | null
           geaendert_am: string
+          geaendert_von: string | null
           geschaeft_quartale: Json
           id: string
           impuls: Json
@@ -1681,6 +2031,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           geschaeft_quartale?: Json
           id?: string
           impuls?: Json
@@ -1693,6 +2044,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           geschaeft_quartale?: Json
           id?: string
           impuls?: Json
@@ -1714,6 +2066,13 @@ export type Database = {
             referencedRelation: "profile"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "persoenliche_einstellungen_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
         ]
       }
       posteingang_mails: {
@@ -1730,6 +2089,8 @@ export type Database = {
           extern_id: string | null
           frist: string | null
           geaendert_am: string
+          geaendert_von: string | null
+          herkunft: string
           id: string
           kategorie: string | null
           objekt_id: string | null
@@ -1753,6 +2114,8 @@ export type Database = {
           extern_id?: string | null
           frist?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
+          herkunft?: string
           id?: string
           kategorie?: string | null
           objekt_id?: string | null
@@ -1776,6 +2139,8 @@ export type Database = {
           extern_id?: string | null
           frist?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
+          herkunft?: string
           id?: string
           kategorie?: string | null
           objekt_id?: string | null
@@ -1790,6 +2155,13 @@ export type Database = {
           {
             foreignKeyName: "posteingang_mails_erstellt_von_fkey"
             columns: ["erstellt_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posteingang_mails_geaendert_von_fkey"
+            columns: ["geaendert_von"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["id"]
@@ -1811,6 +2183,7 @@ export type Database = {
           erstellt_von: string | null
           fortschritt: number
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           jahr: number
           name: string
@@ -1824,6 +2197,7 @@ export type Database = {
           erstellt_von?: string | null
           fortschritt?: number
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           jahr: number
           name: string
@@ -1837,6 +2211,7 @@ export type Database = {
           erstellt_von?: string | null
           fortschritt?: number
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           jahr?: number
           name?: string
@@ -1858,6 +2233,13 @@ export type Database = {
             referencedRelation: "profile"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "private_ziele_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profile: {
@@ -1867,6 +2249,7 @@ export type Database = {
           email: string
           erstellt_am: string
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           name: string | null
           rolle: string
@@ -1877,6 +2260,7 @@ export type Database = {
           email: string
           erstellt_am?: string
           geaendert_am?: string
+          geaendert_von?: string | null
           id: string
           name?: string | null
           rolle?: string
@@ -1887,19 +2271,30 @@ export type Database = {
           email?: string
           erstellt_am?: string
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           name?: string | null
           rolle?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profile_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       routine_haken: {
         Row: {
           archiviert_am: string | null
+          besitzer_id: string
           datum: string
           erstellt_am: string
           erstellt_von: string | null
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           kategorie: string
           minuten: number
@@ -1907,10 +2302,12 @@ export type Database = {
         }
         Insert: {
           archiviert_am?: string | null
+          besitzer_id?: string
           datum: string
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           kategorie: string
           minuten: number
@@ -1918,10 +2315,12 @@ export type Database = {
         }
         Update: {
           archiviert_am?: string | null
+          besitzer_id?: string
           datum?: string
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           kategorie?: string
           minuten?: number
@@ -1929,8 +2328,22 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "routine_haken_besitzer_id_fkey"
+            columns: ["besitzer_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "routine_haken_erstellt_von_fkey"
             columns: ["erstellt_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routine_haken_geaendert_von_fkey"
+            columns: ["geaendert_von"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["id"]
@@ -1951,6 +2364,7 @@ export type Database = {
           erstellt_am: string
           erstellt_von: string | null
           geaendert_am: string
+          geaendert_von: string | null
           hinweis: string
           id: string
           kategorie: string
@@ -1965,6 +2379,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           hinweis?: string
           id?: string
           kategorie: string
@@ -1979,6 +2394,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           hinweis?: string
           id?: string
           kategorie?: string
@@ -1995,6 +2411,13 @@ export type Database = {
             referencedRelation: "profile"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "routinepunkte_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
         ]
       }
       sanierungsposten: {
@@ -2004,6 +2427,7 @@ export type Database = {
           erstellt_von: string | null
           firma: string | null
           geaendert_am: string
+          geaendert_von: string | null
           geplant: number | null
           gewerk: string
           id: string
@@ -2018,6 +2442,7 @@ export type Database = {
           erstellt_von?: string | null
           firma?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           geplant?: number | null
           gewerk: string
           id?: string
@@ -2032,6 +2457,7 @@ export type Database = {
           erstellt_von?: string | null
           firma?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           geplant?: number | null
           gewerk?: string
           id?: string
@@ -2044,6 +2470,13 @@ export type Database = {
           {
             foreignKeyName: "sanierungsposten_erstellt_von_fkey"
             columns: ["erstellt_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sanierungsposten_geaendert_von_fkey"
+            columns: ["geaendert_von"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["id"]
@@ -2066,6 +2499,7 @@ export type Database = {
           erstellt_am: string
           erstellt_von: string | null
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           privat: boolean
           titel: string
@@ -2079,6 +2513,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           privat?: boolean
           titel: string
@@ -2092,6 +2527,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           privat?: boolean
           titel?: string
@@ -2112,6 +2548,84 @@ export type Database = {
             referencedRelation: "profile"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "sprintpunkte_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stufenverlauf: {
+        Row: {
+          archiviert_am: string | null
+          durch: string | null
+          erstellt_am: string
+          erstellt_von: string | null
+          geaendert_am: string
+          geaendert_von: string | null
+          id: string
+          nach_stufe: string
+          objekt_id: string
+          von_stufe: string | null
+          zeitpunkt: string
+        }
+        Insert: {
+          archiviert_am?: string | null
+          durch?: string | null
+          erstellt_am?: string
+          erstellt_von?: string | null
+          geaendert_am?: string
+          geaendert_von?: string | null
+          id?: string
+          nach_stufe: string
+          objekt_id: string
+          von_stufe?: string | null
+          zeitpunkt?: string
+        }
+        Update: {
+          archiviert_am?: string | null
+          durch?: string | null
+          erstellt_am?: string
+          erstellt_von?: string | null
+          geaendert_am?: string
+          geaendert_von?: string | null
+          id?: string
+          nach_stufe?: string
+          objekt_id?: string
+          von_stufe?: string | null
+          zeitpunkt?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stufenverlauf_durch_fkey"
+            columns: ["durch"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stufenverlauf_erstellt_von_fkey"
+            columns: ["erstellt_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stufenverlauf_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stufenverlauf_objekt_id_fkey"
+            columns: ["objekt_id"]
+            isOneToOne: false
+            referencedRelation: "objekte"
+            referencedColumns: ["id"]
+          },
         ]
       }
       tagesfokus: {
@@ -2122,6 +2636,7 @@ export type Database = {
           erstellt_am: string
           erstellt_von: string | null
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           text: string
         }
@@ -2132,6 +2647,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           text?: string
         }
@@ -2142,6 +2658,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           text?: string
         }
@@ -2160,6 +2677,13 @@ export type Database = {
             referencedRelation: "profile"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tagesfokus_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
         ]
       }
       uebergaben: {
@@ -2171,6 +2695,7 @@ export type Database = {
           erstellt_am: string
           erstellt_von: string | null
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           maengel: Json
           objekt_id: string
@@ -2186,6 +2711,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           maengel?: Json
           objekt_id: string
@@ -2201,6 +2727,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           maengel?: Json
           objekt_id?: string
@@ -2224,6 +2751,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "uebergaben_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "uebergaben_objekt_id_fkey"
             columns: ["objekt_id"]
             isOneToOne: false
@@ -2242,6 +2776,7 @@ export type Database = {
           erstellt_am: string
           erstellt_von: string | null
           geaendert_am: string
+          geaendert_von: string | null
           gemeldet_am: string | null
           id: string
           notiz: string | null
@@ -2260,6 +2795,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           gemeldet_am?: string | null
           id?: string
           notiz?: string | null
@@ -2278,6 +2814,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           gemeldet_am?: string | null
           id?: string
           notiz?: string | null
@@ -2303,6 +2840,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ummeldungen_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ummeldungen_objekt_id_fkey"
             columns: ["objekt_id"]
             isOneToOne: false
@@ -2319,6 +2863,7 @@ export type Database = {
           erstellt_am: string
           erstellt_von: string | null
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           kategorie: string
           reihenfolge: number
@@ -2331,6 +2876,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           kategorie?: string
           reihenfolge?: number
@@ -2343,6 +2889,7 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           kategorie?: string
           reihenfolge?: number
@@ -2363,6 +2910,13 @@ export type Database = {
             referencedRelation: "profile"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "visionboard_kacheln_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
         ]
       }
       weg_eigentuemer: {
@@ -2373,11 +2927,13 @@ export type Database = {
           erstellt_am: string
           erstellt_von: string | null
           geaendert_am: string
+          geaendert_von: string | null
+          gebaeude_id: string | null
           id: string
           kontakt_id: string | null
           kontakt_nicht_gewuenscht: boolean
           name: string
-          objekt_id: string
+          objekt_id: string | null
           quelle: string | null
           we_nr: string | null
         }
@@ -2388,11 +2944,13 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
+          gebaeude_id?: string | null
           id?: string
           kontakt_id?: string | null
           kontakt_nicht_gewuenscht?: boolean
           name: string
-          objekt_id: string
+          objekt_id?: string | null
           quelle?: string | null
           we_nr?: string | null
         }
@@ -2403,11 +2961,13 @@ export type Database = {
           erstellt_am?: string
           erstellt_von?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
+          gebaeude_id?: string | null
           id?: string
           kontakt_id?: string | null
           kontakt_nicht_gewuenscht?: boolean
           name?: string
-          objekt_id?: string
+          objekt_id?: string | null
           quelle?: string | null
           we_nr?: string | null
         }
@@ -2417,6 +2977,20 @@ export type Database = {
             columns: ["erstellt_von"]
             isOneToOne: false
             referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weg_eigentuemer_geaendert_von_fkey"
+            columns: ["geaendert_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "weg_eigentuemer_gebaeude_id_fkey"
+            columns: ["gebaeude_id"]
+            isOneToOne: false
+            referencedRelation: "gebaeude"
             referencedColumns: ["id"]
           },
           {
@@ -2445,6 +3019,7 @@ export type Database = {
           erstellt_von: string | null
           foto_name: string | null
           geaendert_am: string
+          geaendert_von: string | null
           id: string
           malo_id: string | null
           nummer: string | null
@@ -2461,6 +3036,7 @@ export type Database = {
           erstellt_von?: string | null
           foto_name?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           malo_id?: string | null
           nummer?: string | null
@@ -2477,6 +3053,7 @@ export type Database = {
           erstellt_von?: string | null
           foto_name?: string | null
           geaendert_am?: string
+          geaendert_von?: string | null
           id?: string
           malo_id?: string | null
           nummer?: string | null
@@ -2495,6 +3072,13 @@ export type Database = {
           {
             foreignKeyName: "zaehler_erstellt_von_fkey"
             columns: ["erstellt_von"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "zaehler_geaendert_von_fkey"
+            columns: ["geaendert_von"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["id"]

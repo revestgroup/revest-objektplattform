@@ -36,8 +36,14 @@ snake_case, nur oberste Ebene). Komponenten und Speicher rufen nie direkt Supaba
 die Datenschicht. Typen nach jeder Migration mit `bun run db:typen` neu erzeugen
 (`src/lib/db/datenbank.ts`, nicht von Hand ändern).
 
-Datenmodell (S2): `supabase/migrations/2026111220000{1..7}_*.sql`, auf revest-test eingespielt.
-36 Tabellen, ein privater Bucket `persoenlich`. Neue Tabellen immer über
+Datenmodell (S2): `supabase/migrations/2026111220000{1..9}_*.sql`, auf revest-test eingespielt.
+38 Tabellen, private Buckets `persoenlich` (je Nutzer) und `firma` (Zählerfotos, Übergabe-PDFs,
+Belege; alle Revest-Nutzer). `gebaeude` ist der dauerhafte Datensatz zum Haus (mehrere Objekte
+je Gebäude, WEG-Eigentümer am Gebäude oder Objekt). Stufenwechsel schreibt der Trigger
+`objekte_stufenwechsel` selbst nach `stufenverlauf` — die App trägt dort nichts ein.
+`herkunft`/`extern_id` (eindeutig je Herkunft) an objekte, kontakte, posteingang_mails,
+dokumente für Importe. `geaendert_von` setzt der Trigger. Routine-Haken je Person
+(`besitzer_id`), anlegen/ändern nur eigene. Neue Tabellen immer über
 `select intern.einrichten('public.<tabelle>', '<regel>')` einrichten — das ergänzt die
 Standardspalten (`erstellt_von`, `erstellt_am`, `geaendert_am`, `archiviert_am`), den Trigger,
 RLS, `grant select, insert, update` und die Regeln: `firma` (alle Revest-Nutzer), `firma_gf`
