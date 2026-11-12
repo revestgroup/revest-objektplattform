@@ -36,6 +36,20 @@ snake_case, nur oberste Ebene). Komponenten und Speicher rufen nie direkt Supaba
 die Datenschicht. Typen nach jeder Migration mit `bun run db:typen` neu erzeugen
 (`src/lib/db/datenbank.ts`, nicht von Hand ändern).
 
+Datenmodell (S2): `supabase/migrations/2026111220000{1..7}_*.sql`, auf revest-test eingespielt.
+36 Tabellen, ein privater Bucket `persoenlich`. Neue Tabellen immer über
+`select intern.einrichten('public.<tabelle>', '<regel>')` einrichten — das ergänzt die
+Standardspalten (`erstellt_von`, `erstellt_am`, `geaendert_am`, `archiviert_am`), den Trigger,
+RLS, `grant select, insert, update` und die Regeln: `firma` (alle Revest-Nutzer), `firma_gf`
+(lesen alle, schreiben GF), `nur_gf` (`objekt_geheim`, `mieter_vertraulich`), `besitzer`
+(persönliche Tabellen), `eigene` (Regeln selbst schreiben, z. B. `sprintpunkte`). IDs sind
+`text` mit Standard `gen_random_uuid()::text`; sprechende IDs nur für importierte Altdaten.
+Nie `delete` freigeben — entfernen heißt `archiviert_am` setzen. Prüffunktionen
+`intern.ist_revest()`/`intern.ist_gf()` lesen `profile`; Schema `intern` ist nicht über die
+Data API erreichbar. Antworten auf `fragen` darf nur die GF (Trigger). Nach jeder Migration
+prüfen: `supabase db query --remote --read-only` auf Tabellen ohne RLS/Regeln, `anon`-Rechte
+und Lösch-Rechte (alles muss leer sein), dazu `supabase db advisors --remote`.
+
 ## Design-Regeln
 
 - **Hell und freundlich.** Grund hell, Flächen leicht abgesetzt. Tokens in `src/styles.css`.
