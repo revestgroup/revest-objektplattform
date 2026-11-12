@@ -120,6 +120,17 @@ gefüllte Kacheln, „nächste“ gilt nur am selben Tag). Bilder werden im Brow
 und als data:-URL gespeichert; ist der Speicher voll, zeigt der Reiter einen Hinweis. Kachel-Sätze
 nicht mit `.headline` setzen (Versalien), sondern `font-display`.
 
+Backoffice-Ansicht: `components/CockpitBackoffice.tsx`. Routinen und Zeit in `lib/routine.ts`
+(Tests daneben): Tages- und Wochenroutine stehen in `revest.cockpit.v1` und werden in den
+Einstellungen gepflegt (`components/RoutinenPflegen.tsx`). Ein Haken (`Routinehaken`) schreibt
+Minuten und Kategorie fest und ist zugleich die Zeiterfassung; dazu kommen Schätzwerte je erledigter
+Karte (`KARTENMINUTEN`, erledigt = Archiv, Weiterleitung oder Spalte Erledigt) und je übernommener
+Mail. Hochrechnung pro Monat = Ø der letzten vier Wochen mit Einträgen × 52/12. Posteingang in
+`lib/posteingang.ts`: Mails bis Phase 2 von Hand, Vorschlag von Hand (erster Vorschlag aus dem
+Postfach, Objekt über `objektInMail`). „Übernehmen“ führt die Aktion aus (Eingang, Karte → Qonto,
+Karte, Aufgabe, Gmail-Antwortentwurf, Ablage) und schreibt bei gewähltem Objekt in dessen Verlauf;
+gesendet wird nie etwas. „Frage an Timo“ hängt auch an jeder Mail.
+
 ## Kontaktregister
 
 `src/lib/kontakte.ts` (Tests daneben), Seite `routes/kontakte.tsx`. Ein Kontakt ist ein
