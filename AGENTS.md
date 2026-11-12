@@ -112,6 +112,14 @@ hängt am Kartenfenster im Backoffice; „Interessant“ in den Entscheidungen n
 `useAngebotUebernehmen` aus `components/Eingang.tsx`. „+ Termin“ legt eine Termin-Aufgabe an, schreibt
 in den Objektverlauf und öffnet Google Kalender vorausgefüllt (`googleTerminAdresse`).
 
+Reiter Persönlich · Visionboard: `components/CockpitPersoenlich.tsx`, Logik `lib/persoenlich.ts`,
+Speicher `persoenlichStore.tsx` unter eigenem Schlüssel `revest.persoenlich.v1` (getrennt von den
+Geschäftsdaten). Keine Beispielinhalte: Das Board startet mit leeren Kacheln je Startkategorie.
+Tagesfokus je Datum (`fokusSerie` zählt die Tage in Folge), täglicher Impuls über `impulsFuer` (nur
+gefüllte Kacheln, „nächste“ gilt nur am selben Tag). Bilder werden im Browser auf 800 px verkleinert
+und als data:-URL gespeichert; ist der Speicher voll, zeigt der Reiter einen Hinweis. Kachel-Sätze
+nicht mit `.headline` setzen (Versalien), sondern `font-display`.
+
 ## Kontaktregister
 
 `src/lib/kontakte.ts` (Tests daneben), Seite `routes/kontakte.tsx`. Ein Kontakt ist ein
