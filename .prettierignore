@@ -4,3 +4,5 @@ dist
 .vinxi
 bun.lock
 routeTree.gen.ts
+src/lib/db/datenbank.ts
+supabase/.temp
