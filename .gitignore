@@ -36,3 +36,7 @@ dist-ssr
 
 # Lokale Dev-Configs
 .claude/
+
+# Planung bleibt lokal — das Repo ist öffentlich
+docs/planung/
+BRIEFING.md
