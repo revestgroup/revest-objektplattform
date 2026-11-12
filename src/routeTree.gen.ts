@@ -14,6 +14,7 @@ import { Route as AnkaufRouteImport } from './routes/ankauf'
 import { Route as AufgabenRouteImport } from './routes/aufgaben'
 import { Route as AuswertungRouteImport } from './routes/auswertung'
 import { Route as BackofficeRouteImport } from './routes/backoffice'
+import { Route as CockpitRouteImport } from './routes/cockpit'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as EinstellungenRouteImport } from './routes/einstellungen'
 import { Route as KalenderRouteImport } from './routes/kalender'
@@ -47,6 +48,11 @@ const AuswertungRoute = AuswertungRouteImport.update({
 const BackofficeRoute = BackofficeRouteImport.update({
   id: '/backoffice',
   path: '/backoffice',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CockpitRoute = CockpitRouteImport.update({
+  id: '/cockpit',
+  path: '/cockpit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/aufgaben': typeof AufgabenRoute
   '/auswertung': typeof AuswertungRoute
   '/backoffice': typeof BackofficeRoute
+  '/cockpit': typeof CockpitRoute
   '/dashboard': typeof DashboardRoute
   '/einstellungen': typeof EinstellungenRoute
   '/kalender': typeof KalenderRoute
@@ -117,6 +124,7 @@ export interface FileRoutesByTo {
   '/aufgaben': typeof AufgabenRoute
   '/auswertung': typeof AuswertungRoute
   '/backoffice': typeof BackofficeRoute
+  '/cockpit': typeof CockpitRoute
   '/dashboard': typeof DashboardRoute
   '/einstellungen': typeof EinstellungenRoute
   '/kalender': typeof KalenderRoute
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/aufgaben': typeof AufgabenRoute
   '/auswertung': typeof AuswertungRoute
   '/backoffice': typeof BackofficeRoute
+  '/cockpit': typeof CockpitRoute
   '/dashboard': typeof DashboardRoute
   '/einstellungen': typeof EinstellungenRoute
   '/kalender': typeof KalenderRoute
@@ -152,6 +161,7 @@ export interface FileRouteTypes {
     | '/aufgaben'
     | '/auswertung'
     | '/backoffice'
+    | '/cockpit'
     | '/dashboard'
     | '/einstellungen'
     | '/kalender'
@@ -168,6 +178,7 @@ export interface FileRouteTypes {
     | '/aufgaben'
     | '/auswertung'
     | '/backoffice'
+    | '/cockpit'
     | '/dashboard'
     | '/einstellungen'
     | '/kalender'
@@ -184,6 +195,7 @@ export interface FileRouteTypes {
     | '/aufgaben'
     | '/auswertung'
     | '/backoffice'
+    | '/cockpit'
     | '/dashboard'
     | '/einstellungen'
     | '/kalender'
@@ -201,6 +213,7 @@ export interface RootRouteChildren {
   AufgabenRoute: typeof AufgabenRoute
   AuswertungRoute: typeof AuswertungRoute
   BackofficeRoute: typeof BackofficeRoute
+  CockpitRoute: typeof CockpitRoute
   DashboardRoute: typeof DashboardRoute
   EinstellungenRoute: typeof EinstellungenRoute
   KalenderRoute: typeof KalenderRoute
@@ -247,6 +260,13 @@ declare module '@tanstack/react-router' {
       path: '/backoffice'
       fullPath: '/backoffice'
       preLoaderRoute: typeof BackofficeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cockpit': {
+      id: '/cockpit'
+      path: '/cockpit'
+      fullPath: '/cockpit'
+      preLoaderRoute: typeof CockpitRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -321,6 +341,7 @@ const rootRouteChildren: RootRouteChildren = {
   AufgabenRoute: AufgabenRoute,
   AuswertungRoute: AuswertungRoute,
   BackofficeRoute: BackofficeRoute,
+  CockpitRoute: CockpitRoute,
   DashboardRoute: DashboardRoute,
   EinstellungenRoute: EinstellungenRoute,
   KalenderRoute: KalenderRoute,

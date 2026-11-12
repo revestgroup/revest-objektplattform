@@ -28,18 +28,18 @@ import { useBackoffice } from "../lib/backofficeStore";
 import { cn } from "../lib/utils";
 
 /**
- * Die Reihenfolge ist der Arbeitsweg: in der Übersicht sehen, was ansteht, im
+ * Die Reihenfolge ist der Arbeitsweg: im Cockpit sehen, was ansteht, im
  * Ankauf prüfen, als Projekt bauen. Aufgaben liegen daneben, weil sie zu jeder
  * Stufe gehören.
  *
  * `kurz` ist die Beschriftung in der Unterleiste — dort zählt jeder Buchstabe.
  * `unten` entscheidet, ob der Punkt auf dem Telefon in die Leiste kommt: sechs
  * sind das Maximum — auf 375 px bleibt jedes Ziel gut 60 px breit, also
- * breiter als ein Daumen. Die Karte ist nicht dabei, weil sie als Kachel in der Übersicht liegt —
- * sie beantwortet nur „wo?“, und das ist selten die erste Frage des Tages.
+ * breiter als ein Daumen. Die Karte ist nicht dabei: sie beantwortet nur
+ * „wo?“, und das ist selten die erste Frage des Tages.
  */
 const NAVIGATION = [
-  { zu: "/dashboard", titel: "Übersicht", kurz: "Start", icon: LayoutDashboard, unten: true },
+  { zu: "/cockpit", titel: "Cockpit", kurz: "Start", icon: LayoutDashboard, unten: true },
   { zu: "/ankauf", titel: "Ankauf", kurz: "Ankauf", icon: Search, unten: true },
   { zu: "/projekte", titel: "Projekte", kurz: "Projekte", icon: Building2, unten: true },
   { zu: "/kontakte", titel: "Kontakte", kurz: "Kontakte", icon: Users, unten: true },

@@ -14,9 +14,9 @@ function Anmeldung() {
   const [kennwort, setKennwort] = useState("");
   const [fehler, setFehler] = useState<string | null>(null);
 
-  // Wer schon angemeldet ist, landet direkt in der Übersicht.
+  // Wer schon angemeldet ist, landet direkt im Cockpit.
   useEffect(() => {
-    if (bereit && nutzer) navigate({ to: "/dashboard", replace: true });
+    if (bereit && nutzer) navigate({ to: "/cockpit", replace: true });
   }, [bereit, nutzer, navigate]);
 
   async function absenden(e: React.FormEvent) {
@@ -27,7 +27,7 @@ function Anmeldung() {
       return;
     }
     setFehler(null);
-    navigate({ to: "/dashboard", replace: true });
+    navigate({ to: "/cockpit", replace: true });
   }
 
   return (

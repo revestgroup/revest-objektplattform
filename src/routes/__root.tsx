@@ -19,6 +19,7 @@ import { AufgabenProvider } from "../lib/aufgabenStore";
 import { VermietungProvider } from "../lib/vermietungStore";
 import { BackofficeProvider } from "../lib/backofficeStore";
 import { EingangProvider } from "../lib/eingangStore";
+import { CockpitProvider } from "../lib/cockpitStore";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -87,7 +88,9 @@ function RootComponent() {
               <VermietungProvider>
                 <BackofficeProvider>
                   <EingangProvider>
-                    <Schleuse />
+                    <CockpitProvider>
+                      <Schleuse />
+                    </CockpitProvider>
                   </EingangProvider>
                 </BackofficeProvider>
               </VermietungProvider>
@@ -132,10 +135,10 @@ function NichtGefunden() {
       <div className="headline text-[7rem] text-linie-stark">404</div>
       <div className="mt-2 text-base font-medium text-tinte">Diese Seite gibt es nicht.</div>
       <Link
-        to="/dashboard"
+        to="/cockpit"
         className="druckbar mt-8 rounded-full border border-linie-stark px-6 py-2.5 text-xs font-medium tracking-[0.18em] uppercase text-tinte"
       >
-        Zur Übersicht
+        Zum Cockpit
       </Link>
     </div>
   );

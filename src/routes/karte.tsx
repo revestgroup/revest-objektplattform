@@ -287,10 +287,10 @@ function KarteSeite() {
             >
               <Scan size={17} strokeWidth={1.75} />
             </button>
-            {/* Zurück ins Dashboard. Steht da, wo auf der Startseite der
-                Knopf zum Vergrößern saß — derselbe Platz, umgekehrte Richtung. */}
+            {/* Zurück ins Cockpit. Oben rechts, wo man ein
+                Fenster schließt. */}
             <Link
-              to="/dashboard"
+              to="/cockpit"
               aria-label="Karte schließen"
               className={cn(KNOPF, "size-11 border-linie text-tinte")}
             >
@@ -382,9 +382,9 @@ function KarteSeite() {
             )}
           </button>
 
-          {/* Zurück ins Dashboard — ganz außen, wie das Schließkreuz eines Fensters. */}
+          {/* Zurück ins Cockpit — ganz außen, wie das Schließkreuz eines Fensters. */}
           <Link
-            to="/dashboard"
+            to="/cockpit"
             title="Karte schließen"
             aria-label="Karte schließen"
             className={cn(KNOPF, "size-9 border-linie text-grau hover:text-tinte")}

@@ -11,6 +11,8 @@
  * niemand füllt, macht die drei wichtigen schwerer zu finden.
  */
 
+import type { Zustaendig } from "./cockpit";
+
 export type Dringlichkeit = "hoch" | "normal" | "niedrig";
 
 export const DRINGLICHKEITEN: Record<
@@ -62,6 +64,11 @@ export interface Aufgabe {
   /** ISO-Zeitpunkt des Hakens. Null heißt: offen. */
   erledigtAm: string | null;
   angelegtAm: string;
+  /**
+   * Wer sich kümmert (Cockpit). Fehlt bei älteren Ständen und heißt dann
+   * Geschäftsführung — siehe `zustaendigAufgabe` in `cockpit.ts`.
+   */
+  zustaendig?: Zustaendig | null;
 }
 
 export type AufgabenEntwurf = Omit<Aufgabe, "id" | "erledigtAm" | "angelegtAm">;
