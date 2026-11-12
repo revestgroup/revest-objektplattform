@@ -1,0 +1,1 @@
+import{o as e}from"./auth-D-qtc0Xc.js";import{t}from"./Objektliste-BsgtCpEp.js";import{t as n}from"./index-z3kGZu_h.js";var r=e();function i(){let{objekt:e}=n.useSearch();return(0,r.jsx)(t,{bereich:`projekte`,oeffne:e})}export{i as component};
