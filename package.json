@@ -10,9 +10,11 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "bun test",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "db:typen": "supabase gen types typescript --linked --schema public > src/lib/db/datenbank.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "@tailwindcss/vite": "^4.2.1",
     "@tanstack/react-query": "^5.101.1",
     "@tanstack/react-router": "^1.170.16",

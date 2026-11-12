@@ -4,9 +4,37 @@ Interne Ankaufs- und Projektverwaltung der Revest Projekt GmbH.
 
 ## Stand
 
-Phase 1: **reines Frontend mit Mock-Daten.** Kein Backend, keine Datenbank, kein echtes
-Auth. Alle Daten kommen aus `src/lib/mockDaten.ts` und leben im Browser-State.
-Das ist Absicht — das Design wird erst final gemacht, dann kommt das Backend.
+Phase 1 ist abgeschlossen: Frontend mit Mock-Daten, alle Daten im Browser (localStorage).
+Phase 2, Stufe 1 läuft: Umstellung auf Supabase (Datenbank, Anmeldung, Rechte), siehe
+„Datenbank“. Bis die Module umgestellt sind (S4), arbeitet die App weiter lokal.
+
+## Datenbank (Phase 2, Supabase)
+
+Vorgabe: `docs/planung/PHASE2_STUFE1_SUPABASE.md` (lokal, nicht im Repo). Zwei Projekte in
+Frankfurt: **revest-test** (Entwicklung, Vorschau, nur erfundene Daten) und **revest-live**
+(echte Daten, erst nach Freigabe). In beiden ist „Automatically expose new tables“ aus und
+„Automatic RLS“ an — jede Migration gibt ihre Tabellen selbst frei (`grant … to authenticated`)
+und legt eigene RLS-Regeln an; `anon` bekommt keine Rechte auf Firmendaten.
+
+1. Jede Datenbankänderung als Migration unter `supabase/migrations/`, im Plan ausdrücklich
+   ausgewiesen („Datenbankänderung: …“).
+2. Nie Daten löschen, Tabellen oder Spalten entfernen oder umbenennen ohne ausdrückliche
+   Freigabe von Timo.
+3. Entwickelt und getestet wird immer gegen **revest-test**. Migrationen auf **revest-live**
+   nur nach Timos Freigabe.
+4. Keine Schlüssel im Code. Nur `VITE_SUPABASE_URL` und `VITE_SUPABASE_ANON_KEY` (öffentlich,
+   durch Rechte geschützt) als Umgebungsvariablen in `.env.local` bzw. später in Cloudflare.
+   Der `service_role`-Schlüssel kommt nie ins Frontend, nie ins Repo, nie in den Chat.
+5. Jede Tabelle hat Row Level Security aktiv. Keine Tabelle ohne Regeln.
+6. Testdaten nur erfunden (keine echten Namen, Adressen, Codes).
+
+Grundgerüst (S1): `supabase/` (Config, `migrations/`), verlinkt nur mit revest-test
+(`supabase/.temp` bleibt aus dem Repo). Datenschicht unter `src/lib/db/`: `konfig.ts`
+(Schalter `VITE_DATENQUELLE=local|supabase`, Standard `local`; weist geheime Schlüssel ab),
+`client.ts` (Client nur bei `supabase`, `verbindungPruefen`), `umwandeln.ts` (camelCase ↔
+snake_case, nur oberste Ebene). Komponenten und Speicher rufen nie direkt Supabase auf, sondern
+die Datenschicht. Typen nach jeder Migration mit `bun run db:typen` neu erzeugen
+(`src/lib/db/datenbank.ts`, nicht von Hand ändern).
 
 ## Design-Regeln
 

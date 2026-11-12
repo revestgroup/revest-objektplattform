@@ -6,7 +6,7 @@ import tseslint from "typescript-eslint";
 import prettier from "eslint-config-prettier";
 
 export default tseslint.config(
-  { ignores: ["dist", ".output", ".nitro", "src/routeTree.gen.ts"] },
+  { ignores: ["dist", ".output", ".nitro", "src/routeTree.gen.ts", "src/lib/db/datenbank.ts"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended, prettier],
     files: ["**/*.{ts,tsx}"],

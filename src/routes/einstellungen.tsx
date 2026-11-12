@@ -10,7 +10,7 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { Check, Minus, RotateCcw } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Seitenkopf } from "../components/AppLayout";
 import { Regler } from "../components/Felder";
@@ -18,6 +18,12 @@ import { SuchprofilPflegen } from "../components/Eingang";
 import { KalkulationsVorgaben } from "../components/KalkulationEtw";
 import { KategorienPflegen } from "./kontakte";
 import { useAuth } from "../lib/auth";
+import {
+  DATENQUELLE,
+  supabaseKonfiguration,
+  verbindungPruefen,
+  type Verbindung,
+} from "../lib/db/client";
 import { GRUPPEN } from "../lib/einstellungen";
 import { useEingang } from "../lib/eingangStore";
 import { useEinstellungen } from "../lib/einstellungenStore";
@@ -79,6 +85,12 @@ function EinstellungenSeite() {
               ))}
             </dl>
           )}
+        </section>
+
+        {/* ----- Datenquelle (Phase 2) ----- */}
+        <section className="px-4 py-7 sm:px-6 md:px-10 md:py-10">
+          <h2 className="mini-label">Datenquelle</h2>
+          <Datenquellefeld />
         </section>
 
         {/* ----- Schalter ----- */}
@@ -392,5 +404,41 @@ function Kalenderfeld() {
       aria-label="Google-Kalender-ID"
       className="mt-4 h-9 w-full max-w-md rounded-xl border border-linie bg-flaeche px-3 text-[0.8rem] text-tinte focus:border-linie-stark focus:outline-none"
     />
+  );
+}
+
+/** Phase 2, S1: Wo liegen die Daten, und erreicht die App Supabase? */
+function Datenquellefeld() {
+  const [verbindung, setVerbindung] = useState<Verbindung | null>(null);
+  useEffect(() => {
+    let aktiv = true;
+    void verbindungPruefen().then((v) => aktiv && setVerbindung(v));
+    return () => {
+      aktiv = false;
+    };
+  }, []);
+  const projekt = supabaseKonfiguration()?.projekt;
+  return (
+    <div className="mt-4 flex max-w-2xl flex-col gap-1.5 text-[0.8rem] text-tinte">
+      <span>
+        {DATENQUELLE === "local"
+          ? "Lokal — alle Daten liegen nur in diesem Browser."
+          : `Supabase${projekt ? ` (Projekt ${projekt.slice(0, 6)}…)` : ""}`}
+      </span>
+      {verbindung && verbindung.stand !== "lokal" && (
+        <span
+          className={cn(
+            "text-[0.72rem]",
+            verbindung.stand === "ok" ? "text-[#0C5E3A]" : "text-[#9A2727]",
+          )}
+        >
+          {verbindung.stand === "ok" ? "Verbindung ok" : `Keine Verbindung: ${verbindung.fehler}`}
+        </span>
+      )}
+      <span className="text-[0.68rem] text-grau">
+        Umschalten über VITE_DATENQUELLE in .env.local (local | supabase). Bis zur Umstellung der
+        Module (S4) arbeitet die App in beiden Fällen mit den lokalen Daten.
+      </span>
+    </div>
   );
 }
