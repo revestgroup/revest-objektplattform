@@ -55,6 +55,7 @@ Lies zuerst `AGENTS.md` und halte dich an die Design-Regeln (deutsche Benennung,
 | Ausbau I: Backoffice Status und Archiv | erledigt (Qonto-/Drive-Bestätigung: Phase 2) | `ausbau/i-backoffice-archiv` |
 | Ausbau J: Abwicklung nach Kauf und Verkauf | erledigt (Fotos/Vorlage dauerhaft: Phase 2 Drive) | `ausbau/j-abwicklung` |
 | Ausbau K: Nachberechnung | erledigt (Zahlungseingang über Qonto: Phase 2) | `ausbau/k-nachberechnung` |
+| Ausbau L: Projektabschluss | erledigt (Datenraum freigeben, Ist aus Qonto: Phase 2) | `ausbau/l-projektabschluss` |
 
 Aufgaben 0–4 sind seit 08.11.2026 in `main`. Feinschliff-Blöcke je eigener Branch ab `main`, nach Test gemergt.
 

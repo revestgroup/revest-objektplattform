@@ -10,6 +10,7 @@ import type { EtwKalkulation } from "./kalkulationEtw";
 import type { Pruefung } from "./pruefung";
 import type { Ummeldung } from "./ummeldungen";
 import type { Nachberechnungszeile } from "./nachberechnung";
+import type { Nachkalkulation } from "./projektabschluss";
 
 export type Ankaufsstufe =
   | "neu"
@@ -982,6 +983,12 @@ export interface Objekt {
   nachberechnung?: Nachberechnungszeile[];
   /** Überschriebene Stichtage: Schlüssel „ankauf“ oder Einheit-ID. */
   nachberechnungStichtag?: Record<string, string | null>;
+  /** Datenraum: je Verkaufsunterlage die gewählte Datei oder „entfällt“. */
+  datenraum?: Record<string, { dokumentId?: string | null; entfaellt?: boolean }>;
+  /** Nachkalkulation: Ist-Werte und tatsächlicher Verkaufspreis. */
+  nachkalkulation?: Nachkalkulation;
+  /** Abschluss-Checkliste: von Hand erledigte Punkte. */
+  abschluss?: Record<string, { erledigtAm: string | null }>;
   /** Vorlage Übergabeprotokoll (xlsx/pdf), am Projekt hinterlegt. */
   uebergabeVorlage?: { name: string; groesseKb: number } | null;
   /** Objektprüfung im Ankauf. Siehe `pruefung.ts`. */

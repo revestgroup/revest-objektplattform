@@ -74,6 +74,13 @@ zählt zur neuen Seite; Revest-Anteil auf Cent gerundet, die Gegenseite ist der 
 entstehen in `einheitVerkaufen` (`mitPlatzhaltern`), der Abgleich mit den Abmeldungen läuft in
 `mutieren` (`mitAbgleich`). Beträge hier immer mit Cent anzeigen.
 
+## Projektabschluss
+
+`src/lib/projektabschluss.ts` (Tests daneben), Reiter `components/Abschluss.tsx`: Verkaufsunterlagen
+für den Datenraum (Vorrang Ordner `05_Verkauf/00_Vertrieb`), Nachkalkulation Soll (ETW-Kalkulation
+Mid-Case bzw. Verkaufsplanung) gegen Ist (von Hand, vorbelegt aus Kaufpreis, Gewerken,
+Nachberechnung, verkauften Einheiten), Abschluss-Checkliste mit automatisch erkannten Punkten.
+
 ## Kontaktregister
 
 `src/lib/kontakte.ts` (Tests daneben), Seite `routes/kontakte.tsx`. Ein Kontakt ist ein

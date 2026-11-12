@@ -71,6 +71,8 @@ import { Bildergalerie, Bildflaeche, istQuelle } from "./Bilder";
 import { Dateiliste, Dokumentenablage, Einsortieren } from "./Dokumente";
 import { AktivitaetenReiter, AktivitaetenSpalte } from "./Aktivitaeten";
 import { Nachberechnungsblatt } from "./Nachberechnung";
+import { Abschlussblatt } from "./Abschluss";
+import { abschlussstand } from "../lib/projektabschluss";
 import { Kontaktkacheln } from "./Kontaktkacheln";
 import { Objektaufgaben } from "./Objektaufgaben";
 import { Fristzeichen, Stufenzeichen } from "./Stufe";
@@ -95,7 +97,8 @@ type Reiter =
   | "einheiten"
   | "dokumente"
   | "verlauf"
-  | "nachberechnung";
+  | "nachberechnung"
+  | "abschluss";
 
 /**
  * Welche Reiter ein Objekt zeigt, hängt an seiner Phase — nicht an der Liste,
@@ -132,6 +135,7 @@ const PROJEKT_REITER: Reiter[] = [
   "verkauf",
   // Nach dem Verkauf: was an Rechnungen noch kommt und wem es gehört.
   "nachberechnung",
+  "abschluss",
   "dokumente",
   "verlauf",
 ];
@@ -162,6 +166,7 @@ const REITER_TITEL: Record<Reiter, string> = {
   dokumente: "Dokumente",
   verlauf: "Mail & Aktivitäten",
   nachberechnung: "Nachberechnung",
+  abschluss: "Abschluss",
 };
 
 export function ObjektDetail({
@@ -203,6 +208,14 @@ export function ObjektDetail({
     return () => beobachter.disconnect();
   }, []);
   const { garantien: alleGarantien } = useVermietung();
+  const { vorgaben: etwVorgaben } = useEinstellungen();
+  const abschluss = useMemo(
+    () =>
+      projekt
+        ? abschlussstand(objekt, etwVorgaben)
+        : { abgeschlossen: false, abgeschlossenAm: null },
+    [projekt, objekt, etwVorgaben],
+  );
   const verwertung = aufteilungText(
     objekt,
     (e) => alleGarantien.find((g) => g.einheitId === e.id)?.art === "wg",
@@ -234,6 +247,7 @@ export function ObjektDetail({
       verlauf: null,
       // Offene Zeilen: was noch abzurechnen oder zu bezahlen ist.
       nachberechnung: (objekt.nachberechnung ?? []).filter((z) => z.status !== "erledigt").length,
+      abschluss: null,
     }),
     [objekt, aufgaben],
   );
@@ -259,6 +273,12 @@ export function ObjektDetail({
                 {/* Im Ankauf zeigt die Stufenleiste darunter die Stufe — ein
                     zweites Etikett wäre doppelt. */}
                 {projekt && <Stufenzeichen stufe={objekt.stufe} />}
+                {projekt && abschluss.abgeschlossen && (
+                  <span className="rounded-full bg-[#DBF2E6] px-2.5 py-1 text-[0.6rem] font-semibold text-[#0C5E3A]">
+                    abgeschlossen
+                    {abschluss.abgeschlossenAm ? ` ${f.datum(abschluss.abgeschlossenAm)}` : ""}
+                  </span>
+                )}
                 {objekt.kuerzel && <Marke>{objekt.kuerzel}</Marke>}
                 <Fristzeichen objekt={objekt} />
                 {objekt.denkmalschutz && <Marke>Denkmal</Marke>}
@@ -391,6 +411,7 @@ export function ObjektDetail({
         {sichtbar === "dokumente" && <Dokumente objekt={objekt} projekt={projekt} />}
         {sichtbar === "verlauf" && <AktivitaetenReiter objekt={objekt} />}
         {sichtbar === "nachberechnung" && <Nachberechnungsblatt objekt={objekt} />}
+        {sichtbar === "abschluss" && <Abschlussblatt objekt={objekt} />}
       </div>
     </div>
   );
